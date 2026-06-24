@@ -77,7 +77,13 @@ export function isUserSuperAdmin(email) {
 
 // Auth middleware
 export function requireAuth(req, res, next) {
-  const publicPaths = ['/login.html', '/auth/login', '/auth/logout', '/api/settings/branding', '/register.html', '/api/users/register'];
+  const publicPaths = [
+    '/login.html', '/login', 
+    '/auth/login', '/auth/logout', 
+    '/api/settings/branding', 
+    '/register.html', '/register', 
+    '/api/users/register'
+  ];
   if (publicPaths.includes(req.path)) return next();
 
   if (req.path.startsWith('/api/users/invitations/') && req.path.endsWith('/verify')) {
@@ -87,7 +93,7 @@ export function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Não autenticado' });
-    return res.redirect('/login.html');
+    return res.redirect('/login');
   }
 
   const token = authHeader.split(' ')[1];
@@ -95,7 +101,7 @@ export function requireAuth(req, res, next) {
 
   if (!decoded) {
     if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Token inválido ou expirado' });
-    return res.redirect('/login.html');
+    return res.redirect('/login');
   }
 
   req.user = decoded;

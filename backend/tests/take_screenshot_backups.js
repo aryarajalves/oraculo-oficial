@@ -13,9 +13,9 @@ async function run() {
   await page.setViewportSize({ width: 1280, height: 1000 });
 
   try {
-    // 1. Acessa a página de login
+    // 1. Acessa a página de login usando URL limpa
     console.log('🌐 Acessando página de login...');
-    await page.goto('http://localhost:5176/login.html');
+    await page.goto('http://localhost:5176/login');
     await page.waitForTimeout(1000); 
 
     // 2. Preenche os dados e faz login como Super Admin

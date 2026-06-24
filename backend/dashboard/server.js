@@ -95,7 +95,7 @@ app.use(carouselsRouter);
 app.use(servicesRouter);
 app.use(backupsRouter);
 
-app.use(express.static(PUBLIC_DIR));
+app.use(express.static(PUBLIC_DIR, { extensions: ['html', 'htm'] }));
 
 // ── Global SSE ─────────────────────────────────────────────────────────────────
 app.get("/api/events", (req, res) => {

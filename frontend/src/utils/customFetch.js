@@ -16,7 +16,7 @@ export const customFetch = async (url, options = {}) => {
     const response = await window.__originalFetch(url, opt);
     if (response.status === 401) {
       localStorage.removeItem('fo_token');
-      window.location.href = '/login.html';
+      window.location.href = '/login';
       return new Promise(() => {}); // Retorna uma promessa pendente para interromper fluxo
     }
     return response;

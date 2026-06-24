@@ -23,7 +23,7 @@ import { customFetch } from './utils/customFetch';
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     // Se o usuário veio da página de login, forçamos 'carrosseis' apenas no primeiro carregamento
-    if (document.referrer && document.referrer.includes('login.html') && !sessionStorage.getItem('loginHandled')) {
+    if (document.referrer && (document.referrer.includes('login.html') || document.referrer.includes('login')) && !sessionStorage.getItem('loginHandled')) {
       sessionStorage.setItem('loginHandled', 'true');
       localStorage.setItem('activeTab', 'carrosseis');
       return 'carrosseis';
@@ -118,11 +118,11 @@ export default function App() {
         setCurrentUser(data);
       } else {
         localStorage.removeItem('fo_token');
-        window.location.href = '/login.html';
+        window.location.href = '/login';
       }
     } catch (e) {
       localStorage.removeItem('fo_token');
-      window.location.href = '/login.html';
+      window.location.href = '/login';
     }
   };
 

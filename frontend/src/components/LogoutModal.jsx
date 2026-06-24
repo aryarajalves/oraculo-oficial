@@ -23,7 +23,7 @@ export default function LogoutModal({ logoutModalOpen, setLogoutModalOpen }) {
                 await fetch('/auth/logout');
               } catch (e) {}
               localStorage.removeItem('fo_token');
-              window.location.href = '/login.html';
+              window.location.href = '/login';
             }}
           >
             Sair
