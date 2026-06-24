@@ -101,8 +101,9 @@ app.use(express.static(PUBLIC_DIR, { extensions: ['html', 'htm'] }));
 // ── Catch-all SPA — serve index.html para qualquer rota não encontrada ──────
 // Necessário para que rotas do frontend (/login, /dashboard, etc) funcionem
 // sem o sufixo .html em produção (o React Router cuida do roteamento interno)
-app.get('*', (req, res, next) => {
-  // Não intercepta rotas de API
+// Nota: usa app.use em vez de app.get('*') por compatibilidade com path-to-regexp v8+
+app.use((req, res, next) => {
+  // Não intercepta rotas de API nem de auth
   if (req.path.startsWith('/api/') || req.path.startsWith('/auth/')) return next();
   const indexPath = path.join(PUBLIC_DIR, 'index.html');
   if (fs.existsSync(indexPath)) {
