@@ -16,7 +16,9 @@ import UsersManagement from './components/UsersManagement';
 import BackupManagement from './components/BackupManagement';
 import GenerationHistoryModal from './components/GenerationHistoryModal';
 import InProgressPage from './components/InProgressPage';
+import LogoutModal from './components/LogoutModal';
 import { parseCarouselText } from './utils/carouselParser';
+import { customFetch } from './utils/customFetch';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
@@ -76,35 +78,6 @@ export default function App() {
     carouselTextColor: '#e4e4e7'
   });
   const [currentUser, setCurrentUser] = useState(null);
-
-  // Guarda uma referência para o fetch nativo original para evitar recursividade infinita
-  const originalFetch = window.fetch;
-
-  // Sobrescreve chamadas de fetch locais para injetar cabeçalho JWT e tratar 401
-  const customFetch = async (url, options = {}) => {
-    const token = localStorage.getItem('fo_token');
-    const headers = { ...options.headers };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    const opt = { ...options, headers };
-    
-    try {
-      const response = await originalFetch(url, opt);
-      if (response.status === 401) {
-        localStorage.removeItem('fo_token');
-        window.location.href = '/login.html';
-        return new Promise(() => {}); // Retorna uma promessa pendente para interromper fluxo
-      }
-      return response;
-    } catch (e) {
-      throw e;
-    }
-  };
-
-  // Expõe no objeto window sobrescrevendo o fetch padrão para os componentes
-  window.fetch = customFetch;
-
   const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
@@ -348,8 +321,6 @@ export default function App() {
       />
 
       <div className="main-area">
-
-
         {currentUser?.permissions?.[activeTab] === 'em_breve' ? (
           <InProgressPage activeTab={activeTab} currentUser={currentUser} />
         ) : (
@@ -472,35 +443,10 @@ export default function App() {
         carouselId={historyCarouselId}
       />
 
-      {logoutModalOpen && (
-        <div className="form-modal open" id="logout-confirm-modal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.75)' }}>
-          <div className="form-box" style={{ maxWidth: '400px', width: '100%', textAlign: 'center', padding: '30px', animation: 'scaleUp 0.2s ease-out' }}>
-            <div style={{ fontSize: '32px', marginBottom: '16px' }}>🚪</div>
-            <div className="form-title" style={{ fontSize: '18px', fontWeight: '700', marginBottom: '8px', letterSpacing: '0.05em' }}>CONFIRMAR SAÍDA</div>
-            <div className="settings-group-sub" style={{ marginBottom: '24px', fontSize: '13px', color: 'var(--text-3)' }}>
-              Tem certeza que deseja encerrar a sua sessão atual no painel do Oráculo?
-            </div>
-            <div className="form-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button className="btn btn-outline" onClick={() => setLogoutModalOpen(false)} style={{ flex: 1 }}>
-                Voltar
-              </button>
-              <button 
-                className="btn btn-gold" 
-                style={{ flex: 1, fontWeight: '600', cursor: 'pointer' }}
-                onClick={async () => {
-                  try {
-                    await fetch('/auth/logout');
-                  } catch (e) {}
-                  localStorage.removeItem('fo_token');
-                  window.location.href = '/login.html';
-                }}
-              >
-                Sair
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <LogoutModal
+        logoutModalOpen={logoutModalOpen}
+        setLogoutModalOpen={setLogoutModalOpen}
+      />
 
       <div className={`toast ${toastShow ? 'show' : ''}`} id="toast">
         {toastMessage}
