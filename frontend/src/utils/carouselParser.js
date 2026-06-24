@@ -18,12 +18,12 @@ export function parseCarouselText(text) {
 
   const slides = [];
   const lines = t.split('\n');
-  const slideHeader = /^\[S(\d+)\s*[—–\-]+\s*([^\]|]+?)(?:\s*\|\s*layout:\s*(\w+))?\s*\]/i;
+  const slideHeader = /^(?:\[S(\d+)\s*[—–\-]?\s*([^\]|]*?)(?:\s*\|\s*layout:\s*(\w+))?\s*\]|SLIDE\s*(\d+)\b)/i;
   let current = null;
   let field = null;
 
   const flush = () => {
-    if (current && current.title) {
+    if (current && (current.title || current.body)) {
       slides.push({
         num: current.num,
         estado: current.estado,
@@ -40,10 +40,13 @@ export function parseCarouselText(text) {
     const hm = line.match(slideHeader);
     if (hm) {
       flush();
+      const num = (hm[1] || hm[4] || '').padStart(2, '0');
+      const estado = hm[2] ? hm[2].trim().replace(/[^\w\s]/g, '').trim().toUpperCase() : `SLIDE ${num}`;
+      const layout = (hm[3] || 'fullbleed').trim();
       current = {
-        num: hm[1].padStart(2, '0'),
-        estado: hm[2].trim().replace(/[^\w\s]/g, '').trim().toUpperCase(),
-        layout: (hm[3] || 'fullbleed').trim(),
+        num,
+        estado,
+        layout,
         title: '', body: '', prompt: '',
       };
       field = null;

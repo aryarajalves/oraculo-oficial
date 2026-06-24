@@ -71,7 +71,8 @@ router.post("/api/carousels", async (req, res) => {
     createdAt: new Date().toISOString().split("T")[0],
     slidesDir: req.body.slidesDir || "",
     slidePrefix: "slide-",
-    totalSlides: 0,
+    totalSlides: Number(req.body.totalSlides) || 10,
+    imageQuality: req.body.imageQuality || "high",
     caption: req.body.caption || "",
     notes: req.body.notes || "",
     chatHistory: req.body.chatHistory || [],
@@ -397,7 +398,8 @@ router.post('/api/criador/generate', async (req, res) => {
     createdAt:   new Date().toISOString().slice(0, 10),
     slidesDir:   outDir,
     slidePrefix: 'slide-',
-    totalSlides: payload.slides.length,
+    totalSlides: Number(payload.totalSlides) || payload.slides.length || 10,
+    imageQuality: payload.imageQuality || 'high',
     caption:     payload.caption || '',
     notes:       payload.notes || '',
     slides:      [],
@@ -643,12 +645,17 @@ router.post('/api/criador/stream', async (req, res) => {
   }
 
   try {
+    const formattedMessages = messages.map(msg => ({
+      role: msg.role === 'ai' ? 'assistant' : msg.role,
+      content: msg.content || ''
+    }));
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'gpt-5.4',
-        messages: [{ role: 'system', content: system }, ...messages],
+        messages: [{ role: 'system', content: system }, ...formattedMessages],
         max_completion_tokens: 4000,
         temperature: 0.88,
         stream: true,

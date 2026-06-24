@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ARTIFACT_DIR = 'C:/Users/aryar/.gemini/antigravity/brain/a79e77ff-8ad9-4dfe-ae10-d2f2a1c47023';
+const ARTIFACT_DIR = 'C:/Users/aryar/.gemini/antigravity/brain/4e3dfbf1-4242-4df1-8322-3ab42e41048b';
 
 async function run() {
   console.log('🚀 Iniciando teste visual de Envio do Carrossel para o Chat (IA)...');

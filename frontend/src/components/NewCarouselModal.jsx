@@ -8,16 +8,19 @@ export default function NewCarouselModal({ isOpen, onClose, onCreate, onSendToCh
   const [caption, setCaption] = useState('');
   const [notes, setNotes] = useState('');
 
+  const [totalSlides, setTotalSlides] = useState('10');
+  const [imageQuality, setImageQuality] = useState('high');
+
   if (!isOpen) return null;
 
   const handleSubmit = () => {
-    onCreate({ title, theme, format, dir, caption, notes });
+    onCreate({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), imageQuality });
     onClose();
   };
 
   const handleSendToChat = () => {
     if (onSendToChat) {
-      onSendToChat({ title, theme, format, dir, caption, notes });
+      onSendToChat({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), imageQuality });
     }
     onClose();
   };
@@ -43,6 +46,24 @@ export default function NewCarouselModal({ isOpen, onClose, onCreate, onSendToCh
               <option value="B">B — Demolição + Reconstrução</option>
               <option value="C">C — Lista Revelação</option>
               <option value="D">D — História + Verdade</option>
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '10px' }}>
+          <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+            <label className="form-label">Total de Slides</label>
+            <input type="number" className="form-input" min="1" max="20" value={totalSlides} onChange={e => setTotalSlides(e.target.value)} />
+          </div>
+          <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+            <label className="form-label">Qualidade das Imagens</label>
+            <select className="form-select" value={imageQuality} onChange={e => setImageQuality(e.target.value)}>
+              <option value="auto">Auto</option>
+              <option value="low">Baixa</option>
+              <option value="medium">Média</option>
+              <option value="high">Alta</option>
+              <option value="standard">Padrão (DALL-E 3)</option>
+              <option value="hd">HD (DALL-E 3)</option>
             </select>
           </div>
         </div>

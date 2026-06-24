@@ -17,6 +17,7 @@ export default function Dashboard({
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [selectedDetailsCarousel, setSelectedDetailsCarousel] = useState(null);
   const PAGE_SIZE = 12;
 
   // Filter & Pagination
@@ -319,13 +320,28 @@ export default function Dashboard({
                       )}
 
                       <button
+                        className="btn btn-outline btn-sm"
+                        onClick={(e) => { e.stopPropagation(); setSelectedDetailsCarousel(c); }}
+                      >
+                        🔎 Detalhes
+                      </button>
+
+                      <button
                         className="btn-instagram btn-sm"
                         disabled={c.status === 'publicado'}
                         onClick={() => handlePublish(c.id)}
                       >
                         {c.status === 'publicado' ? '✓ Postado' : '✈ Postar'}
                       </button>
-                      <button className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); handleDownloadZip(c.id); }} title="Baixar todos os slides em ZIP">📥 Baixar</button>
+                      {c.slides && c.slides.length > 0 && c.totalSlides > 0 && c.slides.length === c.totalSlides && (
+                        <button 
+                          className="btn btn-outline btn-sm" 
+                          onClick={(e) => { e.stopPropagation(); handleDownloadZip(c.id); }} 
+                          title="Baixar todos os slides em ZIP"
+                        >
+                          Baixar
+                        </button>
+                      )}
                       <button className="btn-danger btn-sm" onClick={() => setDeleteTargetId(c.id)}>✕</button>
                     </div>
                   </div>
@@ -382,6 +398,77 @@ export default function Dashboard({
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button className="btn btn-outline" onClick={() => setIsBulkDeleteModalOpen(false)}>Cancelar</button>
               <button className="btn btn-danger" style={{ backgroundColor: 'var(--red, #f43f5e)', color: '#ffffff', border: 'none' }} onClick={confirmDeleteBulk}>Excluir permanentemente</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalhes do Carrossel */}
+      {selectedDetailsCarousel && (
+        <div className="form-modal open" onClick={() => setSelectedDetailsCarousel(null)}>
+          <div className="form-box" style={{ maxWidth: '440px', padding: '24px' }} onClick={(e) => e.stopPropagation()}>
+            <h3 className="form-title" style={{ color: 'var(--gold, #C9A84C)', fontSize: '18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              ℹ️ Detalhes do Carrossel
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: '#e4e4e7', fontSize: '13px' }}>
+              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Título</span>
+                <strong style={{ fontSize: '14px', color: '#ffffff' }}>{selectedDetailsCarousel.title || 'Sem título'}</strong>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Tema</span>
+                  <span style={{ fontFamily: 'monospace', color: 'var(--cyan, #38bdf8)' }}>{selectedDetailsCarousel.theme || 'Não definido'}</span>
+                </div>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Slides</span>
+                  <span style={{ fontWeight: '600' }}>{selectedDetailsCarousel.slides?.length || 0} / {selectedDetailsCarousel.totalSlides || 10}</span>
+                </div>
+              </div>
+
+              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Qualidade / Resolução</span>
+                <span style={{ textTransform: 'capitalize', fontWeight: '500' }}>{selectedDetailsCarousel.imageQuality || 'Alta (high)'}</span>
+              </div>
+
+              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Criado em (Horário de Brasília)</span>
+                <span style={{ fontWeight: '500' }}>
+                  {new Date(selectedDetailsCarousel.createdAt || Date.now()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Custo Total (USD)</span>
+                  <span style={{ color: '#f43f5e', fontWeight: '600' }}>${Number(selectedDetailsCarousel.cost || 0).toFixed(2)}</span>
+                </div>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Custo Total (BRL)</span>
+                  <span style={{ color: '#22c55e', fontWeight: '600' }}>R$ {Number((selectedDetailsCarousel.cost || 0) * 5.60).toFixed(2)}</span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Custo / Slide (USD)</span>
+                  <span style={{ fontWeight: '500' }}>
+                    ${Number(selectedDetailsCarousel.totalSlides > 0 ? (selectedDetailsCarousel.cost || 0) / selectedDetailsCarousel.totalSlides : 0).toFixed(4)}
+                  </span>
+                </div>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Custo / Slide (BRL)</span>
+                  <span style={{ fontWeight: '500' }}>
+                    R$ {Number(selectedDetailsCarousel.totalSlides > 0 ? ((selectedDetailsCarousel.cost || 0) * 5.60) / selectedDetailsCarousel.totalSlides : 0).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <button className="btn btn-outline" style={{ padding: '8px 20px' }} onClick={() => setSelectedDetailsCarousel(null)}>Fechar</button>
             </div>
           </div>
         </div>

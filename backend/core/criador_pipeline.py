@@ -112,11 +112,12 @@ def fetch_image_for_slide(args_tuple):
     idx, s = args_tuple
     prompt = s.get("prompt", "")
     s_title = s.get("title", "")
+    quality = s.get("imageQuality", None)
     prompt_final = build_prompt(prompt) if prompt else build_prompt(
         "Cinematic dark esoteric illustration, dramatic volumetric light, "
         f"deep emotional atmosphere. Abstract visual metaphor for: {s_title}"
     )
-    return idx, gen(prompt_final)
+    return idx, gen(prompt_final, quality=quality)
 
 
 def main():
@@ -152,8 +153,11 @@ def main():
     total = len(slides)
     out({"type": "start", "total": total, "title": title, "out_dir": str(out_dir)})
 
+    quality = payload.get("imageQuality", None)
+
     # Anuncia todos como "gerando" imagem
     for idx, s in enumerate(slides, 1):
+        s["imageQuality"] = quality
         out({"type": "slide", "num": idx, "total": total,
              "estado": s.get("estado", f"S{idx}"), "status": "gerando"})
 

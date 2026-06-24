@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { parseCarouselText } from '../utils/carouselParser';
 
 export default function Criador({ onStartGeneration, showToast, shouldAddFormMessage, clearAddFormMessage, initialMessages, clearInitialMessages }) {
   const [input, setInput] = useState('');
@@ -116,6 +117,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
 - **Título/Gancho:** ${briefing.title || 'Não definido'}
 - **Tema:** ${briefing.theme || 'Não definido'}
 - **Formato:** ${briefing.format || 'Não definido'}
+- **Total de Slides:** ${briefing.totalSlides || '10'}
+- **Qualidade das Imagens:** ${briefing.imageQuality || 'high'}
 - **Pasta:** ${briefing.dir || 'Não definido'}
 - **Legenda (Caption):** ${briefing.caption || 'Não definido'}
 - **Notas:** ${briefing.notes || 'Não definido'}`;
@@ -134,6 +137,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
           slidesDir: briefing.dir || '',
           caption: briefing.caption || '',
           notes: briefing.notes || '',
+          totalSlides: briefing.totalSlides || 10,
+          imageQuality: briefing.imageQuality || 'high',
           status: 'rascunho',
           chatHistory: [
             ...messages.filter(m => m.role !== 'form'),
@@ -271,7 +276,14 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                       <div className="criador-msg-actions" style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                         <button className="criador-action-btn" onClick={() => navigator.clipboard.writeText(m.content)}>Copiar tudo</button>
                         <button className="criador-action-btn" onClick={() => handleSaveDraft(m.content)}>+ Salvar rascunho</button>
-                        {(m.content.includes('[S1') || m.content.includes('DISRUPÇÃO')) && (
+                        {(() => {
+                          try {
+                            const parsed = parseCarouselText(m.content);
+                            return parsed && parsed.slides && parsed.slides.length > 0;
+                          } catch (e) {
+                            return false;
+                          }
+                        })() && (
                           <button className="criador-action-btn criador-action-btn--create" onClick={() => onStartGeneration(m.content)}>✦ Criar design</button>
                         )}
                       </div>
@@ -307,6 +319,8 @@ function ChatFormMessage({ onSubmit }) {
   const [title, setTitle] = useState('');
   const [theme, setTheme] = useState('');
   const [format, setFormat] = useState('A');
+  const [totalSlides, setTotalSlides] = useState('10');
+  const [imageQuality, setImageQuality] = useState('high');
   const [dir, setDir] = useState('');
   const [caption, setCaption] = useState('');
   const [notes, setNotes] = useState('');
@@ -364,6 +378,37 @@ function ChatFormMessage({ onSubmit }) {
         </div>
       </div>
 
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+          <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Total de Slides</label>
+          <input 
+            type="number"
+            className="form-input" 
+            style={{ background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
+            min="1"
+            max="20"
+            value={totalSlides} 
+            onChange={e => setTotalSlides(e.target.value)} 
+          />
+        </div>
+        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+          <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Qualidade</label>
+          <select 
+            className="form-select" 
+            style={{ background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
+            value={imageQuality} 
+            onChange={e => setImageQuality(e.target.value)}
+          >
+            <option value="auto">Auto</option>
+            <option value="low">Baixa</option>
+            <option value="medium">Média</option>
+            <option value="high">Alta</option>
+            <option value="standard">Padrão (DALL-E 3)</option>
+            <option value="hd">HD (DALL-E 3)</option>
+          </select>
+        </div>
+      </div>
+
       <div className="form-group" style={{ marginBottom: '8px' }}>
         <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Pasta das artes (caminho completo)</label>
         <input 
@@ -403,7 +448,7 @@ function ChatFormMessage({ onSubmit }) {
         className="btn btn-gold" 
         style={{ padding: '8px 12px', fontSize: '12px', fontWeight: '700', width: '100%', textTransform: 'uppercase', letterSpacing: '0.05em' }} 
         onClick={() => {
-          onSubmit({ title, theme, format, dir, caption, notes });
+          onSubmit({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), imageQuality });
           setSubmitted(true);
         }}
       >

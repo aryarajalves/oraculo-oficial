@@ -54,7 +54,7 @@ def _get_client() -> OpenAI:
 
 
 # ── Função principal ───────────────────────────────────────────────────────────
-def gen_openai(prompt: str, retries: int = MAX_RETRIES, size: str = SIZE) -> bytes | None:
+def gen_openai(prompt: str, retries: int = MAX_RETRIES, size: str = SIZE, quality: str = None) -> bytes | None:
     """
     Gera uma imagem via OpenAI e retorna os bytes PNG/JPEG.
     Mesma interface do gen() do Gemini — retorna None em caso de falha.
@@ -63,6 +63,7 @@ def gen_openai(prompt: str, retries: int = MAX_RETRIES, size: str = SIZE) -> byt
         prompt:  Prompt descritivo da imagem
         retries: Número máximo de tentativas
         size:    Tamanho da imagem ("1024x1536", "1024x1024", etc)
+        quality: Qualidade da imagem ("low", "medium", "high", "standard", "hd", etc)
 
     Returns:
         bytes da imagem, ou None se falhou
@@ -81,12 +82,12 @@ def gen_openai(prompt: str, retries: int = MAX_RETRIES, size: str = SIZE) -> byt
 
             if MODEL in ["gpt-image-1", "gpt-image-2"]:
                 kwargs["size"]    = size
-                kwargs["quality"] = QUALITY
+                kwargs["quality"] = quality or QUALITY
 
             elif MODEL == "dall-e-3":
                 # DALL-E 3 usa tamanhos diferentes e não aceita "high"
                 kwargs["size"]             = "1024x1792"
-                kwargs["quality"]          = "hd"
+                kwargs["quality"]          = quality or "hd"
                 kwargs["response_format"]  = "b64_json"
 
             response = client.images.generate(**kwargs)
