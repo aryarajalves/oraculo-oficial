@@ -54,6 +54,16 @@ const PORT = process.env.PORT || 3131;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ── Middleware global de Log de Requisições HTTP ──────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    logger.info('[HTTP]', `${req.method} ${req.originalUrl} - ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
+
 // Necessário para obter IPs reais atrás de um proxy reverso
 app.set('trust proxy', 1);
 
