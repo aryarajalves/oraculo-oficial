@@ -93,18 +93,22 @@ export function requireAuth(req, res, next) {
     return next();
   }
 
+  // Se NÃO for uma rota de API (ex: /, /dashboard, arquivos estáticos), permite passar.
+  // O React Router no frontend cuidará do roteamento e validação via /api/me.
+  if (!req.path.startsWith('/api/')) {
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Não autenticado' });
-    return res.redirect('/login');
+    return res.status(401).json({ error: 'Não autenticado' });
   }
 
   const token = authHeader.split(' ')[1];
   const decoded = verifyToken(token);
 
   if (!decoded) {
-    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Token inválido ou expirado' });
-    return res.redirect('/login');
+    return res.status(401).json({ error: 'Token inválido ou expirado' });
   }
 
   req.user = decoded;
