@@ -79,7 +79,6 @@ def atualizar_status_local(carousel_id, status):
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 META_TOKEN  = os.getenv("META_ACCESS_TOKEN")
 IG_ACCOUNT  = os.getenv("INSTAGRAM_ACCOUNT_ID")
-IMGBB_KEY   = os.getenv("IMGBB_API_KEY")
 
 HORARIO_MAP = {
     "09": "09h00",
@@ -87,21 +86,14 @@ HORARIO_MAP = {
     "20": "20h00",
 }
 
-# ── UPLOAD IMAGEM → IMGBB ────────────────────────────────────────────────────
-def upload_imgbb(img_path: Path) -> str:
-    """Faz upload da imagem para ImgBB e retorna a URL pública."""
-    img_b64 = base64.b64encode(img_path.read_bytes()).decode()
-    data    = f"key={IMGBB_KEY}&image={urllib.parse.quote(img_b64)}&expiration=300"
-    req = urllib.request.Request(
-        "https://api.imgbb.com/1/upload",
-        data=data.encode(),
-        headers={"Content-Type": "application/x-www-form-urlencoded"}
-    )
-    with urllib.request.urlopen(req, timeout=60) as r:
-        resp = json.loads(r.read())
-    if not resp.get("success"):
-        raise RuntimeError(f"ImgBB upload falhou: {resp}")
-    return resp["data"]["url"]
+# ── UPLOAD IMAGEM → BACKBLAZE B2 ─────────────────────────────────────────────
+def upload_to_b2(img_path: Path) -> str:
+    """Faz upload da imagem para Backblaze B2 e retorna a URL pública."""
+    from infra.uploaders.b2_uploader import upload_image
+    return upload_image(img_path)
+
+# Aliases de compatibilidade
+upload_imgbb = upload_to_b2
 
 # ── PUBLICAR CARROSSEL → INSTAGRAM GRAPH API ──────────────────────────────────
 def publicar_instagram(slides_dir: str, caption: str, dry_run: bool = False) -> str:
@@ -132,11 +124,11 @@ def publicar_instagram(slides_dir: str, caption: str, dry_run: bool = False) -> 
         print(f"    [DRY RUN] Caption: {caption[:80]}...")
         return "DRY_RUN_MEDIA_ID"
 
-    # 1. Upload cada slide para ImgBB e criar container
+    # 1. Upload cada slide para Backblaze B2 e criar container
     container_ids = []
     for i, slide in enumerate(slides, 1):
         print(f"    [{i}/{len(slides)}] Upload {slide.name}...")
-        img_url = upload_imgbb(slide)
+        img_url = upload_to_b2(slide)
 
         # Criar container de imagem no Instagram
         params = urllib.parse.urlencode({

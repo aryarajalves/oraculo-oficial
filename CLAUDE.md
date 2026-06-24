@@ -46,8 +46,8 @@ node server.js
 ### Publicação Instagram
 | Arquivo | Função |
 |---|---|
-| `instagram_publisher.py` | Pipeline completo: ImgBB upload → Meta API containers → publicar |
-| `imgbb_uploader.py` | Upload de JPEGs/PNGs para ImgBB e retorna URLs públicas (converte PNG→JPEG via Pillow) |
+| `instagram_publisher.py` | Pipeline completo: Backblaze B2 upload → Meta API containers → publicar |
+| `b2_uploader.py` | Upload de JPEGs/PNGs para Backblaze B2 e retorna URLs públicas (converte PNG→JPEG via Pillow) |
 | `publish_instagram.py` | CLI chamado pelo dashboard (--id, --caption, --list) |
 
 ### Dashboard
@@ -117,7 +117,6 @@ GEMINI_API_KEY=...             # Gemini — legado, não usar para imagens novas
 META_ACCESS_TOKEN=...          # System User Token — não expira
 INSTAGRAM_ACCOUNT_ID=17841470086196558
 FACEBOOK_PAGE_ID=582907918233766
-IMGBB_API_KEY=...              # Upload de imagens para publicação
 ```
 
 O token `META_ACCESS_TOKEN` é um **System User Token** gerado via Meta Business Suite.
@@ -130,7 +129,7 @@ Não é token de usuário comum — não expira e tem permissões `instagram_con
 ```
 Dashboard → botão "INSTAGRAM" → publish_instagram.py --id carrossel-XX
   → instagram_publisher.py
-    → imgbb_uploader.py  (faz upload dos slides, retorna URLs públicas)
+    → b2_uploader.py  (faz upload dos slides, retorna URLs públicas)
     → Meta API POST /{IG_USER_ID}/media  (cria container por slide)
     → Meta API POST /{IG_USER_ID}/media  (cria container carrossel)
     → Meta API GET /{carousel_id}  (aguarda status FINISHED)

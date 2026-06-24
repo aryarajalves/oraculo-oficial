@@ -84,8 +84,7 @@ oraculo-[cliente]/
 │
 ├── infra/
 │   ├── uploaders/                ← Upload de imagens para CDNs
-│   │   ├── imgbb_uploader.py     ← ImgBB (principal para Meta API)
-│   │   ├── b2_uploader.py        ← Backblaze B2
+│   │   ├── b2_uploader.py        ← Backblaze B2 (principal para Meta API)
 │   │   └── catbox_uploader.py    ← CatBox (gratuito)
 │   ├── social/
 │   │   ├── instagram_publisher.py← Pipeline completo de publicação
@@ -424,9 +423,6 @@ OPENAI_API_KEY=sk-proj-...
 META_ACCESS_TOKEN=EAAxxxxxx...    # System User Token (não expira)
 INSTAGRAM_ACCOUNT_ID=17841xxxxxxxx
 FACEBOOK_PAGE_ID=5829xxxxxxxx
-
-# ── ImgBB (hospedagem de imagens para publicação) ────────────────────────────
-IMGBB_API_KEY=xxxxxxxxxxxxxxxx
 
 # ── ElevenLabs (voz + SFX para Reels) ────────────────────────────────────────
 ELEVENLABS_API_KEY=sk_xxxxxxxxxxxxx

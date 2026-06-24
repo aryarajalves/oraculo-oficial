@@ -44,13 +44,13 @@ BASE_URL     = f"https://graph.facebook.com/{API_VERSION}"
 
 def _upload_slides(slides_dir: Path) -> list[str]:
     """Faz upload dos slides e retorna lista de URLs públicas."""
-    from publisher import upload_imgbb
+    from publisher import upload_to_b2
     slides = sorted(Path(slides_dir).glob("slide-*.jpg"))
     urls = []
-    print(f"\n[1/3] Enviando slides para ImgBB (Servidor oficial aprovado pela Meta API)...")
+    print(f"\n[1/3] Enviando slides para Backblaze B2 (Servidor oficial de imagens para a Meta API)...")
     for slide in slides:
         print(f"      {slide.name}...", end=" ", flush=True)
-        url = upload_imgbb(slide)
+        url = upload_to_b2(slide)
         urls.append(url)
         print("OK")
     print(f"      {len(urls)} slides enviados.\n")
@@ -233,7 +233,7 @@ def _convert_and_upload_stories(slides_dir: Path) -> list[str]:
     (com fundo desfocado e escurecido) e faz upload para ImgBB.
     """
     from PIL import Image, ImageFilter, ImageEnhance
-    from publisher import upload_imgbb
+    from publisher import upload_to_b2
 
     # Localizar slides
     slides = sorted(Path(slides_dir).glob("slide-*.jpg"))
@@ -294,8 +294,8 @@ def _convert_and_upload_stories(slides_dir: Path) -> list[str]:
             print(f"      Usando Story em cache: {story_file.name}")
 
         # Upload
-        print(f"      Enviando {story_file.name} para ImgBB...", end=" ", flush=True)
-        url = upload_imgbb(story_file)
+        print(f"      Enviando {story_file.name} para Backblaze B2...", end=" ", flush=True)
+        url = upload_to_b2(story_file)
         urls.append(url)
         print("OK")
         

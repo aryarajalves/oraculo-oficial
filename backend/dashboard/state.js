@@ -113,6 +113,17 @@ export function requireSuperAdmin(req, res, next) {
 // Memória para armazenar tentativas e limites de Rate Limit
 const rateLimitsMap = new Map();
 
+// Coletor de lixo (Garbage Collector) rodando a cada 10 minutos em background
+// para apagar IPs expirados e evitar memory leaks em servidores de produção
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, limit] of rateLimitsMap.entries()) {
+    if (now > limit.resetTime) {
+      rateLimitsMap.delete(key);
+    }
+  }
+}, 600000); // 10 minutos (600.000 ms)
+
 // Middleware de Rate Limit paramétrico
 export function rateLimiter(maxRequests, windowMs) {
   return (req, res, next) => {

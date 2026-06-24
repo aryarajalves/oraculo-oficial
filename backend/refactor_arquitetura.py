@@ -40,7 +40,6 @@ FILE_MOVES = {
     # Uploaders
     "b2_uploader.py": "infra/uploaders/",
     "catbox_uploader.py": "infra/uploaders/",
-    "imgbb_uploader.py": "infra/uploaders/",
     "imgur_uploader.py": "infra/uploaders/",
     
     # Social

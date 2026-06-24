@@ -28,7 +28,6 @@ if sys.platform == "win32":
 # ── Credenciais ────────────────────────────────────────────────────────────────
 META_TOKEN  = os.getenv("META_ACCESS_TOKEN", "")
 IG_ACCOUNT  = os.getenv("INSTAGRAM_ACCOUNT_ID", "")
-IMGBB_KEY   = os.getenv("IMGBB_API_KEY", "")
 IG_USER     = os.getenv("INSTAGRAM_USERNAME", "")
 IG_PASS     = os.getenv("INSTAGRAM_PASSWORD", "")
 
@@ -87,21 +86,14 @@ def verificar_sessao() -> bool:
     """Verifica se a sessão instagrapi existe."""
     return SESSION_FILE.exists()
 
-# ── ImgBB Upload ───────────────────────────────────────────────────────────────
-def upload_imgbb(img_path: Path) -> str:
-    """Faz upload para ImgBB (TTL=10 min) e retorna URL pública."""
-    img_b64 = base64.b64encode(img_path.read_bytes()).decode()
-    data    = f"key={IMGBB_KEY}&image={urllib.parse.quote(img_b64)}&expiration=600"
-    req = urllib.request.Request(
-        "https://api.imgbb.com/1/upload",
-        data=data.encode(),
-        headers={"Content-Type": "application/x-www-form-urlencoded"}
-    )
-    with urllib.request.urlopen(req, timeout=60) as r:
-        resp = json.loads(r.read())
-    if not resp.get("success"):
-        raise RuntimeError(f"ImgBB falhou: {resp}")
-    return resp["data"]["url"]
+# ── Backblaze B2 Upload ────────────────────────────────────────────────────────
+def upload_to_b2(img_path: Path) -> str:
+    """Faz upload para o Backblaze B2 e retorna URL pública."""
+    from infra.uploaders.b2_uploader import upload_image
+    return upload_image(img_path)
+
+# Aliases de compatibilidade
+upload_imgbb = upload_to_b2
 
 # ── Meta Graph API ─────────────────────────────────────────────────────────────
 def publicar_meta_api(slides: list, caption: str, dry_run: bool = False) -> str:
@@ -116,7 +108,7 @@ def publicar_meta_api(slides: list, caption: str, dry_run: bool = False) -> str:
     container_ids = []
     for i, slide in enumerate(slides, 1):
         print(f"    [{i}/{len(slides)}] Upload {slide.name}...")
-        url_img = upload_imgbb(slide)
+        url_img = upload_to_b2(slide)
 
         params = urllib.parse.urlencode({
             "image_url":        url_img,

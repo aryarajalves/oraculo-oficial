@@ -46,7 +46,6 @@ const MANAGED_KEYS = [
   { key: 'META_ACCESS_TOKEN',    label: 'Meta / Instagram Token',   group: 'Publicação' },
   { key: 'INSTAGRAM_ACCOUNT_ID', label: 'Instagram Account ID',     group: 'Publicação' },
   { key: 'FACEBOOK_PAGE_ID',     label: 'Facebook Page ID',         group: 'Publicação' },
-  { key: 'IMGBB_API_KEY',        label: 'ImgBB API Key',            group: 'Publicação' },
   { key: 'NOTION_TOKEN',         label: 'Notion Token',             group: 'Integrações' },
   { key: 'APIFY_API_KEY',        label: 'Apify API Key',            group: 'Integrações' },
   { key: 'ACTIVE_IMAGE_PROVIDER',label: 'Provedor de Imagem Ativo', group: 'Geração de Imagem' },
