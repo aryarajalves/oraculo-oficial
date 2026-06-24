@@ -18,7 +18,7 @@ import { requireSuperAdmin } from '../state.js';
 const router = express.Router();
 
 // Protege todas as rotas de backup exigindo privilégio de Super Admin
-router.use(requireSuperAdmin);
+router.use('/api/backups', requireSuperAdmin);
 
 // Configura o multer para uploads temporários no diretório temporário do SO
 const upload = multer({ dest: os.tmpdir() });
