@@ -4,7 +4,7 @@
 instagram_publisher.py — Publicador de Carrosseis no Instagram
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Pipeline completo:
-  1. Upload dos slides para Backblaze B2 (URLs públicas)
+  1. Upload dos slides para MinIO (URLs públicas)
   2. Criação de containers individuais na Meta API
   3. Criação do container de carrossel
   4. Publicação do carrossel no Instagram
@@ -39,7 +39,7 @@ BASE_URL     = f"https://graph.facebook.com/{API_VERSION}"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ETAPA 1 — Upload para Backblaze B2
+# ETAPA 1 — Upload para MinIO
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _upload_slides(slides_dir: Path) -> list[str]:
@@ -47,7 +47,7 @@ def _upload_slides(slides_dir: Path) -> list[str]:
     from publisher import upload_to_b2
     slides = sorted(Path(slides_dir).glob("slide-*.jpg"))
     urls = []
-    print(f"\n[1/3] Enviando slides para Backblaze B2 (Servidor oficial de imagens para a Meta API)...")
+    print(f"\n[1/3] Enviando slides para MinIO (Servidor oficial de imagens para a Meta API)...")
     for slide in slides:
         print(f"      {slide.name}...", end=" ", flush=True)
         url = upload_to_b2(slide)

@@ -27,10 +27,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
-const BUCKET   = process.env.B2_BUCKET_NAME    || "Publicacoes";
-const ENDPOINT = process.env.B2_ENDPOINT       || "s3.us-east-005.backblazeb2.com";
-const KEY_ID   = process.env.B2_KEY_ID;
-const APP_KEY  = process.env.B2_APPLICATION_KEY;
+const BUCKET   = process.env.MINIO_BUCKET      || "oraculo-bucket";
+const ENDPOINT = process.env.MINIO_ENDPOINT    || "http://localhost:9000";
+const KEY_ID   = process.env.MINIO_ROOT_USER   || "oraculo_admin";
+const APP_KEY  = process.env.MINIO_ROOT_PASSWORD || "oraculo_secret_123";
 const PREFIX   = "carousels";
 
 const DATA_FILE = path.join(__dirname, "dashboard", "data", "carousels.json");
@@ -39,13 +39,13 @@ const DATA_FILE = path.join(__dirname, "dashboard", "data", "carousels.json");
 const G = "\x1b[32m", Y = "\x1b[33m", R = "\x1b[31m", D = "\x1b[2m", RST = "\x1b[0m", B = "\x1b[34m";
 
 if (!KEY_ID || !APP_KEY) {
-  console.error(`${R}ERRO: B2_KEY_ID e B2_APPLICATION_KEY não encontrados no .env${RST}`);
+  console.error(`${R}ERRO: MINIO_ROOT_USER e MINIO_ROOT_PASSWORD não encontrados no .env${RST}`);
   process.exit(1);
 }
 
 const s3 = new S3Client({
-  region: "us-east-005",
-  endpoint: `https://${ENDPOINT}`,
+  region: "us-east-1",
+  endpoint: ENDPOINT,
   credentials: { accessKeyId: KEY_ID, secretAccessKey: APP_KEY },
   forcePathStyle: true,
 });

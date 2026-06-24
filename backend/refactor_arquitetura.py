@@ -38,7 +38,7 @@ FILE_MOVES = {
     "gen_image_openai.py": "core/util/",
     
     # Uploaders
-    "b2_uploader.py": "infra/uploaders/",
+    "minio_uploader.py": "infra/uploaders/",
     "catbox_uploader.py": "infra/uploaders/",
     "imgur_uploader.py": "infra/uploaders/",
     

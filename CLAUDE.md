@@ -46,8 +46,8 @@ node server.js
 ### Publicação Instagram
 | Arquivo | Função |
 |---|---|
-| `instagram_publisher.py` | Pipeline completo: Backblaze B2 upload → Meta API containers → publicar |
-| `b2_uploader.py` | Upload de JPEGs/PNGs para Backblaze B2 e retorna URLs públicas (converte PNG→JPEG via Pillow) |
+| `instagram_publisher.py` | Pipeline completo: MinIO upload → Meta API containers → publicar |
+| `minio_uploader.py` | Upload de JPEGs/PNGs para MinIO e retorna URLs públicas (converte PNG→JPEG via Pillow) |
 | `publish_instagram.py` | CLI chamado pelo dashboard (--id, --caption, --list) |
 
 ### Dashboard
@@ -129,7 +129,7 @@ Não é token de usuário comum — não expira e tem permissões `instagram_con
 ```
 Dashboard → botão "INSTAGRAM" → publish_instagram.py --id carrossel-XX
   → instagram_publisher.py
-    → b2_uploader.py  (faz upload dos slides, retorna URLs públicas)
+    → minio_uploader.py  (faz upload dos slides, retorna URLs públicas)
     → Meta API POST /{IG_USER_ID}/media  (cria container por slide)
     → Meta API POST /{IG_USER_ID}/media  (cria container carrossel)
     → Meta API GET /{carousel_id}  (aguarda status FINISHED)

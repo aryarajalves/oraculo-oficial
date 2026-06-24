@@ -86,14 +86,15 @@ HORARIO_MAP = {
     "20": "20h00",
 }
 
-# ── UPLOAD IMAGEM → BACKBLAZE B2 ─────────────────────────────────────────────
-def upload_to_b2(img_path: Path) -> str:
-    """Faz upload da imagem para Backblaze B2 e retorna a URL pública."""
-    from infra.uploaders.b2_uploader import upload_image
+# ── UPLOAD IMAGEM → MINIO ─────────────────────────────────────────────────────
+def upload_to_minio(img_path: Path) -> str:
+    """Faz upload da imagem para MinIO e retorna a URL pública."""
+    from infra.uploaders.minio_uploader import upload_image
     return upload_image(img_path)
 
 # Aliases de compatibilidade
-upload_imgbb = upload_to_b2
+upload_to_b2 = upload_to_minio
+upload_imgbb = upload_to_minio
 
 # ── PUBLICAR CARROSSEL → INSTAGRAM GRAPH API ──────────────────────────────────
 def publicar_instagram(slides_dir: str, caption: str, dry_run: bool = False) -> str:

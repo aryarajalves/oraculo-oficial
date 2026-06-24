@@ -84,7 +84,7 @@ oraculo-[cliente]/
 │
 ├── infra/
 │   ├── uploaders/                ← Upload de imagens para CDNs
-│   │   ├── b2_uploader.py        ← Backblaze B2 (principal para Meta API)
+│   │   ├── minio_uploader.py     ← MinIO (principal para Meta API)
 │   │   └── catbox_uploader.py    ← CatBox (gratuito)
 │   ├── social/
 │   │   ├── instagram_publisher.py← Pipeline completo de publicação

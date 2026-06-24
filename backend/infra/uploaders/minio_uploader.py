@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-b2_uploader.py — Upload de imagens para Backblaze B2 (URL pública)
+minio_uploader.py — Upload de imagens para MinIO (URL pública)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Faz upload de slides JPEG para o bucket público do Backblaze B2
+Faz upload de slides JPEG para o bucket público do MinIO
 e retorna URLs públicas — necessárias para publicação via Meta API.
 
 Uso:
-    from b2_uploader import upload_image, upload_slides
+    from minio_uploader import upload_image, upload_slides
 
     url  = upload_image(Path("slide-01.jpg"))
     urls = upload_slides(Path("C:/Users/julia/Desktop/carrossel-x"))
@@ -27,26 +27,28 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 
 load_dotenv()
 
-B2_KEY_ID          = os.getenv("B2_KEY_ID")
-B2_APPLICATION_KEY = os.getenv("B2_APPLICATION_KEY")
-B2_BUCKET_NAME     = os.getenv("B2_BUCKET_NAME")
-B2_ENDPOINT        = os.getenv("B2_ENDPOINT")  # ex: s3.us-east-005.backblazeb2.com
+MINIO_ENDPOINT      = os.getenv("MINIO_ENDPOINT")
+MINIO_ROOT_USER     = os.getenv("MINIO_ROOT_USER")
+MINIO_ROOT_PASSWORD = os.getenv("MINIO_ROOT_PASSWORD")
+MINIO_BUCKET        = os.getenv("MINIO_BUCKET", "oraculo-bucket")
+# URL pública para o Meta/Instagram acessar as imagens do MinIO se for diferente do endpoint interno
+MINIO_PUBLIC_URL    = os.getenv("MINIO_PUBLIC_URL") or MINIO_ENDPOINT
 
 
 def _client():
-    """Cria cliente boto3 apontando para o Backblaze B2."""
+    """Cria cliente boto3 apontando para o MinIO."""
     return boto3.client(
         "s3",
-        endpoint_url        = f"https://{B2_ENDPOINT}",
-        aws_access_key_id   = B2_KEY_ID,
-        aws_secret_access_key = B2_APPLICATION_KEY,
+        endpoint_url        = MINIO_ENDPOINT,
+        aws_access_key_id   = MINIO_ROOT_USER,
+        aws_secret_access_key = MINIO_ROOT_PASSWORD,
         config              = Config(signature_version="s3v4"),
     )
 
 
 def upload_image(path: Path | str, key: str = None) -> str:
     """
-    Faz upload de uma imagem para o Backblaze B2.
+    Faz upload de uma imagem para o MinIO.
 
     Args:
         path: Caminho local do arquivo (JPEG).
@@ -54,12 +56,12 @@ def upload_image(path: Path | str, key: str = None) -> str:
               prefixado com um UUID curto para evitar colisões.
 
     Returns:
-        URL pública da imagem (ex: https://Publicacoes.s3.us-east-005.backblazeb2.com/abc123-slide-01.jpg)
+        URL pública da imagem
     """
-    if not all([B2_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET_NAME, B2_ENDPOINT]):
+    if not all([MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]):
         raise ValueError(
-            "Credenciais Backblaze não encontradas no .env. "
-            "Verifique: B2_KEY_ID, B2_APPLICATION_KEY, B2_BUCKET_NAME, B2_ENDPOINT"
+            "Credenciais MinIO não encontradas no .env. "
+            "Verifique: MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET"
         )
 
     path = Path(path)
@@ -73,19 +75,16 @@ def upload_image(path: Path | str, key: str = None) -> str:
     client = _client()
     with open(path, "rb") as f:
         client.put_object(
-            Bucket      = B2_BUCKET_NAME,
+            Bucket      = MINIO_BUCKET,
             Key         = key,
             Body        = f,
             ContentType = "image/jpeg",
         )
 
-    # Formato nativo Backblaze (download URL pública garantida)
-    # us-east-005 → cluster f005
-    cluster = B2_ENDPOINT.split(".")[1]  # ex: "us-east-005" → prefixo "f005"
-    cluster_id = "f" + cluster.split("-")[-1]  # "005"
     import urllib.parse
     safe_key = urllib.parse.quote(key)
-    url = f"https://{cluster_id}.backblazeb2.com/file/{B2_BUCKET_NAME}/{safe_key}"
+    base_url = MINIO_PUBLIC_URL.rstrip("/")
+    url = f"{base_url}/{MINIO_BUCKET}/{safe_key}"
     return url
 
 
@@ -111,7 +110,7 @@ def upload_slides(slides_dir: Path | str, prefix: str = None) -> list[str]:
         prefix = uuid.uuid4().hex[:8]
 
     urls = []
-    print(f"\n  📤 Enviando {len(slides)} slides para Backblaze B2...")
+    print(f"\n  📤 Enviando {len(slides)} slides para o MinIO...")
     for slide in slides:
         key = f"{prefix}/{slide.name}"
         print(f"     {slide.name}...", end=" ", flush=True)
@@ -128,7 +127,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Uso: python b2_uploader.py <imagem_ou_pasta>")
+        print("Uso: python minio_uploader.py <imagem_ou_pasta>")
         sys.exit(1)
 
     target = Path(sys.argv[1])

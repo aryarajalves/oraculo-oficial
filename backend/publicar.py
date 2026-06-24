@@ -86,14 +86,15 @@ def verificar_sessao() -> bool:
     """Verifica se a sessão instagrapi existe."""
     return SESSION_FILE.exists()
 
-# ── Backblaze B2 Upload ────────────────────────────────────────────────────────
-def upload_to_b2(img_path: Path) -> str:
-    """Faz upload para o Backblaze B2 e retorna URL pública."""
-    from infra.uploaders.b2_uploader import upload_image
+# ── MinIO Upload ──────────────────────────────────────────────────────────────
+def upload_to_minio(img_path: Path) -> str:
+    """Faz upload para o MinIO e retorna URL pública."""
+    from infra.uploaders.minio_uploader import upload_image
     return upload_image(img_path)
 
 # Aliases de compatibilidade
-upload_imgbb = upload_to_b2
+upload_to_b2 = upload_to_minio
+upload_imgbb = upload_to_minio
 
 # ── Meta Graph API ─────────────────────────────────────────────────────────────
 def publicar_meta_api(slides: list, caption: str, dry_run: bool = False) -> str:

@@ -7,15 +7,16 @@ import path from "path";
 import { Readable } from "stream";
 
 // ── Config ──────────────────────────────────────────────────────────────────
-const BUCKET      = process.env.B2_BUCKET_NAME    || "Publicacoes";
-const ENDPOINT    = (process.env.B2_ENDPOINT || "s3.us-east-005.backblazeb2.com").replace(/^https?:\/\//i, "");
-const REGION      = "us-east-005";
-const KEY_ID      = process.env.B2_KEY_ID;
-const APP_KEY     = process.env.B2_APPLICATION_KEY;
+const BUCKET      = process.env.MINIO_BUCKET      || "oraculo-bucket";
+const ENDPOINT    = process.env.MINIO_ENDPOINT    || "http://localhost:9000";
+const REGION      = "us-east-1";
+const KEY_ID      = process.env.MINIO_ROOT_USER   || "oraculo_admin";
+const APP_KEY     = process.env.MINIO_ROOT_PASSWORD || "oraculo_secret_123";
 const PREFIX      = "carousels";  // pasta raiz no bucket
 
-// URL pública base (bucket deve estar configurado como público)
-export const B2_PUBLIC_URL = `https://${BUCKET}.${ENDPOINT}`;
+// URL pública base para acesso (com fallback)
+const MINIO_PUBLIC_URL = (process.env.MINIO_PUBLIC_URL || ENDPOINT).replace(/\/$/, "");
+export const B2_PUBLIC_URL = `${MINIO_PUBLIC_URL}/${BUCKET}`;
 
 // ── Client ──────────────────────────────────────────────────────────────────
 let _client = null;
@@ -23,7 +24,7 @@ function getClient() {
   if (!_client) {
     _client = new S3Client({
       region: REGION,
-      endpoint: `https://${ENDPOINT}`,
+      endpoint: ENDPOINT,
       credentials: { accessKeyId: KEY_ID, secretAccessKey: APP_KEY },
       forcePathStyle: true,
     });
