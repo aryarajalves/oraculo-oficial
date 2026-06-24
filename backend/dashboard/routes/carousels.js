@@ -25,6 +25,7 @@ import {
   REGEN_SCRIPT, 
   ZIP_SCRIPT 
 } from "../state.js";
+import { logger } from '../logger.js';
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -116,7 +117,7 @@ router.post("/api/carousels/bulk-delete", async (req, res) => {
           fs.rmSync(localDir, { recursive: true, force: true });
         }
       } catch (e) {
-        console.error(`Erro ao apagar pasta ${c.slidesDir}:`, e.message);
+        logger.error('[Carousel]', `Erro ao apagar pasta ${c.slidesDir}:`, e.message);
       }
       all.splice(index, 1);
       deletedCount++;
@@ -187,12 +188,12 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
       "--image", imgPath, "--title", title, "--body", body,
       "--layout", layout, "--output", imgPath
     ], { timeout: 60000 });
-    console.log("recompose:", stdout.trim());
+    logger.info('[Carousel]', "recompose:", stdout.trim());
     const metaPath = imgPath.replace(/\.(jpg|jpeg|png)$/i, ".meta.json");
     fs.writeFileSync(metaPath, JSON.stringify({ title, body, layout }, null, 2));
     res.json({ ok: true, message: stdout.trim() });
   } catch (e) {
-    console.error("recompose error:", e.message);
+    logger.error('[Carousel]', "recompose error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -211,7 +212,7 @@ router.delete("/api/carousels/:id", async (req, res) => {
       fs.rmSync(localDir, { recursive: true, force: true });
     }
   } catch (e) {
-    console.error(`Erro ao apagar pasta ${c.slidesDir}:`, e.message);
+    logger.error('[Carousel]', `Erro ao apagar pasta ${c.slidesDir}:`, e.message);
   }
 
   all.splice(index, 1);
@@ -252,10 +253,10 @@ router.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
       "--prompt", prompt, "--title", title, "--body", body,
       "--layout", layout, "--output", imgPath
     ], { timeout: 180000 });
-    console.log("regen:", stdout.trim());
+    logger.info('[Carousel]', "regen:", stdout.trim());
     res.json({ ok: true, message: stdout.trim() });
   } catch (e) {
-    console.error("regen error:", e.message);
+    logger.error('[Carousel]', "regen error:", e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -279,7 +280,7 @@ router.get("/api/carousels/:id/download-zip", async (req, res) => {
       "--data",   JSON.stringify(payload),
       "--output", tmpFile,
     ], { timeout: 60000 });
-    console.log("zip-carousel:", stdout.trim());
+    logger.info('[Carousel]', "zip-carousel:", stdout.trim());
 
     res.setHeader("Content-Disposition", `attachment; filename="${safeName}.zip"`);
     res.setHeader("Content-Type", "application/zip");
@@ -287,7 +288,7 @@ router.get("/api/carousels/:id/download-zip", async (req, res) => {
     stream.pipe(res);
     stream.on("close", () => fs.unlink(tmpFile, () => {}));
   } catch (e) {
-    console.error("zip-carousel error:", e.message);
+    logger.error('[Carousel]', "zip-carousel error:", e.message);
     if (!res.headersSent) res.status(500).json({ error: e.message });
   }
 });
@@ -312,7 +313,7 @@ router.get("/api/download-all", async (req, res) => {
       "--data",   JSON.stringify(payload),
       "--output", tmpFile,
     ], { timeout: 180000 });
-    console.log("download-all:", stdout.trim());
+    logger.info('[Carousel]', "download-all:", stdout.trim());
 
     const date = new Date().toISOString().split("T")[0];
     res.setHeader("Content-Disposition", `attachment; filename="afonteoculta-carrosseis-${date}.zip"`);
@@ -321,7 +322,7 @@ router.get("/api/download-all", async (req, res) => {
     stream.pipe(res);
     stream.on("close", () => fs.unlink(tmpFile, () => {}));
   } catch (e) {
-    console.error("download-all error:", e.message);
+    logger.error('[Carousel]', "download-all error:", e.message);
     if (!res.headersSent) res.status(500).json({ error: e.message });
   }
 });
@@ -348,13 +349,13 @@ router.post("/api/carousels/:id/publish-instagram", async (req, res) => {
 
   try {
     const { stdout, stderr } = await execFileAsync("python", args, { timeout: 300000 });
-    console.log("publish-instagram:", stdout.trim());
-    if (stderr) console.error("publish-instagram stderr:", stderr.trim());
+    logger.info('[Carousel]', "publish-instagram:", stdout.trim());
+    if (stderr) logger.error('[Carousel]', "publish-instagram stderr:", stderr.trim());
 
     const updated = (await readData()).find(x => x.id === req.params.id);
     res.json({ ok: true, log: stdout, carousel: updated });
   } catch (e) {
-    console.error("publish-instagram error:", e.message);
+    logger.error('[Carousel]', "publish-instagram error:", e.message);
     res.status(500).json({ error: e.message, log: e.stdout || "" });
   }
 });
@@ -376,7 +377,7 @@ router.post('/api/criador/generate', async (req, res) => {
   try {
     allCarousels = await readDataAsync();
   } catch (err) {
-    console.error("Erro ao ler carrosséis para determinar ID:", err);
+    logger.error('[Carousel]', "Erro ao ler carrosséis para determinar ID:", err);
   }
   const nums = allCarousels.map(c => parseInt(c.id?.split('-').pop()) || 0).filter(Boolean);
   const nextNum = nums.length ? Math.max(...nums) + 1 : 1;
@@ -555,7 +556,7 @@ router.post('/api/criador/generate', async (req, res) => {
           await writeDataAsync(localCarousels);
         }
       } catch (err) {
-        console.error("Erro ao atualizar dados pós-geração local:", err);
+        logger.error('[Carousel]', "Erro ao atualizar dados pós-geração local:", err);
       }
     }
 
@@ -687,7 +688,7 @@ router.post('/api/criador/stream', async (req, res) => {
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (e) {
-    console.error('criador/stream error:', e.message);
+    logger.error('[Carousel]', 'criador/stream error:', e.message);
     if (!res.headersSent) res.status(500).json({ error: e.message });
     else { res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`); res.end(); }
   }

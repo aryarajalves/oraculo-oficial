@@ -135,6 +135,33 @@ export async function initDb() {
     );
   `;
 
+  const createAgentPromptsTable = `
+    CREATE TABLE IF NOT EXISTS agent_prompts (
+      id           VARCHAR(100) PRIMARY KEY,
+      display_name VARCHAR(255),
+      category     VARCHAR(100),
+      content      TEXT NOT NULL DEFAULT '',
+      updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  const createBrandingTable = `
+    CREATE TABLE IF NOT EXISTS branding (
+      id         INTEGER PRIMARY KEY DEFAULT 1,
+      data       JSONB NOT NULL DEFAULT '{}'::jsonb,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT branding_one_row CHECK (id = 1)
+    );
+  `;
+
+  const createApiKeysTable = `
+    CREATE TABLE IF NOT EXISTS api_keys (
+      key        VARCHAR(100) PRIMARY KEY,
+      value      TEXT,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
   try {
     await query(createCarouselsTable);
     await query(createReelsHistoryTable);
@@ -142,6 +169,9 @@ export async function initDb() {
     await query(createInvitationsTable);
     await query(createBackupConfigTable);
     await query(createBackupLogsTable);
+    await query(createAgentPromptsTable);
+    await query(createBrandingTable);
+    await query(createApiKeysTable);
 
     // Inicializa a linha de configuração única se não existir
     const checkConfig = await query("SELECT * FROM backup_config WHERE id = 1");
@@ -152,7 +182,7 @@ export async function initDb() {
       `);
     }
 
-    logger.info('[DB]', '✅ Tabelas validadas/criadas com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs.');
+    logger.info('[DB]', '✅ Tabelas validadas/criadas com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs, agent_prompts, branding, api_keys.');
   } catch (err) {
     logger.error('[DB]', '❌ Erro ao inicializar tabelas do banco de dados:', err);
     throw err;

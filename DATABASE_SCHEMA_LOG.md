@@ -135,3 +135,62 @@ Permitir o controle detalhado de acesso por página (Liberado, Em Progresso, Sem
    ```
 
 
+
+
+---
+
+## [2026-06-24] Migração de Configurações do Filesystem para o PostgreSQL
+
+### Motivação
+Centralizar todas as configurações editáveis do dashboard no PostgreSQL para garantir portabilidade total: um único `pg_dump` + a variável `JWT_SECRET` são suficientes para migrar o sistema completo para qualquer servidor.
+
+### Tabelas Criadas
+
+1. **`agent_prompts`**
+   - Substitui os arquivos `.md` de `backend/agents/` e `display_names.json`.
+   - Colunas:
+     - `id` VARCHAR(100) PRIMARY KEY (ex: "canalizador-visual")
+     - `display_name` VARCHAR(255) — nome exibido no dashboard
+     - `category` VARCHAR(100) — categoria do agente (copy, design, geral)
+     - `content` TEXT NOT NULL — markdown completo do prompt
+     - `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+2. **`branding`**
+   - Substitui `backend/dashboard/data/branding.json`.
+   - Singleton (sempre id = 1).
+   - Colunas:
+     - `id` INTEGER PRIMARY KEY DEFAULT 1
+     - `data` JSONB NOT NULL — objeto completo de identidade visual
+     - `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+3. **`api_keys`**
+   - Substitui a edição de chaves no arquivo `.env` via dashboard.
+   - Valores encriptados com AES-256-CBC usando `JWT_SECRET` como chave.
+   - Colunas:
+     - `key` VARCHAR(100) PRIMARY KEY — nome da variável (ex: "OPENAI_API_KEY")
+     - `value` TEXT — valor encriptado (formato: "iv_hex:encrypted_hex")
+     - `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+### Arquivos Criados/Modificados
+- **[NEW]** `backend/dashboard/crypto.js` — módulo AES-256-CBC (encrypt/decrypt)
+- **[NEW]** `backend/dashboard/scripts/migrate_settings_to_db.js` — script de migração único e idempotente
+- **[MODIFY]** `backend/dashboard/db.js` — CREATE TABLE das 3 novas tabelas no initDb()
+- **[MODIFY]** `backend/dashboard/routes/services.js` — rotas de settings migradas para queries SQL
+
+### Script de Migração
+- **Script:** `backend/dashboard/scripts/migrate_settings_to_db.js`
+  - *Função:* Lê arquivos existentes e popula as tabelas. Idempotente (ON CONFLICT DO NOTHING).
+
+### Instruções para Deploy
+1. Rebuildar e reiniciar os containers:
+   ```bash
+   docker compose -f docker/docker-compose-local.yml up -d --build --force-recreate
+   ```
+2. Executar o script de migração **uma única vez**:
+   ```bash
+   docker exec oraculo_backend node backend/dashboard/scripts/migrate_settings_to_db.js
+   ```
+
+### Importante
+- A `JWT_SECRET` é obrigatória no `.env` do servidor. É a única variável necessária além do banco.
+- Não trocar a `JWT_SECRET` após a migração sem re-encriptar as keys.

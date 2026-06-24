@@ -13,6 +13,9 @@ import {
 } from "../helpers.js";
 import { buildAgentPrompts } from "../agentPrompts.js";
 import { CLIENT } from "../state.js";
+import { logger } from '../logger.js';
+import { query } from '../db.js';
+import { encrypt, decrypt, getSecret } from '../crypto.js';
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -80,11 +83,11 @@ router.post("/api/oraculo/update", async (req, res) => {
 
   try {
     const { stdout, stderr } = await execFileAsync("python", args, { timeout: 60000 });
-    console.log("oraculo:", stdout.trim());
+    logger.info('[Services]', "oraculo:", stdout.trim());
     const all = await readData();
     res.json({ ok: true, log: stdout, carousels: all });
   } catch (e) {
-    console.error("oraculo error:", e.message);
+    logger.error('[Services]', "oraculo error:", e.message);
     res.status(500).json({ error: e.message, log: e.stdout || "" });
   }
 });
@@ -118,12 +121,12 @@ router.post("/api/oraculo/sync", async (req, res) => {
     const { stdout, stderr } = await execFileAsync("python", [
       "-X", "utf8", ORACULO_COMPLETO_SCRIPT
     ], { timeout: 300000 });
-    console.log("oraculo-sync:", stdout.trim());
-    if (stderr) console.error("oraculo-sync stderr:", stderr.trim());
+    logger.info('[Services]', "oraculo-sync:", stdout.trim());
+    if (stderr) logger.error('[Services]', "oraculo-sync stderr:", stderr.trim());
     const data = readOraculoData();
     res.json({ ok: true, log: stdout, ...data });
   } catch (e) {
-    console.error("oraculo-sync error:", e.message);
+    logger.error('[Services]', "oraculo-sync error:", e.message);
     res.status(500).json({ error: e.message, log: e.stdout || "" });
   }
 });
@@ -377,12 +380,12 @@ function readRadarData() {
 router.post("/api/radar/sync", async (req, res) => {
   try {
     const { stdout, stderr } = await execFileAsync("python", ["-X", "utf8", RADAR_SCRIPT], { timeout: 300000 });
-    console.log("radar-sync:", stdout.trim());
-    if (stderr) console.error("radar-sync stderr:", stderr.trim());
+    logger.info('[Services]', "radar-sync:", stdout.trim());
+    if (stderr) logger.error('[Services]', "radar-sync stderr:", stderr.trim());
     const data = readRadarData();
     res.json({ ok: true, log: stdout, data });
   } catch (e) {
-    console.error("radar-sync error:", e.message);
+    logger.error('[Services]', "radar-sync error:", e.message);
     res.status(500).json({ error: e.message, log: e.stdout || "" });
   }
 });
