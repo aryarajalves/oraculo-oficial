@@ -1,5 +1,5 @@
 import pg from 'pg';
-const { Pool } = pg;
+const { Pool, Client } = pg;
 
 // Configuração do pool de conexões do PostgreSQL
 const pool = new Pool({
@@ -15,7 +15,45 @@ export const query = (text, params) => pool.query(text, params);
 
 // Inicialização automática das tabelas (Schema definition)
 export async function initDb() {
-  console.log('🔄 Inicializando banco de dados PostgreSQL...');
+  const host = process.env.DB_HOST || 'localhost';
+  const port = parseInt(process.env.DB_PORT || '5432', 10);
+  const user = process.env.DB_USER || 'postgres';
+  const password = process.env.DB_PASSWORD || '123456';
+  const targetDb = process.env.DB_NAME || 'oracle_manager';
+
+  console.log('🔄 Verificando se o banco de dados existe...');
+  const tempClient = new Client({
+    host,
+    port,
+    user,
+    password,
+    database: 'postgres',
+  });
+
+  try {
+    await tempClient.connect();
+    const res = await tempClient.query(
+      "SELECT 1 FROM pg_database WHERE datname = $1",
+      [targetDb]
+    );
+
+    if (res.rows.length === 0) {
+      console.log(`➕ Banco de dados "${targetDb}" não encontrado. Criando...`);
+      const cleanDbName = targetDb.replace(/[^a-zA-Z0-9_]/g, '');
+      await tempClient.query(`CREATE DATABASE ${cleanDbName}`);
+      console.log(`✅ Banco de dados "${targetDb}" criado com sucesso!`);
+    } else {
+      console.log(`✅ Banco de dados "${targetDb}" já existe.`);
+    }
+  } catch (err) {
+    console.error('⚠️ Falha ao verificar/criar banco de dados padrão, prosseguindo com conexão direta:', err.message);
+  } finally {
+    try {
+      await tempClient.end();
+    } catch {}
+  }
+
+  console.log('🔄 Inicializando tabelas do banco de dados...');
 
   const createCarouselsTable = `
     CREATE TABLE IF NOT EXISTS carousels (
