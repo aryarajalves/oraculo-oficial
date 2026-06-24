@@ -6,6 +6,7 @@ import {
   isUserSuperAdmin,
   generateToken
 } from "../state.js";
+import { logger } from '../logger.js';
 
 const router = express.Router();
 
@@ -68,7 +69,7 @@ router.post('/auth/login', async (req, res) => {
       });
     }
   } catch (err) {
-    console.error("Erro ao validar login no banco:", err);
+    logger.error('[Auth]', "Erro ao validar login no banco:", err);
   }
 
   return res.status(401).json({ detail: "Usuário ou senha incorretos." });
@@ -104,7 +105,7 @@ router.get('/api/me', async (req, res) => {
         permissions = dbUserRes.rows[0].permissions || {};
       }
     } catch (err) {
-      console.error("Erro ao buscar permissões do usuário:", err);
+      logger.error('[Auth]', "Erro ao buscar permissões do usuário:", err);
     }
   }
 

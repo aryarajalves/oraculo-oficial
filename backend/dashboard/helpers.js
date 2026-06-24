@@ -2,6 +2,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { query } from "./db.js";
+import { logger } from "./logger.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IS_PROD = process.env.NODE_ENV === "production";
@@ -11,7 +12,7 @@ if (IS_PROD) {
   try {
     b2 = await import("./b2.js");
   } catch (e) {
-    console.error("Erro ao carregar módulo B2 em helpers:", e);
+    logger.error('[B2]', 'Erro ao carregar módulo B2 em helpers:', e);
   }
 }
 
@@ -52,7 +53,7 @@ export async function readData() {
     const res = await query("SELECT * FROM carousels ORDER BY id ASC");
     return res.rows.map(mapCarouselFromDb);
   } catch (err) {
-    console.error("Erro ao ler carrosséis do banco:", err);
+    logger.error('[Helpers]',"Erro ao ler carrosséis do banco:", err);
     return [];
   }
 }
@@ -111,7 +112,7 @@ export async function writeData(data) {
     await query("COMMIT");
   } catch (err) {
     await query("ROLLBACK");
-    console.error("Erro ao salvar carrosséis no banco:", err);
+    logger.error('[Helpers]',"Erro ao salvar carrosséis no banco:", err);
     throw err;
   }
 }
@@ -159,7 +160,7 @@ export async function readReelsHistory() {
     const res = await query("SELECT * FROM reels_history ORDER BY id DESC");
     return res.rows;
   } catch (err) {
-    console.error("Erro ao ler reels do banco:", err);
+    logger.error('[Helpers]',"Erro ao ler reels do banco:", err);
     return [];
   }
 }
@@ -188,7 +189,7 @@ export async function writeReelsHistory(data) {
     await query("COMMIT");
   } catch (err) {
     await query("ROLLBACK");
-    console.error("Erro ao salvar reels no banco:", err);
+    logger.error('[Helpers]',"Erro ao salvar reels no banco:", err);
     throw err;
   }
 }

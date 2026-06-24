@@ -1,4 +1,5 @@
 import pg from 'pg';
+import { logger } from './logger.js';
 const { Pool, Client } = pg;
 
 // Configuração do pool de conexões do PostgreSQL
@@ -21,7 +22,7 @@ export async function initDb() {
   const password = process.env.DB_PASSWORD || '123456';
   const targetDb = process.env.DB_NAME || 'oracle_manager';
 
-  console.log('🔄 Verificando se o banco de dados existe...');
+  logger.info('[DB]', 'Verificando se o banco de dados existe...');
   const tempClient = new Client({
     host,
     port,
@@ -38,22 +39,22 @@ export async function initDb() {
     );
 
     if (res.rows.length === 0) {
-      console.log(`➕ Banco de dados "${targetDb}" não encontrado. Criando...`);
+      logger.info('[DB]', `Banco de dados "${targetDb}" não encontrado. Criando...`);
       const cleanDbName = targetDb.replace(/[^a-zA-Z0-9_]/g, '');
       await tempClient.query(`CREATE DATABASE ${cleanDbName}`);
-      console.log(`✅ Banco de dados "${targetDb}" criado com sucesso!`);
+      logger.info('[DB]', `✅ Banco de dados "${targetDb}" criado com sucesso!`);
     } else {
-      console.log(`✅ Banco de dados "${targetDb}" já existe.`);
+      logger.info('[DB]', `✅ Banco de dados "${targetDb}" já existe.`);
     }
   } catch (err) {
-    console.error('⚠️ Falha ao verificar/criar banco de dados padrão, prosseguindo com conexão direta:', err.message);
+    logger.warn('[DB]', 'Falha ao verificar/criar banco de dados padrão, prosseguindo com conexão direta:', err.message);
   } finally {
     try {
       await tempClient.end();
     } catch {}
   }
 
-  console.log('🔄 Inicializando tabelas do banco de dados...');
+  logger.info('[DB]', 'Inicializando tabelas do banco de dados...');
 
   const createCarouselsTable = `
     CREATE TABLE IF NOT EXISTS carousels (
@@ -151,9 +152,9 @@ export async function initDb() {
       `);
     }
 
-    console.log('✅ Tabelas carousels, reels_history, dashboard_users, invitations, backup_config e backup_logs validadas/criadas com sucesso.');
+    logger.info('[DB]', '✅ Tabelas validadas/criadas com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs.');
   } catch (err) {
-    console.error('❌ Erro ao inicializar tabelas do banco de dados:', err);
+    logger.error('[DB]', '❌ Erro ao inicializar tabelas do banco de dados:', err);
     throw err;
   }
 }

@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import { initDb } from "./db.js";
+import { logger } from "./logger.js";
 
 // Import modules
 import { 
@@ -120,11 +121,11 @@ setInterval(async () => {
     const PUB_SCRIPT = path.join(__dirname, "..", "publisher.py");
     const { stdout } = await execFileAsync("python", ["-X", "utf8", PUB_SCRIPT]);
     if (stdout && stdout.includes("Post:")) {
-      console.log("\n[CRON] Publicador executou:\n" + stdout);
+      logger.info('[CRON]', 'Publicador executou:\n' + stdout);
     }
   } catch (e) {
     if (e.stdout && e.stdout.includes("Post:")) {
-       console.log("\n[CRON] Publicador executou (mas retornou erro):\n" + e.stdout);
+       logger.warn('[CRON]', 'Publicador executou (mas retornou código de saída não-zero):\n' + e.stdout);
     }
   }
 }, 60000); // Roda a cada 60 segundos
@@ -133,9 +134,9 @@ setInterval(async () => {
 initDb().then(() => {
   resetBackupScheduler();
   app.listen(PORT, () => {
-    console.log(`\nOráculo Dashboard rodando em: http://localhost:${PORT}\n`);
+    logger.info('[SERVER]', `✅ Oráculo Dashboard rodando em: http://localhost:${PORT}`);
   });
 }).catch(err => {
-  console.error("❌ Falha crítica ao inicializar banco de dados:", err);
+  logger.error('[SERVER]', '❌ Falha crítica ao inicializar banco de dados:', err);
   process.exit(1);
 });

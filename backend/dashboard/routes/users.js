@@ -6,6 +6,7 @@ import {
   getSuperAdminEmail, 
   hashPassword 
 } from "../state.js";
+import { logger } from '../logger.js';
 
 const router = express.Router();
 

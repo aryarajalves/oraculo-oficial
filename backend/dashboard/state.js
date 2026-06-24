@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { logger } from "./logger.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "fonte-oculta-secret-key-change-in-prod";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "24h";
@@ -29,9 +30,9 @@ let b2Instance = null;
 if (IS_PROD) {
   try {
     b2Instance = await import("./b2.js");
-    console.log("[B2] Modo produção ativado — usando Backblaze B2");
+    logger.info('[B2]', 'Modo produção ativado — usando Backblaze B2');
   } catch (err) {
-    console.error("Erro ao carregar módulo B2:", err);
+    logger.error('[B2]', 'Erro ao carregar módulo B2:', err);
   }
 }
 export { b2Instance as b2 };
@@ -43,7 +44,7 @@ function loadClientConfig() {
       return JSON.parse(fs.readFileSync(p, 'utf-8'));
     }
   } catch (e) {
-    console.error("Erro ao carregar client.json:", e);
+    logger.error('[CONFIG]', 'Erro ao carregar client.json:', e);
   }
   return null;
 }

@@ -11,6 +11,7 @@ import {
   GetObjectCommand
 } from "@aws-sdk/client-s3";
 import { query } from './db.js';
+import { logger } from './logger.js';
 import { Readable } from 'stream';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -60,7 +61,7 @@ const executeDump = (outputPath) => {
       database
     ];
 
-    console.log(`[Backup] Executando pg_dump para ${database} no host ${host}...`);
+    logger.info('[Backup]', `Executando pg_dump para ${database} no host ${host}...`);
     const pgDump = spawn('pg_dump', args, {
       env: {
         ...process.env,
@@ -93,7 +94,7 @@ export async function uploadBackupToS3(filename, filePath, s3Folder) {
   const fileStream = fs.createReadStream(filePath);
   const key = `${s3Folder.replace(/\/$/, '')}/${filename}`;
 
-  console.log(`[Backup] Enviando backup para S3: ${key}...`);
+  logger.info('[Backup]', `Enviando backup para S3: ${key}...`);
   const cmd = new PutObjectCommand({
     Bucket: bucket,
     Key: key,
@@ -111,7 +112,7 @@ export async function enforceRetention(s3Folder, retentionLimit) {
     const cleanFolder = s3Folder.replace(/\/$/, '');
     const prefix = `${cleanFolder}/`;
 
-    console.log(`[Backup] Verificando retenção de backups em ${prefix} (Limite: ${retentionLimit})...`);
+    logger.info('[Backup]', `Verificando retenção em ${prefix} (limite: ${retentionLimit})...`);
     const listCmd = new ListObjectsV2Command({
       Bucket: bucket,
       Prefix: prefix
@@ -127,10 +128,10 @@ export async function enforceRetention(s3Folder, retentionLimit) {
 
     if (backups.length > retentionLimit) {
       const toDelete = backups.slice(retentionLimit);
-      console.log(`[Backup] Removendo ${toDelete.length} backup(s) antigo(s)...`);
+      logger.info('[Backup]', `Removendo ${toDelete.length} backup(s) antigo(s)...`);
 
       for (const obj of toDelete) {
-        console.log(`[Backup] Deletando do S3: ${obj.Key}`);
+        logger.info('[Backup]', `Deletando do S3: ${obj.Key}`);
         const deleteCmd = new DeleteObjectCommand({
           Bucket: bucket,
           Key: obj.Key
@@ -143,7 +144,7 @@ export async function enforceRetention(s3Folder, retentionLimit) {
       }
     }
   } catch (err) {
-    console.error("[Backup] Erro ao aplicar política de retenção:", err.message);
+    logger.error('[Backup]', 'Erro ao aplicar política de retenção:', err.message);
   }
 }
 
@@ -165,7 +166,7 @@ export async function performBackup() {
       config = configRes.rows[0];
     }
   } catch (err) {
-    console.error("[Backup] Erro ao carregar configuração de backup:", err.message);
+    logger.error('[Backup]', 'Erro ao carregar configuração de backup:', err.message);
   }
 
   try {
@@ -186,7 +187,7 @@ export async function performBackup() {
       ON CONFLICT (filename) DO UPDATE SET size_bytes = $2, status = $3, error_message = NULL
     `, [filename, sizeBytes, 'success']);
 
-    console.log(`[Backup] Backup concluído com sucesso e enviado ao S3: ${filename}`);
+    logger.info('[Backup]', `✅ Backup concluído com sucesso: ${filename}`);
 
     // 5. Remove arquivo temporário local
     try {
@@ -198,7 +199,7 @@ export async function performBackup() {
 
     return { success: true, filename };
   } catch (err) {
-    console.error("[Backup] Falha ao realizar backup:", err.message);
+    logger.error('[Backup]', 'Falha ao realizar backup:', err.message);
 
     // Registra falha no banco
     try {
@@ -208,7 +209,7 @@ export async function performBackup() {
         ON CONFLICT (filename) DO UPDATE SET status = $3, error_message = $4
       `, [filename, 0, 'failed', err.message]);
     } catch (dbErr) {
-      console.error("[Backup] Erro ao salvar log de falha de backup:", dbErr.message);
+      logger.error('[Backup]', 'Erro ao salvar log de falha de backup:', dbErr.message);
     }
 
     try {
@@ -224,7 +225,7 @@ export async function resetBackupScheduler() {
   if (activeSchedulerTimer) {
     clearInterval(activeSchedulerTimer);
     activeSchedulerTimer = null;
-    console.log("[Backup] Scheduler anterior finalizado.");
+    logger.info('[Backup]', 'Scheduler anterior finalizado.');
   }
 
   try {
@@ -233,7 +234,7 @@ export async function resetBackupScheduler() {
 
     const config = configRes.rows[0];
     if (!config.enabled) {
-      console.log("[Backup] Scheduler automático desativado.");
+      logger.info('[Backup]', 'Scheduler automático desativado.');
       return;
     }
 
@@ -248,19 +249,19 @@ export async function resetBackupScheduler() {
       intervalMs = value * 24 * 60 * 60 * 1000;
     }
 
-    console.log(`[Backup] Scheduler automático ativado. Frequência: a cada ${value} ${config.frequency} (${intervalMs}ms)`);
+    logger.info('[Backup]', `Scheduler ativado. Frequência: a cada ${value} ${config.frequency} (${intervalMs}ms)`);
 
     activeSchedulerTimer = setInterval(async () => {
-      console.log("[Backup] Executando rotina programada de backup...");
+      logger.info('[Backup]', 'Executando rotina programada de backup...');
       try {
         await performBackup();
       } catch (err) {
-        console.error("[Backup] Erro na execução programada do backup:", err.message);
+        logger.error('[Backup]', 'Erro na execução programada do backup:', err.message);
       }
     }, intervalMs);
 
   } catch (err) {
-    console.error("[Backup] Erro ao inicializar scheduler:", err.message);
+    logger.error('[Backup]', 'Erro ao inicializar scheduler:', err.message);
   }
 }
 
@@ -278,7 +279,7 @@ export async function restoreBackup(filename, s3Folder) {
   const key = `${s3Folder.replace(/\/$/, '')}/${filename}`;
   const tempPath = path.join(os.tmpdir(), filename);
 
-  console.log(`[Backup] Baixando backup do S3 para restauração: ${key}...`);
+  logger.info('[Backup]', `Baixando backup do S3 para restauração: ${key}...`);
   const getCmd = new GetObjectCommand({
     Bucket: bucket,
     Key: key
@@ -293,7 +294,7 @@ export async function restoreBackup(filename, s3Folder) {
     fileStream.on("finish", resolve);
   });
 
-  console.log(`[Backup] Restaurando arquivo pg_dump: ${tempPath}...`);
+  logger.info('[Backup]', `Restaurando arquivo pg_dump: ${tempPath}...`);
   return new Promise((resolve, reject) => {
     const host = process.env.DB_HOST || 'localhost';
     const port = process.env.DB_PORT || '5432';
@@ -329,7 +330,7 @@ export async function restoreBackup(filename, s3Folder) {
       } catch {}
 
       if (code === 0 || code === 1) { // código 1 pode ser apenas avisos normais do pg_restore
-        console.log(`[Backup] Restauração concluída com sucesso.`);
+        logger.info('[Backup]', '✅ Restauração concluída com sucesso.');
         resolve();
       } else {
         reject(new Error(`pg_restore finalizou com código ${code}. Erro: ${stderrData}`));
@@ -350,7 +351,7 @@ export async function deleteBackup(filename, s3Folder) {
   const { client, bucket } = getS3Client();
   const key = `${s3Folder.replace(/\/$/, '')}/${filename}`;
 
-  console.log(`[Backup] Removendo backup: ${key}...`);
+  logger.info('[Backup]', `Removendo backup: ${key}...`);
   const deleteCmd = new DeleteObjectCommand({
     Bucket: bucket,
     Key: key

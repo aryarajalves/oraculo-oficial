@@ -14,6 +14,7 @@ import {
   enforceRetention
 } from '../backupManager.js';
 import { requireSuperAdmin } from '../state.js';
+import { logger } from '../logger.js';
 
 const router = express.Router();
 
