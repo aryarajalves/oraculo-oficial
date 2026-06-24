@@ -405,8 +405,8 @@ export default function Dashboard({
 
       {/* Modal de Detalhes do Carrossel */}
       {selectedDetailsCarousel && (
-        <div className="form-modal open" onClick={() => setSelectedDetailsCarousel(null)}>
-          <div className="form-box" style={{ maxWidth: '440px', padding: '24px' }} onClick={(e) => e.stopPropagation()}>
+        <div className="form-modal open">
+          <div className="form-box" style={{ maxWidth: '440px', padding: '24px' }}>
             <h3 className="form-title" style={{ color: 'var(--gold, #C9A84C)', fontSize: '18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               ℹ️ Detalhes do Carrossel
             </h3>
