@@ -283,9 +283,16 @@
 /* ── Cards Grid ── */
 .carousel-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 14px;
   padding: 0;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .carousel-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 /* ── Pagination ── */
