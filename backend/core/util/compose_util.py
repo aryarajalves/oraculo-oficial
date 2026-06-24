@@ -1,5 +1,5 @@
 """
-compose_util.py — Motor de composição v2 — Fonte Oculta
+compose_util.py — Motor de composição v2
 Suporta: bold inline, alinhamento esquerdo, film grain, vignette,
          gradiente longo, layout texto-pesado, 6 presets visuais.
 

@@ -79,7 +79,7 @@ DIAS_SEMANA = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Dom
 
 # ── EXECUTAR ──────────────────────────────────────────────────────────────────
 def main():
-    parser = argparse.ArgumentParser(description="Planejador Editorial — Fonte Oculta")
+    parser = argparse.ArgumentParser(description="Planejador Editorial — Oráculo Manager")
     parser.add_argument("--inicio", default=None, help="Data de início YYYY-MM-DD (padrão: amanhã)")
     parser.add_argument("--dias",   type=int, default=30, help="Quantos dias planejar (padrão: 30)")
     parser.add_argument("--dry-run", action="store_true", help="Mostrar plano sem criar no Notion")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-diretor_artistico.py — Diretor Artístico — Fonte Oculta
+diretor_artistico.py — Diretor Artístico — Oráculo Manager
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Orquestra o pipeline completo de geração de carrossel:
 
@@ -330,7 +330,7 @@ def gerar_carrossel(
     registrar:     bool = True,
 ) -> Path:
     """
-    Pipeline completo de geração de carrossel Fonte Oculta.
+    Pipeline completo de geração de carrossel.
 
     Args:
         tema:          Nome legível do carrossel (ex: 'Pastor & Frequência').
@@ -371,7 +371,7 @@ def gerar_carrossel(
 
     line = "═" * 60
     d_print(f"\n{line}")
-    d_print(f"  🎬 DIRETOR ARTÍSTICO — Fonte Oculta")
+    d_print(f"  🎬 DIRETOR ARTÍSTICO — Oráculo Manager")
     d_print(f"  Carrossel: {tema}")
     d_print(f"  Preset: {preset_name.upper()} | {len(slides)} slides")
     d_print(f"  Saída: {out_dir}")

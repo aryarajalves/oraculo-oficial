@@ -1,6 +1,6 @@
 """
 Angel — Executora da Pipeline de Conteúdo
-Fonte Oculta | Social Media Orchestrator
+Social Media Orchestrator
 
 Responsabilidades:
 - Organizar slides PNG em pastas do Drive por data

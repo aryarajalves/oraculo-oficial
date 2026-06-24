@@ -1,5 +1,5 @@
 """
-compose_util_v3.py — Motor de Composição — Fonte Oculta
+compose_util_v3.py — Motor de Composição
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Baseado na análise dos carrosseis de referência viral.
 
@@ -724,7 +724,7 @@ def compose(img_bytes: bytes | None,
             preset_name: str = DEFAULT_PRESET,
             cover: bool = False) -> Image.Image:
     """
-    Compõe um slide da Fonte Oculta.
+    Compõe um slide do carrossel.
 
     Args:
         img_bytes:   Bytes da imagem gerada pelo GPT Image 2.

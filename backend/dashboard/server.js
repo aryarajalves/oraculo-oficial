@@ -1,4 +1,4 @@
-// dashboard/server.js — Fonte Oculta Content Dashboard MVP
+// dashboard/server.js — Oráculo Manager Content Dashboard
 import express from "express";
 import cors from "cors";
 import fs from "fs";
@@ -133,7 +133,7 @@ setInterval(async () => {
 initDb().then(() => {
   resetBackupScheduler();
   app.listen(PORT, () => {
-    console.log(`\nFonte Oculta Dashboard rodando em: http://localhost:${PORT}\n`);
+    console.log(`\nOráculo Dashboard rodando em: http://localhost:${PORT}\n`);
   });
 }).catch(err => {
   console.error("❌ Falha crítica ao inicializar banco de dados:", err);

@@ -567,8 +567,8 @@ if __name__ == "__main__":
     PILARES = ["MENTE", "CORPO", "SISTEMA", "ESPÍRITO", "ALAVANCA"]
 
     print("\n" + "━"*60)
-    print("  COPYWRITER DE CARROSSEL — Fonte Oculta")
-    print("  Motor: Claude Sonnet + Método Jordânico + Voz Oculta")
+    print("  COPYWRITER DE CARROSSEL — Oráculo Manager")
+    print("  Motor: Claude Sonnet + Método Jordânico")
     print("━"*60 + "\n")
 
     tema = input("  Tema: ").strip()

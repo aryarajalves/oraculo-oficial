@@ -1,5 +1,5 @@
 """
-prompt_builder.py — Direção de Arte v4 — Fonte Oculta
+prompt_builder.py — Direção de Arte v4
 Aplica o DNA Visual real da marca: visionary art + paleta viva + hierarquia de zona.
 
 DNA Visual (estilo Ganhadores de Loteria / O Dia que Você Parou de Crescer):
@@ -40,7 +40,7 @@ _RESTRICTIONS = (
 
 def build_prompt(slide_prompt: str) -> str:
     """
-    Envolve o prompt do slide com o DNA visual da Fonte Oculta.
+    Envolve o prompt do slide com o DNA visual da marca.
 
     O slide_prompt deve especificar:
       - O sujeito principal (figura, rosto, elemento simbólico)

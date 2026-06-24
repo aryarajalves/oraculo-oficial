@@ -71,7 +71,7 @@ Por favor, responda estritamente no formato JSON com as chaves:
         response_format={"type": "json_object"}
     )
     
-    send_progress("Roteiro Fonte Oculta gerado com sucesso!")
+    send_progress("Roteiro gerado com sucesso!")
     return json.loads(response.choices[0].message.content)
 
 def main():
