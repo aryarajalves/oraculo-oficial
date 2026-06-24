@@ -13,21 +13,24 @@ RUN apt-get update && apt-get install -y \
 # Cria diretório da aplicação
 WORKDIR /app
 
-# Copia arquivos de dependência do Node
+# ── Dependências do Backend ───────────────────────────────────────────────────
 COPY backend/package*.json ./backend/
-
-# Instala dependências do Node
 RUN npm --prefix backend install
 
-# Copia requirements.txt do Python
+# ── Dependências do Python ────────────────────────────────────────────────────
 COPY backend/requirements.txt ./backend/
-
-# Instala dependências do Python
 RUN pip3 install --break-system-packages -r backend/requirements.txt
 
-# Copia todo o código-fonte (backend e frontend)
-COPY backend/ ./backend/
+# ── Build do Frontend (Vite) ──────────────────────────────────────────────────
+# Instala dependências e compila o frontend para /app/frontend/dist
+# O Express serve este diretório estático em produção
+COPY frontend/package*.json ./frontend/
+RUN npm --prefix frontend install
 COPY frontend/ ./frontend/
+RUN npm --prefix frontend run build
+
+# ── Código do Backend ─────────────────────────────────────────────────────────
+COPY backend/ ./backend/
 
 # Expõe a porta do dashboard backend
 EXPOSE 3131

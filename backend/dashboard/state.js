@@ -51,7 +51,9 @@ function loadClientConfig() {
 export const CLIENT = loadClientConfig();
 
 export const DATA_FILE = path.join(__dirname, "data", "carousels.json");
-export const PUBLIC_DIR = path.join(__dirname, "..", "..", "frontend");
+export const PUBLIC_DIR = IS_PROD
+  ? path.join(__dirname, "..", "..", "frontend", "dist")  // Em produção: build compilado pelo Dockerfile
+  : path.join(__dirname, "..", "..", "frontend", "dist"); // Em dev: também usa o dist (nginx serve em dev)
 export const COMPOSE_SCRIPT = path.join(__dirname, "..", "core", "util", "compose-slide.py");
 export const REGEN_SCRIPT = path.join(__dirname, "..", "regen-slide.py");
 export const REELS_HISTORY_FILE = path.join(__dirname, "data", "reels_history.json");

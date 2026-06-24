@@ -98,6 +98,20 @@ app.use(backupsRouter);
 
 app.use(express.static(PUBLIC_DIR, { extensions: ['html', 'htm'] }));
 
+// ── Catch-all SPA — serve index.html para qualquer rota não encontrada ──────
+// Necessário para que rotas do frontend (/login, /dashboard, etc) funcionem
+// sem o sufixo .html em produção (o React Router cuida do roteamento interno)
+app.get('*', (req, res, next) => {
+  // Não intercepta rotas de API
+  if (req.path.startsWith('/api/') || req.path.startsWith('/auth/')) return next();
+  const indexPath = path.join(PUBLIC_DIR, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    next();
+  }
+});
+
 // ── Global SSE ─────────────────────────────────────────────────────────────────
 app.get("/api/events", (req, res) => {
   res.writeHead(200, {
@@ -134,7 +148,8 @@ setInterval(async () => {
 initDb().then(() => {
   resetBackupScheduler();
   app.listen(PORT, () => {
-    logger.info('[SERVER]', `✅ Oráculo Dashboard rodando em: http://localhost:${PORT}`);
+    const env = process.env.NODE_ENV || 'development';
+    logger.info('[SERVER]', `✅ Oráculo Dashboard iniciado — porta: ${PORT} | ambiente: ${env}`);
   });
 }).catch(err => {
   logger.error('[SERVER]', '❌ Falha crítica ao inicializar banco de dados:', err);
