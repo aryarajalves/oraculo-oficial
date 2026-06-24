@@ -263,7 +263,7 @@ export default function Dashboard({
                         {c.cost > 0 && <span className="card-cost">${c.cost}</span>}
                       </div>
                       <div className="card-date">
-                        {c.scheduledDate ? `📅 ${c.scheduledDate} ${c.scheduledTime || ''}` : new Date(c.createdAt || Date.now()).toLocaleDateString('pt-BR')}
+                        {c.scheduledDate ? `📅 ${c.scheduledDate} ${c.scheduledTime || ''}` : new Date(c.createdAt || Date.now()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                       </div>
                     </div>
                   </div>

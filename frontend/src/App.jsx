@@ -249,6 +249,7 @@ export default function App() {
       });
       if (res.ok) {
         showToast('✦ Pipeline de geração iniciado!');
+        setActiveTab('carrosseis');
       }
     } catch (e) {
       showToast('Erro ao iniciar pipeline.');
