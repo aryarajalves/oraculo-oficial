@@ -29,11 +29,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: text }]);
 
-    if (isCriarIntent(text)) {
-      setMessages(prev => [...prev, { role: 'ai', content: '✦ Iniciando criação das imagens...', id: 'auto-gen' }]);
-      onStartGeneration(lastCarouselText);
-      return;
-    }
+
 
     setGenerating(true);
     const aiMessageId = 'ai-' + Date.now();
