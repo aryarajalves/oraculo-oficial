@@ -132,6 +132,8 @@
   display: flex;
   gap: 6px;
   margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 /* ── Caption Box ── */
