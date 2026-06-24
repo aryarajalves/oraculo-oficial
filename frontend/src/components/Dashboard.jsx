@@ -312,15 +312,7 @@ export default function Dashboard({
                           💬 Ver no Chat
                         </button>
                       )}
-                      {(c.status === 'rascunho' || c.status === 'pronto') && (
-                        <button
-                          className="btn btn-outline btn-sm"
-                          style={{ borderColor: 'var(--gold, #e0a96d)', color: 'var(--gold, #e0a96d)' }}
-                          onClick={(e) => { e.stopPropagation(); onOpenHistoryModal(c.id); }}
-                        >
-                          📋 Histórico
-                        </button>
-                      )}
+
                       <button
                         className="btn-instagram btn-sm"
                         disabled={c.status === 'publicado'}
