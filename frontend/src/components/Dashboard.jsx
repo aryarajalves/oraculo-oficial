@@ -85,20 +85,25 @@ export default function Dashboard({
     }
   };
 
-  const handleDownloadPptx = async (carouselId) => {
+  const handleDownloadZip = async (carouselId) => {
+    showToast('Preparando download do ZIP...');
     try {
-      const res = await fetch(`/api/carousels/${carouselId}/pptx`);
+      const res = await fetch(`/api/carousels/${carouselId}/download-zip`);
       if (res.ok) {
         const blob = await res.blob();
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = `carrossel-${carouselId}.pptx`;
+        a.download = `carrossel-${carouselId}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
+        showToast('✓ ZIP baixado com sucesso!');
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast('Erro ao baixar ZIP: ' + (err.error || 'sem slides'));
       }
     } catch (e) {
-      showToast('Erro ao baixar PPTX.');
+      showToast('Erro de conexão ao baixar ZIP.');
     }
   };
 
@@ -320,7 +325,7 @@ export default function Dashboard({
                       >
                         {c.status === 'publicado' ? '✓ Postado' : '✈ Postar'}
                       </button>
-                      <button className="btn btn-outline btn-sm" onClick={() => handleDownloadPptx(c.id)}>PPTX</button>
+                      <button className="btn btn-outline btn-sm" onClick={(e) => { e.stopPropagation(); handleDownloadZip(c.id); }} title="Baixar todos os slides em ZIP">📥 Baixar</button>
                       <button className="btn-danger btn-sm" onClick={() => setDeleteTargetId(c.id)}>✕</button>
                     </div>
                   </div>
