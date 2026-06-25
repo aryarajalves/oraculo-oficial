@@ -686,7 +686,14 @@ router.post('/api/criador/stream', async (req, res) => {
 
     if (!response.ok) {
       let errText = `HTTP ${response.status}`;
-      try { const j = await response.json(); errText = j.error?.message || errText; } catch {}
+      try {
+        const j = await response.json();
+        errText = j.error?.message || errText;
+      } catch {}
+      
+      if (errText.includes("quota") || errText.includes("billing") || response.status === 429) {
+        errText = "Você excedeu sua cota atual na OpenAI. Por favor, adicione créditos ou verifique sua forma de faturamento no painel da OpenAI: https://platform.openai.com/settings/organization/billing/overview";
+      }
       res.write(`data: ${JSON.stringify({ error: errText })}\n\n`);
       return res.end();
     }

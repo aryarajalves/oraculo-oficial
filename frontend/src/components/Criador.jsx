@@ -207,7 +207,11 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
           try {
             const json = JSON.parse(t.slice(6));
             if (json.error) {
-              setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, content: '⚠ Erro: ' + json.error, streaming: false } : m));
+              let errorMsg = json.error;
+              if (json.error.includes("quota") || json.error.includes("billing")) {
+                errorMsg = "Você excedeu sua cota atual na OpenAI. Por favor, adicione créditos ou verifique sua forma de faturamento no painel da OpenAI: https://platform.openai.com/settings/organization/billing/overview";
+              }
+              setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, content: '⚠ Erro: ' + errorMsg, streaming: false } : m));
               return;
             }
             if (json.token) {
@@ -310,7 +314,17 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                 <div key={idx} className={`criador-msg criador-msg--${m.role}`}>
                   <div className="criador-avatar">{m.role === 'user' ? '✦' : '◈'}</div>
                   <div className="criador-bubble">
-                    {m.content}
+                    {(() => {
+                      if (typeof m.content !== 'string') return m.content;
+                      const urlRegex = /(https?:\/\/[^\s]+)/g;
+                      const parts = m.content.split(urlRegex);
+                      return parts.map((part, i) => {
+                        if (part.match(urlRegex)) {
+                          return <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)', textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>;
+                        }
+                        return part;
+                      });
+                    })()}
                     {m.streaming && <span className="criador-cursor"></span>}
                     {m.role === 'ai' && !m.streaming && m.content && (
                       <div className="criador-msg-actions" style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
