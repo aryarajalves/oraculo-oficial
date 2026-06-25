@@ -83,6 +83,23 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
       if (fullText.includes('[S1') || fullText.includes('DISRUPÇÃO')) {
         setLastCarousel(fullText);
       }
+
+      if (currentCarouselId) {
+        const updatedMessages = [
+          ...messages.filter(m => m.role !== 'form'),
+          { role: 'user', content: text },
+          { role: 'ai', content: fullText }
+        ];
+        try {
+          await fetch(`/api/carousels/${currentCarouselId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatHistory: updatedMessages })
+          });
+        } catch (err) {
+          console.error('Erro ao atualizar histórico subsequente no Postgres:', err);
+        }
+      }
     } catch (e) {
       setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, content: '⚠ Erro de rede.', streaming: false } : m));
     } finally {
@@ -123,6 +140,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
     setMessages(prev => [...prev, { role: 'user', content: displayUserText }]);
 
     // Cria o rascunho do carrossel no banco de dados
+    let createdId = null;
     try {
       const res = await fetch('/api/carousels', {
         method: 'POST',
@@ -146,6 +164,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
       if (res.ok) {
         const data = await res.json();
         setCurrentCarouselId(data.id);
+        createdId = data.id;
       }
     } catch (err) {
       console.error('Erro ao salvar rascunho inicial no Postgres:', err);
@@ -203,6 +222,24 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
       }
       if (fullText.includes('[S1') || fullText.includes('DISRUPÇÃO')) {
         setLastCarousel(fullText);
+      }
+
+      const targetId = createdId || currentCarouselId;
+      if (targetId) {
+        const updatedMessages = [
+          ...messages.filter(m => m.role !== 'form'),
+          { role: 'user', content: displayUserText },
+          { role: 'ai', content: fullText }
+        ];
+        try {
+          await fetch(`/api/carousels/${targetId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chatHistory: updatedMessages })
+          });
+        } catch (err) {
+          console.error('Erro ao atualizar histórico do briefing no Postgres:', err);
+        }
       }
     } catch (e) {
       setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, content: '⚠ Erro de rede.', streaming: false } : m));

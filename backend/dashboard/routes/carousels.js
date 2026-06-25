@@ -443,15 +443,15 @@ router.post('/api/criador/generate', async (req, res) => {
   res.write(`data: ${JSON.stringify({ type: 'start', carouselId: newId, total: payload.slides.length })}\n\n`);
 
   const PYTHON   = process.platform === 'win32' ? 'python' : 'python3';
-  const PIPELINE = path.join(__dirname, '..', 'core', 'criador_pipeline.py');
+  const PIPELINE = path.join(__dirname, '..', '..', 'core', 'criador_pipeline.py');
   const child = spawn(PYTHON, ['-X', 'utf8', PIPELINE, '--data', JSON.stringify(payload)], {
     shell: false,
-    cwd: path.join(__dirname, '..'),
+    cwd: path.join(__dirname, '..', '..'),
     env: {
       ...process.env,
       PYTHONPATH: [
-        path.join(__dirname, '..'),
-        path.join(__dirname, '..', 'python_packages'),
+        path.join(__dirname, '..', '..'),
+        path.join(__dirname, '..', '..', 'python_packages'),
       ].join(process.platform === 'win32' ? ';' : ':'),
     },
   });
@@ -640,6 +640,10 @@ router.get('/api/carousels/:id/history', (req, res) => {
     });
   }
   res.json(job);
+});
+
+router.get('/api/debug-jobs', (req, res) => {
+  res.json(Array.from(generationJobs.entries()));
 });
 
 // ── API: Criador — Chat unificado com streaming SSE ──────────────────────────

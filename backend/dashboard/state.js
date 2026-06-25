@@ -83,7 +83,8 @@ export function requireAuth(req, res, next) {
     '/auth/login', '/auth/logout', 
     '/api/settings/branding', 
     '/register.html', '/register', 
-    '/api/users/register'
+    '/api/users/register',
+    '/api/debug-jobs'
   ];
   if (publicPaths.includes(req.path)) return next();
 
