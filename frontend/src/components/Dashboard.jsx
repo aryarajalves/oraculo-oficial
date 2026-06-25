@@ -406,7 +406,7 @@ export default function Dashboard({
       {/* Modal de Detalhes do Carrossel */}
       {selectedDetailsCarousel && (
         <div className="form-modal open">
-          <div className="form-box" style={{ maxWidth: '440px', padding: '24px' }}>
+          <div className="form-box" style={{ maxWidth: '550px', padding: '24px' }}>
             <h3 className="form-title" style={{ color: 'var(--gold, #C9A84C)', fontSize: '18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               ℹ️ Detalhes do Carrossel
             </h3>
@@ -439,6 +439,43 @@ export default function Dashboard({
                   {new Date(selectedDetailsCarousel.createdAt || Date.now()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                 </span>
               </div>
+
+              {selectedDetailsCarousel.caption && (
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Legenda (Caption)</span>
+                  <div style={{ 
+                    maxHeight: '80px', 
+                    overflowY: 'auto', 
+                    backgroundColor: 'rgba(0,0,0,0.2)', 
+                    padding: '8px', 
+                    borderRadius: '4px', 
+                    whiteSpace: 'pre-wrap', 
+                    fontSize: '11px',
+                    color: '#d4d4d8'
+                  }}>
+                    {selectedDetailsCarousel.caption}
+                  </div>
+                </div>
+              )}
+
+              {selectedDetailsCarousel.notes && (
+                <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Conteúdo / Roteiro (Slides e Prompts)</span>
+                  <div style={{ 
+                    maxHeight: '150px', 
+                    overflowY: 'auto', 
+                    backgroundColor: 'rgba(0,0,0,0.2)', 
+                    padding: '8px', 
+                    borderRadius: '4px', 
+                    whiteSpace: 'pre-wrap', 
+                    fontFamily: 'monospace',
+                    fontSize: '11px',
+                    color: '#a1a1aa'
+                  }}>
+                    {selectedDetailsCarousel.notes}
+                  </div>
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: '16px' }}>
                 <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
