@@ -131,15 +131,19 @@ router.post("/api/carousels/bulk-delete", async (req, res) => {
 
 // ── API: Serve slide images ──────────────────────────────────────────────────
 router.get("/api/carousels/:id/image/:filename", async (req, res) => {
-  // Em produção: redireciona direto para URL pública do B2
-  if (IS_PROD && b2) {
-    const url = b2.b2ImageUrl(req.params.id, req.params.filename);
-    return res.redirect(302, url);
-  }
-  // Local: serve do disco
   const all = await readData();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).send("Carrossel não encontrado");
+
+  // Se o carrossel foi de fato enviado ao MinIO (possui b2BaseUrl ou slides são objetos com url)
+  const isUploadedToB2 = c.b2BaseUrl || (c.slides && c.slides.length > 0 && typeof c.slides[0] === 'object' && c.slides[0].url);
+
+  if (isUploadedToB2 && b2) {
+    const url = b2.b2ImageUrl(req.params.id, req.params.filename);
+    return res.redirect(302, url);
+  }
+
+  // Local fallback: serve do disco
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
   if (!fs.existsSync(imgPath)) return res.status(404).send("Imagem não encontrada");
   res.sendFile(imgPath);
@@ -147,7 +151,7 @@ router.get("/api/carousels/:id/image/:filename", async (req, res) => {
 
 // ── API: Download single slide ───────────────────────────────────────────────
 router.get("/api/carousels/:id/download/:filename", async (req, res) => {
-  if (IS_PROD && b2) {
+  if (b2) {
     const url = b2.b2ImageUrl(req.params.id, req.params.filename);
     return res.redirect(302, url);
   }
@@ -380,9 +384,18 @@ router.post('/api/criador/generate', async (req, res) => {
   } catch (err) {
     logger.error('[Carousel]', "Erro ao ler carrosséis para determinar ID:", err);
   }
-  const nums = allCarousels.map(c => parseInt(c.id?.split('-').pop()) || 0).filter(Boolean);
-  const nextNum = nums.length ? Math.max(...nums) + 1 : 1;
-  const newId = `carrossel-${String(nextNum).padStart(2, '0')}`;
+
+  let newId = payload.id;
+  let existingCarousel = null;
+  if (newId) {
+    existingCarousel = allCarousels.find(c => c.id === newId);
+  }
+
+  if (!existingCarousel) {
+    const nums = allCarousels.map(c => parseInt(c.id?.split('-').pop()) || 0).filter(Boolean);
+    const nextNum = nums.length ? Math.max(...nums) + 1 : 1;
+    newId = `carrossel-${String(nextNum).padStart(2, '0')}`;
+  }
 
   const slug = payload.title ? slugify(payload.title) : 'sem-titulo';
   const outDir = process.platform === 'win32'
@@ -391,21 +404,27 @@ router.post('/api/criador/generate', async (req, res) => {
 
   const newCarousel = {
     id:          newId,
-    title:       payload.title || 'Carrossel',
+    title:       payload.title || existingCarousel?.title || 'Carrossel',
     theme:       slug,
-    format:      payload.format || 'B',
+    format:      payload.format || existingCarousel?.format || 'B',
     status:      'rascunho',
-    createdAt:   new Date().toISOString(),
+    createdAt:   existingCarousel?.createdAt || new Date().toISOString(),
     slidesDir:   outDir,
     slidePrefix: 'slide-',
     totalSlides: Number(payload.totalSlides) || payload.slides.length || 10,
-    imageQuality: payload.imageQuality || 'high',
-    caption:     payload.caption || '',
-    notes:       payload.notes || '',
-    slides:      [],
+    imageQuality: payload.imageQuality || existingCarousel?.imageQuality || 'high',
+    caption:     payload.caption || existingCarousel?.caption || '',
+    notes:       payload.notes || existingCarousel?.notes || '',
+    chatHistory: existingCarousel?.chatHistory || [],
+    slides:      existingCarousel?.slides || [],
   };
 
-  allCarousels.push(newCarousel);
+  if (existingCarousel) {
+    const idx = allCarousels.findIndex(c => c.id === newId);
+    allCarousels[idx] = newCarousel;
+  } else {
+    allCarousels.push(newCarousel);
+  }
   await writeDataAsync(allCarousels);
 
   generationJobs.set(newId, {
@@ -542,7 +561,48 @@ router.post('/api/criador/generate', async (req, res) => {
       job.logs.push(`Processo finalizado com código ${code}`);
     }
 
-    if (!IS_PROD) {
+    if (b2 && generatedFiles.length > 0 && donePayload) {
+      try {
+        res.write(`data: ${JSON.stringify({ type: 'log', msg: '☁ Enviando imagens para o MinIO...' })}\n\n`);
+
+        const slideUrls = [];
+        for (const { num, estado, file } of generatedFiles) {
+          const filename = path.basename(file);
+          try {
+            const url = await b2.uploadImageToB2(newId, filename, file);
+            slideUrls.push({ num, estado, filename, url });
+            res.write(`data: ${JSON.stringify({ type: 'log', msg: `☁ ${filename} → MinIO ✓` })}\n\n`);
+          } catch (err) {
+            res.write(`data: ${JSON.stringify({ type: 'log', msg: `☁ ${filename} falhou: ${err.message}` })}\n\n`);
+          }
+          try { fs.unlinkSync(file); } catch {}
+        }
+        try { fs.rmdirSync(donePayload.slides_dir); } catch {}
+
+        const allCarousels = await readDataAsync();
+        const currentIdx = allCarousels.findIndex(c => c.id === newId);
+        if (currentIdx >= 0) {
+          allCarousels[currentIdx] = {
+            ...allCarousels[currentIdx],
+            title:       donePayload.title   || payload.title   || 'Carrossel',
+            status:      (donePayload.total_ok === donePayload.total) ? 'pronto' : 'rascunho',
+            totalSlides: slideUrls.length,
+            caption:     donePayload.caption || payload.caption || '',
+            notes:       donePayload.notes   || payload.notes   || '',
+            b2BaseUrl:   b2.b2ImageUrl(newId, ''),
+            slides:      slideUrls,
+          };
+          if (donePayload.revisor_score) allCarousels[currentIdx].revisorScore = donePayload.revisor_score;
+          await writeDataAsync(allCarousels);
+        }
+
+        res.write(`data: ${JSON.stringify({ type: 'registered', id: newId, entry: allCarousels[currentIdx] })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'log', msg: `✓ ${newId} salvo no MinIO` })}\n\n`);
+      } catch (err) {
+        res.write(`data: ${JSON.stringify({ type: 'error', msg: `Upload MinIO falhou: ${err.message}` })}\n\n`);
+      }
+    } else {
+      // Fallback local se o módulo MinIO/B2 não estiver configurado
       try {
         const localCarousels = await readDataAsync();
         const currentIdx = localCarousels.findIndex(c => c.id === newId);
@@ -559,48 +619,6 @@ router.post('/api/criador/generate', async (req, res) => {
         }
       } catch (err) {
         logger.error('[Carousel]', "Erro ao atualizar dados pós-geração local:", err);
-      }
-    }
-
-    if (IS_PROD && b2 && generatedFiles.length > 0 && donePayload) {
-      try {
-        res.write(`data: ${JSON.stringify({ type: 'log', msg: '☁ Enviando imagens para B2...' })}\n\n`);
-
-        const slideUrls = [];
-        for (const { num, estado, file } of generatedFiles) {
-          const filename = path.basename(file);
-          try {
-            const url = await b2.uploadImageToB2(newId, filename, file);
-            slideUrls.push({ num, estado, filename, url });
-            res.write(`data: ${JSON.stringify({ type: 'log', msg: `☁ ${filename} → B2 ✓` })}\n\n`);
-          } catch (err) {
-            res.write(`data: ${JSON.stringify({ type: 'log', msg: `☁ ${filename} falhou: ${err.message}` })}\n\n`);
-          }
-          try { fs.unlinkSync(file); } catch {}
-        }
-        try { fs.rmdirSync(donePayload.slides_dir); } catch {}
-
-        const prodCarousels = await readDataAsync();
-        const currentIdx = prodCarousels.findIndex(c => c.id === newId);
-        if (currentIdx >= 0) {
-          prodCarousels[currentIdx] = {
-            ...prodCarousels[currentIdx],
-            title:       donePayload.title   || payload.title   || 'Carrossel',
-            status:      (donePayload.total_ok === donePayload.total) ? 'pronto' : 'rascunho',
-            totalSlides: slideUrls.length,
-            caption:     donePayload.caption || payload.caption || '',
-            notes:       donePayload.notes   || payload.notes   || '',
-            b2BaseUrl:   b2.b2ImageUrl(newId, ''),
-            slides:      slideUrls,
-          };
-          if (donePayload.revisor_score) prodCarousels[currentIdx].revisorScore = donePayload.revisor_score;
-          await writeDataAsync(prodCarousels);
-        }
-
-        res.write(`data: ${JSON.stringify({ type: 'registered', id: newId, entry: prodCarousels[currentIdx] })}\n\n`);
-        res.write(`data: ${JSON.stringify({ type: 'log', msg: `✓ ${newId} salvo no B2` })}\n\n`);
-      } catch (err) {
-        res.write(`data: ${JSON.stringify({ type: 'error', msg: `Upload B2 falhou: ${err.message}` })}\n\n`);
       }
     }
 

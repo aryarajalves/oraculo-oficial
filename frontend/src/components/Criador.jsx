@@ -6,6 +6,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
   const [messages, setMessages] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [lastCarouselText, setLastCarouselText] = useState(sessionStorage.getItem('criadorLastCarousel') || null);
+  const [currentCarouselId, setCurrentCarouselId] = useState(null);
 
   const setLastCarousel = (text) => {
     setLastCarouselText(text);
@@ -123,7 +124,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
 
     // Cria o rascunho do carrossel no banco de dados
     try {
-      await fetch('/api/carousels', {
+      const res = await fetch('/api/carousels', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -142,6 +143,10 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
           ]
         })
       });
+      if (res.ok) {
+        const data = await res.json();
+        setCurrentCarouselId(data.id);
+      }
     } catch (err) {
       console.error('Erro ao salvar rascunho inicial no Postgres:', err);
     }
@@ -227,6 +232,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
         })
       });
       if (res.ok) {
+        const data = await res.json();
+        setCurrentCarouselId(data.id);
         showToast('Rascunho salvo!');
       } else {
         showToast('Erro ao salvar rascunho.');
@@ -280,7 +287,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                             return false;
                           }
                         })() && (
-                          <button className="criador-action-btn criador-action-btn--create" onClick={() => onStartGeneration(m.content)}>✦ Criar design</button>
+                          <button className="criador-action-btn criador-action-btn--create" onClick={() => onStartGeneration(m.content, currentCarouselId)}>✦ Criar design</button>
                         )}
                       </div>
                     )}

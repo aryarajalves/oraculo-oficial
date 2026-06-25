@@ -27,13 +27,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const IS_PROD = process.env.NODE_ENV === "production";
 
 let b2Instance = null;
-if (IS_PROD) {
-  try {
-    b2Instance = await import("./b2.js");
-    logger.info('[B2]', 'Modo produção ativado — usando Backblaze B2');
-  } catch (err) {
-    logger.error('[B2]', 'Erro ao carregar módulo B2:', err);
-  }
+try {
+  b2Instance = await import("./b2.js");
+  logger.info('[B2]', 'Módulo B2/MinIO carregado com sucesso');
+} catch (err) {
+  logger.error('[B2]', 'Erro ao carregar módulo B2/MinIO:', err);
 }
 export { b2Instance as b2 };
 

@@ -234,11 +234,15 @@ export default function App() {
     }
   };
 
-  const handleStartGeneration = async (carouselText) => {
+  const handleStartGeneration = async (carouselText, carouselId = null) => {
     const payload = parseCarouselText(carouselText);
     if (payload.slides.length === 0) {
       alert('Não consegui extrair slides do carrossel!');
       return;
+    }
+
+    if (carouselId) {
+      payload.id = carouselId;
     }
 
     try {

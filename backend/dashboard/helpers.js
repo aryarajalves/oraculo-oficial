@@ -151,7 +151,9 @@ export function getSlidesFromDir(dir, prefix = "slide-") {
 }
 
 export function getSlidesForCarousel(c) {
-  if (IS_PROD && c.slides && c.slides.length > 0) return c.slides;
+  if (c.slides && c.slides.length > 0) {
+    return c.slides.map(s => typeof s === 'string' ? s : (s.filename || s.name));
+  }
   return getSlidesFromDir(getLocalSlidesDir(c), c.slidePrefix).map(s => s.filename);
 }
 
