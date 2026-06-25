@@ -37,12 +37,16 @@ export default function App() {
       loadCarousels();
       loadStats();
     }
+    if (activeTab !== 'criador') {
+      setCriadorReadOnly(false);
+    }
   }, [activeTab]);
   const [allCarousels, setAllCarousels] = useState([]);
   const [stats, setStats] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [shouldAddFormMessage, setShouldAddFormMessage] = useState(false);
   const [criadorInitialMessages, setCriadorInitialMessages] = useState(null);
+  const [criadorReadOnly, setCriadorReadOnly] = useState(false);
 
   // Modais
   const [newModalOpen, setNewModalOpen] = useState(false);
@@ -321,6 +325,7 @@ export default function App() {
         currentUser={currentUser}
         onNewCarousel={() => {
           setShouldAddFormMessage(true);
+          setCriadorReadOnly(false);
           setActiveTab('criador');
         }}
       />
@@ -355,6 +360,7 @@ export default function App() {
                 }}
                 onLoadChatHistory={(chatHistory) => {
                   setCriadorInitialMessages(chatHistory);
+                  setCriadorReadOnly(true);
                   setActiveTab('criador');
                 }}
               />
@@ -389,6 +395,7 @@ export default function App() {
                 clearAddFormMessage={() => setShouldAddFormMessage(false)}
                 initialMessages={criadorInitialMessages}
                 clearInitialMessages={() => setCriadorInitialMessages(null)}
+                isReadOnly={criadorReadOnly}
               />
             )}
             {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} />}

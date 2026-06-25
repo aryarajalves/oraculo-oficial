@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { parseCarouselText } from '../utils/carouselParser';
 
-export default function Criador({ onStartGeneration, showToast, shouldAddFormMessage, clearAddFormMessage, initialMessages, clearInitialMessages }) {
+export default function Criador({ onStartGeneration, showToast, shouldAddFormMessage, clearAddFormMessage, initialMessages, clearInitialMessages, isReadOnly }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [generating, setGenerating] = useState(false);
@@ -315,7 +315,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                     {m.role === 'ai' && !m.streaming && m.content && (
                       <div className="criador-msg-actions" style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                         <button className="criador-action-btn" onClick={() => navigator.clipboard.writeText(m.content)}>Copiar tudo</button>
-                        <button className="criador-action-btn" onClick={() => handleSaveDraft(m.content)}>+ Salvar rascunho</button>
+                        {!isReadOnly && <button className="criador-action-btn" onClick={() => handleSaveDraft(m.content)}>+ Salvar rascunho</button>}
                         {(() => {
                           try {
                             const parsed = parseCarouselText(m.content);
@@ -323,7 +323,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                           } catch (e) {
                             return false;
                           }
-                        })() && (
+                        })() && !isReadOnly && (
                           <button className="criador-action-btn criador-action-btn--create" onClick={() => onStartGeneration(m.content, currentCarouselId)}>✦ Criar design</button>
                         )}
                       </div>
