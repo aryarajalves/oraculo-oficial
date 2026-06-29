@@ -1,8 +1,9 @@
 import express from "express";
 import { query } from "../db.js";
-import { 
-  hashPassword, 
-  getSuperAdminEmail, 
+import {
+  hashPassword,
+  hashPasswordLegacy,
+  getSuperAdminEmail,
   isUserSuperAdmin,
   generateToken
 } from "../state.js";
@@ -42,11 +43,13 @@ router.post('/auth/login', async (req, res) => {
   }
 
   // 2. Verifica contra o banco de dados (tabela dashboard_users)
+  // Tenta primeiro o hash novo (HMAC), depois o legado (SHA-256 puro) para migração transparente
   try {
     const hashedPassword = hashPassword(password);
+    const hashedPasswordLegacy = hashPasswordLegacy(password);
     const dbUserRes = await query(
-      "SELECT * FROM dashboard_users WHERE email = $1 AND password = $2",
-      [username, hashedPassword]
+      "SELECT * FROM dashboard_users WHERE email = $1 AND (password = $2 OR password = $3)",
+      [username, hashedPassword, hashedPasswordLegacy]
     );
 
     if (dbUserRes.rows.length > 0) {

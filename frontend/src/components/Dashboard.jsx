@@ -18,6 +18,7 @@ export default function Dashboard({
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [selectedDetailsCarousel, setSelectedDetailsCarousel] = useState(null);
+  const [isCaptionMaximized, setIsCaptionMaximized] = useState(false);
   const PAGE_SIZE = 12;
 
   // Filter & Pagination
@@ -442,7 +443,16 @@ export default function Dashboard({
 
               {selectedDetailsCarousel.caption && (
                 <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Legenda (Caption)</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase' }}>Legenda (Caption)</span>
+                    <button 
+                      className="btn btn-outline btn-sm" 
+                      style={{ fontSize: '10px', padding: '2px 8px', height: 'auto', minHeight: 'auto', border: '1px solid rgba(201, 168, 76, 0.4)', color: 'var(--gold)' }}
+                      onClick={() => setIsCaptionMaximized(true)}
+                    >
+                      ↗ Maximizar
+                    </button>
+                  </div>
                   <div style={{ 
                     maxHeight: '80px', 
                     overflowY: 'auto', 
@@ -506,6 +516,44 @@ export default function Dashboard({
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
               <button className="btn btn-outline" style={{ padding: '8px 20px' }} onClick={() => setSelectedDetailsCarousel(null)}>Fechar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ampliado de Legenda (Caption Maximizado) */}
+      {isCaptionMaximized && selectedDetailsCarousel && (
+        <div className="form-modal open" style={{ zIndex: 1100 }}>
+          <div className="form-box" style={{ maxWidth: '700px', width: '90%', padding: '24px', background: '#121214' }}>
+            <h3 className="form-title" style={{ color: 'var(--gold, #C9A84C)', fontSize: '18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+              📝 Legenda Completa
+            </h3>
+            <div style={{ 
+              backgroundColor: 'rgba(0,0,0,0.3)', 
+              padding: '16px', 
+              borderRadius: '6px', 
+              whiteSpace: 'pre-wrap', 
+              fontSize: '14px',
+              lineHeight: '1.6',
+              color: '#f4f4f5',
+              maxHeight: '60vh',
+              overflowY: 'auto',
+              border: '1px solid rgba(255,255,255,0.05)'
+            }}>
+              {selectedDetailsCarousel.caption}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', gap: '12px' }}>
+              <button 
+                className="btn btn-outline" 
+                style={{ padding: '8px 20px' }} 
+                onClick={() => {
+                  navigator.clipboard.writeText(selectedDetailsCarousel.caption);
+                  showToast('Legenda copiada para a área de transferência!');
+                }}
+              >
+                Copiar Texto
+              </button>
+              <button className="btn btn-outline" style={{ padding: '8px 20px', borderColor: 'var(--gold)' }} onClick={() => setIsCaptionMaximized(false)}>Fechar</button>
             </div>
           </div>
         </div>

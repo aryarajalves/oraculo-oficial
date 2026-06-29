@@ -23,12 +23,15 @@ import {
   generationJobs, 
   COMPOSE_SCRIPT, 
   REGEN_SCRIPT, 
-  ZIP_SCRIPT 
+  ZIP_SCRIPT,
+  isUserSuperAdmin,
+  sseClients
 } from "../state.js";
 import { logger } from '../logger.js';
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PYTHON = process.platform === "win32" ? "python" : "python3";
 
 const router = express.Router();
 const AGENT_SYSTEM_PROMPTS = buildAgentPrompts(CLIENT);
@@ -280,7 +283,7 @@ router.get("/api/carousels/:id/download-zip", async (req, res) => {
   const tmpFile  = path.join(os.tmpdir(), `${safeName}-${Date.now()}.zip`);
 
   try {
-    const { stdout } = await execFileAsync("python", [
+    const { stdout } = await execFileAsync(PYTHON, [
       ZIP_SCRIPT,
       "--data",   JSON.stringify(payload),
       "--output", tmpFile,
@@ -313,7 +316,7 @@ router.get("/api/download-all", async (req, res) => {
   const tmpFile = path.join(os.tmpdir(), `afonteoculta-todos-${Date.now()}.zip`);
 
   try {
-    const { stdout } = await execFileAsync("python", [
+    const { stdout } = await execFileAsync(PYTHON, [
       ZIP_SCRIPT,
       "--data",   JSON.stringify(payload),
       "--output", tmpFile,
@@ -730,4 +733,191 @@ router.post('/api/criador/stream', async (req, res) => {
   }
 });
 
+router.post("/api/escala/criar-mock", async (req, res) => {
+  if (!req.user || !isUserSuperAdmin(req.user.email)) {
+    return res.status(403).json({ error: "Acesso negado. Apenas super admins podem usar o teste de escala." });
+  }
+
+  const payload = req.body;
+  if (!payload || !Array.isArray(payload.slides) || payload.slides.length === 0) {
+    return res.status(400).json({ error: "slides é obrigatório" });
+  }
+
+  let allCarousels = [];
+  try {
+    allCarousels = await readDataAsync();
+  } catch (err) {
+    logger.error('[Carousel]', "Erro ao ler carrosséis para determinar ID:", err);
+  }
+
+  // Se o carrossel do rascunho com o ID anterior já existe, atualizamos ele em vez de duplicar
+  const targetId = payload.id;
+  let existingIndex = -1;
+  if (targetId) {
+    existingIndex = allCarousels.findIndex(c => c.id === targetId);
+  }
+
+  const finalId = existingIndex >= 0 ? targetId : (() => {
+    const nums = allCarousels.map(c => parseInt(c.id?.split('-').pop()) || 0).filter(Boolean);
+    const nextNum = nums.length ? Math.max(...nums) + 1 : 1;
+    return `carrossel-${String(nextNum).padStart(2, '0')}`;
+  })();
+
+  const slug = payload.title ? slugify(payload.title) : 'sem-titulo';
+  const outDir = path.join(__dirname, '..', '..', 'storage', `carrossel-${slug}`);
+
+  const slidesData = payload.slides.map((s, idx) => ({
+    num: idx + 1,
+    title_text: s.title || s.title_text || `Slide ${idx + 1}`,
+    text: s.body || s.text || ""
+  }));
+
+  const estimatedCost = slidesData.length * 0.08;
+  const baseCarousel = existingIndex >= 0 ? allCarousels[existingIndex] : {};
+
+  // Formata os slides em markdown legível para o campo notes
+  const notesContent = slidesData.map(s => `[Slide ${s.num}]\nTítulo: ${s.title_text}\nCorpo: ${s.text}`).join('\n\n');
+
+  const updatedCarousel = {
+    ...baseCarousel,
+    id:          finalId,
+    title:       payload.title || baseCarousel.title || 'Carrossel em Escala',
+    theme:       payload.title || baseCarousel.theme || 'Geração Automática',
+    format:      payload.format || baseCarousel.format || 'B',
+    status:      'generating',
+    preset:      'escala',
+    cost:        estimatedCost,
+    createdAt:   baseCarousel.createdAt || new Date().toISOString(),
+    slidesDir:   outDir.replace(/\\/g, '/'),
+    slidePrefix: 'slide-',
+    totalSlides: slidesData.length,
+    imageQuality: 'high',
+    caption:     payload.caption || baseCarousel.caption || '',
+    notes:       notesContent,
+    chatHistory: baseCarousel.chatHistory || [],
+    slides:      [], // Inicia vazio para preencher progressivamente com os delays!
+  };
+
+  if (existingIndex >= 0) {
+    allCarousels[existingIndex] = updatedCarousel;
+  } else {
+    allCarousels.push(updatedCarousel);
+  }
+  
+  await writeDataAsync(allCarousels);
+
+  res.json({ ok: true, carousel: updatedCarousel });
+
+  (async () => {
+    try {
+      // Carrega as configurações de branding salvas no banco/JSON
+      let branding = {
+        logoText: "FONTE OCULTA",
+        logoColor: "#ffffff",
+        carouselTextColor: "#e4e4e7"
+      };
+      try {
+        const brandingPath = path.join(__dirname, '..', 'data', 'branding.json');
+        if (fs.existsSync(brandingPath)) {
+          branding = JSON.parse(fs.readFileSync(brandingPath, 'utf-8'));
+        }
+      } catch (err) {
+        logger.error('[Carousel mock branding]', "Erro ao ler branding.json:", err.message);
+      }
+
+      const PYTHON = process.platform === 'win32' ? 'python' : 'python3';
+      const PIPELINE = path.join(__dirname, '..', '..', 'core', 'generate_mock_slides.py');
+      
+      const child = spawn(PYTHON, ['-X', 'utf8', PIPELINE, '--data', JSON.stringify({
+        id: finalId,
+        title: updatedCarousel.title,
+        slidesDir: updatedCarousel.slidesDir,
+        format: updatedCarousel.format,
+        slides: slidesData,
+        logoText: branding.logoText || "FONTE OCULTA",
+        logoColor: branding.logoColor || "#ffffff",
+        carouselTextColor: branding.carouselTextColor || "#e4e4e7",
+        titleTextSize: branding.titleTextSize || "40px",
+        bodyTextSize: branding.bodyTextSize || "24px",
+        titleTextColor: branding.titleTextColor || "#ffffff",
+        bodyTextColor: branding.bodyTextColor || branding.carouselTextColor || "#e4e4e7",
+        logoPosition: branding.logoPosition || "left"
+      })], {
+        shell: false,
+        cwd: path.join(__dirname, '..', '..'),
+        env: { ...process.env }
+      });
+
+      child.on('error', (err) => {
+        logger.error('[Carousel mock]', `Erro ao executar script python de mock: ${err.message}`);
+      });
+
+      child.stdout.on('data', (chunk) => {
+        logger.info('[Carousel mock stdout]', chunk.toString().trim());
+      });
+
+      child.stderr.on('data', (chunk) => {
+        logger.error('[Carousel mock stderr]', chunk.toString().trim());
+      });
+
+      await new Promise(r => setTimeout(r, 1000));
+      
+      sseClients.forEach(send => send({
+        type: 'start',
+        carouselId: finalId,
+        total: slidesData.length
+      }));
+
+      const currentSlidesList = [];
+      for (let i = 1; i <= slidesData.length; i++) {
+        await new Promise(r => setTimeout(r, 10000));
+        
+        const filename = `slide-${String(i).padStart(2, '0')}.png`;
+        currentSlidesList.push(filename);
+
+        // Adiciona o slide criado no banco para que o frontend carregue progressivamente
+        const localCarousels = await readDataAsync();
+        const idx = localCarousels.findIndex(c => c.id === finalId);
+        if (idx >= 0) {
+          localCarousels[idx].slides = [...currentSlidesList];
+          await writeDataAsync(localCarousels);
+        }
+
+        sseClients.forEach(send => send({
+          type: 'slide',
+          carouselId: finalId,
+          num: i,
+          total: slidesData.length,
+          estado: 'PRODUÇÃO',
+          status: 'ok',
+          filename: filename,
+          title_text: slidesData[i - 1].title_text
+        }));
+      }
+
+      await new Promise(r => setTimeout(r, 1000));
+      
+      const localCarousels = await readDataAsync();
+      const idx = localCarousels.findIndex(c => c.id === finalId);
+      if (idx >= 0) {
+        localCarousels[idx].status = 'pronto';
+        // Garante que o custo simulado (mock) fique persistido no JSON
+        if (!localCarousels[idx].cost || localCarousels[idx].cost === 0) {
+          localCarousels[idx].cost = slidesData.length * 0.08;
+        }
+        await writeDataAsync(localCarousels);
+      }
+
+      sseClients.forEach(send => send({
+        type: 'done',
+        carouselId: finalId
+      }));
+
+    } catch (err) {
+      logger.error('[Carousel mock simulation]', `Erro na simulação do mock: ${err.message}`);
+    }
+  })();
+});
+
 export default router;
+

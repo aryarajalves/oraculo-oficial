@@ -93,8 +93,9 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
         <div className="lb-slide-wrap">
           <img
             className="modal-img"
-            src={`/api/carousels/${carouselId}/image/${currentSlide}?t=${Date.now()}`}
+            src={`/api/carousels/${carouselId}/image/${currentSlide}?t=${Date.now()}&token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}`}
             alt="Slide"
+            style={{ border: '1px solid rgba(255, 255, 255, 0.25)' }}
           />
 
           <div className="lb-zones">

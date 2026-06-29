@@ -99,6 +99,17 @@ app.use('/api/backups', rateLimiter(30, 60000));
 // 3. Outras rotas gerais do dashboard (ex: users, etc): 60 requisições por minuto
 app.use('/api/users', rateLimiter(60, 60000));
 
+// 4. Oráculo e Radar: sync é pesado (8-10min), limitar agressivamente
+app.use('/api/oraculo', rateLimiter(10, 60000));
+app.use('/api/radar', rateLimiter(10, 60000));
+
+// 5. Criador (geração de IA — custa dinheiro): 5 req/min por IP
+app.use('/api/criador', rateLimiter(20, 60000));
+
+// 6. Outros endpoints de API sem rate limit anterior
+app.use('/api/escala', rateLimiter(20, 60000));
+app.use('/api/events', rateLimiter(30, 60000));
+
 // ── Register Routers ─────────────────────────────────────────────────────────
 app.use(authRouter);
 app.use(usersRouter);

@@ -8,7 +8,7 @@ export default function LiveGenPanel({ liveSession, setLiveSession, onOpenLightb
   return (
     <div id="live-gen-panel" className={`live-panel ${liveSession.expanded ? 'expanded' : ''} visible`}>
       <div className="live-gen-header">
-        <span id="live-gen-title">Gerando carrossel...</span>
+        <span id="live-gen-title">{pct >= 100 ? '✓ Concluído!' : 'Gerando carrossel...'}</span>
         <span className="live-gen-pct">{pct}%</span>
         <button
           className="live-gen-expand"

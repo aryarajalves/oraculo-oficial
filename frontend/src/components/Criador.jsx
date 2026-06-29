@@ -1,12 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { parseCarouselText } from '../utils/carouselParser';
 
-export default function Criador({ onStartGeneration, showToast, shouldAddFormMessage, clearAddFormMessage, initialMessages, clearInitialMessages, isReadOnly }) {
+const IDEAS_PROMPT = `Sugira 5 ideias de temas e títulos para carrosséis do @afonteoculta. O nicho é: espiritualidade, epigenética, frequência, traumas, dinheiro, consciência. Use o Método Jordânico — ganchos disruptivos, revelação oculta, arco emocional.
+
+Para cada ideia, formate assim:
+Tema: [slug-do-tema]
+Título: [título do slide 1 — gancho disruptivo]
+
+Seja direto. Sem introduções. Só as 5 ideias.`;
+
+export default function Criador({ onStartGeneration, showToast, shouldAddFormMessage, clearAddFormMessage, initialMessages, clearInitialMessages, isReadOnly, isMockFlow }) {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [lastCarouselText, setLastCarouselText] = useState(sessionStorage.getItem('criadorLastCarousel') || null);
   const [currentCarouselId, setCurrentCarouselId] = useState(null);
+  const msgsRef = useRef(null);
+  const scrollAnchorRef = useRef(null);
+
+  const scrollToBottom = () => {
+    if (scrollAnchorRef.current) {
+      scrollAnchorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const setLastCarousel = (text) => {
     setLastCarouselText(text);
@@ -121,8 +137,20 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
     }
   }, [initialMessages]);
 
+  useEffect(() => {
+    if (messages.length === 0 && !initialMessages) {
+      setMessages([{ role: 'form', id: 'form-' + Date.now() }]);
+    }
+  }, []);
+
+
   const handleSendFormBriefing = async (briefing) => {
     if (generating) return;
+
+    if (!briefing.title?.trim() || !briefing.theme?.trim()) {
+      showToast("⚠ Por favor, preencha o Título e o Tema antes de enviar.");
+      return;
+    }
 
     const displayUserText = `Briefing enviado para avaliação da IA: "${briefing.title || 'Novo Carrossel'}" (Tema: ${briefing.theme || 'Não definido'}, Formato: ${briefing.format})`;
 
@@ -138,6 +166,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
 - **Notas:** ${briefing.notes || 'Não definido'}`;
 
     setMessages(prev => [...prev, { role: 'user', content: displayUserText }]);
+    // Scroll suave para o final do chat após enviar o briefing
+    setTimeout(() => scrollToBottom(), 100);
 
     // Cria o rascunho do carrossel no banco de dados
     let createdId = null;
@@ -287,12 +317,17 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
   return (
     <div className="main-view active" id="view-criador" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
       <div className="criador-wrap" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <div className="criador-msgs" style={{ flex: 1, overflowY: 'auto', padding: '32px 24px 16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className="criador-msgs" ref={msgsRef} style={{ flex: 1, overflowY: 'auto', padding: '32px 24px 16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {messages.length === 0 ? (
             <div className="criador-welcome">
-              <div className="criador-welcome-icon">✦</div>
-              <div className="criador-welcome-title">CRIADOR</div>
-              <div className="criador-welcome-sub">Traga um tema e receba o carrossel completo de 10 slides.<br/>Método Jordânico · Voz Oculta · Humanizador.</div>
+              <div className="criador-welcome-icon">{isMockFlow ? '⚡' : '✦'}</div>
+              <div className="criador-welcome-title">{isMockFlow ? 'TESTE DE ESCALA (MOCK)' : 'CRIADOR'}</div>
+              <div className="criador-welcome-sub">
+                {isMockFlow 
+                  ? 'Gere o roteiro do carrossel usando IA e crie o design de teste instantaneamente e sem custos.'
+                  : 'Traga um tema e receba o carrossel completo de 10 slides. Método Jordânico · Voz Oculta · Humanizador.'
+                }
+              </div>
               <div className="criador-chips">
                 <button className="criador-chip" onClick={() => handleSend('O sistema nervoso calibrado para escassez antes dos 7 anos')}>Sistema nervoso + escassez</button>
                 <button className="criador-chip" onClick={() => handleSend('Por que pessoas inteligentes continuam quebradas')}>Inteligentes e quebradas</button>
@@ -305,7 +340,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                   <div key={idx} className="criador-msg criador-msg--ai" style={{ alignSelf: 'flex-start' }}>
                     <div className="criador-avatar">◈</div>
                     <div className="criador-bubble" style={{ width: '100%', maxWidth: '480px', background: 'var(--surface2)', border: '1px solid var(--border2)', borderRadius: '12px', padding: '18px 20px', display: 'block' }}>
-                      <ChatFormMessage onSubmit={handleSendFormBriefing} />
+                      <ChatFormMessage onSubmit={handleSendFormBriefing} showToast={showToast} generating={generating} onRequestIdeas={() => handleSend(IDEAS_PROMPT)} />
                     </div>
                   </div>
                 );
@@ -316,14 +351,86 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                   <div className="criador-bubble">
                     {(() => {
                       if (typeof m.content !== 'string') return m.content;
-                      const urlRegex = /(https?:\/\/[^\s]+)/g;
-                      const parts = m.content.split(urlRegex);
-                      return parts.map((part, i) => {
-                        if (part.match(urlRegex)) {
-                          return <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)', textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>;
-                        }
-                        return part;
-                      });
+                      if (m.role === 'user') {
+                        const urlRegex = /(https?:\/\/[^\s]+)/g;
+                        const parts = m.content.split(urlRegex);
+                        return parts.map((part, i) => {
+                          if (part.match(urlRegex)) {
+                            return <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold)', textDecoration: 'underline', wordBreak: 'break-all' }}>{part}</a>;
+                          }
+                          return part;
+                        });
+                      }
+
+                      // Para a IA: processa linha por linha para injetar botões
+                      const lines = m.content.split('\n');
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {lines.map((line, lIdx) => {
+                            const temaMatch = line.match(/(?:Tema|tema)\s*:\s*(.+)/i);
+                            const tituloMatch = line.match(/(?:T[IÍ]tulo|t[ií]tulo)s*:\s*(.+)/i);
+                            const listMatch = line.match(/^\s*[-\*•]\s+(.+)/);
+                            
+                            let button = null;
+                            if (temaMatch) {
+                              const value = temaMatch[1].trim().replace(/\*\*|_/g, '').trim();
+                              if (value.length > 0) {
+                                button = (
+                                  <button
+                                    onClick={() => {
+                                      window.dispatchEvent(new CustomEvent('preencher-briefing', { detail: { type: 'theme', value } }));
+                                      if (showToast) showToast("✓ Tema preenchido!");
+                                    }}
+                                    className="btn-escala-preencher"
+                                    style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(201, 168, 76, 0.15)', border: '1px solid rgba(201, 168, 76, 0.3)', color: 'var(--gold)', fontSize: '10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}
+                                  >
+                                    ⚡ Usar Tema
+                                  </button>
+                                );
+                              }
+                            } else if (tituloMatch) {
+                              const value = tituloMatch[1].trim().replace(/\*\*|_/g, '').replace(/^["'“”]/, '').replace(/["'“”]$/, '').trim();
+                              if (value.length > 0) {
+                                button = (
+                                  <button
+                                    onClick={() => {
+                                      window.dispatchEvent(new CustomEvent('preencher-briefing', { detail: { type: 'title', value } }));
+                                      if (showToast) showToast("✓ Título preenchido!");
+                                    }}
+                                    className="btn-escala-preencher"
+                                    style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(201, 168, 76, 0.15)', border: '1px solid rgba(201, 168, 76, 0.3)', color: 'var(--gold)', fontSize: '10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}
+                                  >
+                                    ⚡ Usar Título
+                                  </button>
+                                );
+                              }
+                            } else if (listMatch) {
+                              const value = listMatch[1].trim().replace(/\*\*|_/g, '').replace(/^["'“”]/, '').replace(/["'“”]$/, '').trim();
+                              if (value.length > 5 && value.length < 90 && !value.toLowerCase().startsWith('slide') && !value.toLowerCase().startsWith('conteudo')) {
+                                button = (
+                                  <button
+                                    onClick={() => {
+                                      window.dispatchEvent(new CustomEvent('preencher-briefing', { detail: { type: 'title', value } }));
+                                      if (showToast) showToast("✓ Título preenchido!");
+                                    }}
+                                    className="btn-escala-preencher"
+                                    style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(201, 168, 76, 0.15)', border: '1px solid rgba(201, 168, 76, 0.3)', color: 'var(--gold)', fontSize: '10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}
+                                  >
+                                    ⚡ Usar Título
+                                  </button>
+                                );
+                              }
+                            }
+
+                            return (
+                              <div key={lIdx} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', minHeight: '22px' }}>
+                                <span>{line}</span>
+                                {button}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
                     })()}
                     {m.streaming && <span className="criador-cursor"></span>}
                     {m.role === 'ai' && !m.streaming && m.content && (
@@ -338,7 +445,13 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                             return false;
                           }
                         })() && !isReadOnly && (
-                          <button className="criador-action-btn criador-action-btn--create" onClick={() => onStartGeneration(m.content, currentCarouselId)}>✦ Criar design</button>
+                          <button 
+                            className="criador-action-btn criador-action-btn--create" 
+                            style={isMockFlow ? { background: 'var(--gold)', color: '#000' } : {}}
+                            onClick={() => onStartGeneration(m.content, currentCarouselId)}
+                          >
+                            {isMockFlow ? '⚡ Criar design rápido (Mock)' : '✦ Criar design'}
+                          </button>
                         )}
                       </div>
                     )}
@@ -347,18 +460,59 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
               );
             })
           )}
+          <div ref={scrollAnchorRef} style={{ height: '1px', flexShrink: 0 }} />
         </div>
 
-        <div className="criador-input-row">
+        <div className="criador-input-row" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+            <button
+              onClick={() => handleSend(IDEAS_PROMPT)}
+              disabled={generating}
+              style={{
+                background: 'rgba(201, 168, 76, 0.12)',
+                border: '1px solid rgba(201, 168, 76, 0.35)',
+                borderRadius: '16px',
+                color: 'var(--gold)',
+                padding: '4px 12px',
+                fontSize: '11px',
+                fontWeight: '600',
+                cursor: generating ? 'not-allowed' : 'pointer',
+                opacity: generating ? 0.6 : 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+              }}
+              onMouseEnter={e => { if (!generating) e.currentTarget.style.background = 'rgba(201, 168, 76, 0.22)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(201, 168, 76, 0.12)'; }}
+            >
+              💡 Dar ideias de Tema/Título
+            </button>
+          </div>
+
           <div className="criador-input-wrap">
             <textarea
               className="criador-textarea"
-              placeholder="Digite o tema do carrossel ou faça uma pergunta..."
+              placeholder={generating ? "Aguardando resposta do agente..." : "Digite o tema do carrossel ou faça uma pergunta..."}
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleSend())}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && !generating && (e.preventDefault(), handleSend())}
+              disabled={generating}
+              style={{
+                opacity: generating ? 0.6 : 1,
+                cursor: generating ? 'not-allowed' : 'text'
+              }}
             />
-            <button className="criador-send-btn" onClick={() => handleSend()} disabled={generating}>
+            <button 
+              className="criador-send-btn" 
+              onClick={() => !generating && handleSend()} 
+              disabled={generating}
+              style={{
+                opacity: generating ? 0.5 : 1,
+                cursor: generating ? 'not-allowed' : 'pointer'
+              }}
+            >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </button>
           </div>
@@ -369,7 +523,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
   );
 }
 
-function ChatFormMessage({ onSubmit }) {
+function ChatFormMessage({ onSubmit, showToast, generating, onRequestIdeas }) {
   const [title, setTitle] = useState('');
   const [theme, setTheme] = useState('');
   const [format, setFormat] = useState('A');
@@ -379,6 +533,15 @@ function ChatFormMessage({ onSubmit }) {
   const [caption, setCaption] = useState('');
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    const handleFill = (e) => {
+      if (e.detail.type === 'title') setTitle(e.detail.value);
+      if (e.detail.type === 'theme') setTheme(e.detail.value);
+    };
+    window.addEventListener('preencher-briefing', handleFill);
+    return () => window.removeEventListener('preencher-briefing', handleFill);
+  }, []);
 
   if (submitted) {
     return (
@@ -498,16 +661,58 @@ function ChatFormMessage({ onSubmit }) {
         ></textarea>
       </div>
 
-      <button 
-        className="btn btn-gold" 
-        style={{ padding: '8px 12px', fontSize: '12px', fontWeight: '700', width: '100%', textTransform: 'uppercase', letterSpacing: '0.05em' }} 
-        onClick={() => {
-          onSubmit({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), imageQuality });
-          setSubmitted(true);
-        }}
-      >
-        Avaliar Briefing com IA
-      </button>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button
+          onClick={() => { if (!generating && onRequestIdeas) onRequestIdeas(); }}
+          disabled={generating}
+          style={{
+            flex: '0 0 auto',
+            padding: '8px 12px',
+            fontSize: '12px',
+            fontWeight: '700',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            background: 'transparent',
+            border: '1px solid rgba(201, 168, 76, 0.4)',
+            borderRadius: '6px',
+            color: 'var(--gold)',
+            cursor: generating ? 'not-allowed' : 'pointer',
+            opacity: generating ? 0.5 : 1,
+            whiteSpace: 'nowrap',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => { if (!generating) e.currentTarget.style.background = 'rgba(201,168,76,0.1)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          💡 Sugerir Temas
+        </button>
+
+        <button
+          className="btn btn-gold"
+          style={{
+            flex: 1,
+            padding: '8px 12px',
+            fontSize: '12px',
+            fontWeight: '700',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            opacity: generating ? 0.5 : 1,
+            cursor: generating ? 'not-allowed' : 'pointer'
+          }}
+          disabled={generating}
+          onClick={() => {
+            if (generating) return;
+            if (!title.trim() || !theme.trim()) {
+              if (showToast) showToast("⚠ Por favor, preencha o Título e o Tema antes de enviar.");
+              return;
+            }
+            onSubmit({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), imageQuality });
+            setSubmitted(true);
+          }}
+        >
+          {generating ? 'Aguardando resposta da IA...' : 'Avaliar Briefing com IA'}
+        </button>
+      </div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ trigger: always_on
 
 Para realizar testes visuais, smoke tests e validações de interface, utilize as seguintes credenciais:
 
-- **URL da Interface:** http://localhost:5176
+- **URL da Interface:** http://localhost:5889
 - **E-mail de Login:** aryarajmarketing@gmail.com
 - **Senha:** 123456
 

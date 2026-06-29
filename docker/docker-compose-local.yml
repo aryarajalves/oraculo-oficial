@@ -55,7 +55,7 @@ services:
     container_name: oraculo_frontend
     restart: always
     ports:
-      - "5176:5176"
+      - "5889:5889"
     depends_on:
       - backend
 

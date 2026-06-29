@@ -28,7 +28,12 @@ export default function Settings({ showToast, onLoadBranding }) {
     logoSize: '13px',
     logoColor: '#ffffff',
     carouselTextSize: '15px',
-    carouselTextColor: '#e4e4e7'
+    carouselTextColor: '#e4e4e7',
+    titleTextSize: '40px',
+    bodyTextSize: '24px',
+    titleTextColor: '#ffffff',
+    bodyTextColor: '#e4e4e7',
+    logoPosition: 'left'
   });
 
   useEffect(() => {

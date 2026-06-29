@@ -134,6 +134,16 @@ export default function Sidebar({ activeTab, setActiveTab, branding, onNewCarous
               </svg>
               Backups do Banco
             </button>
+            <button
+              className={`nav-item ${activeTab === 'escala' ? 'active' : ''}`}
+              onClick={() => setActiveTab('escala')}
+              style={{ marginBottom: '4px' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              Teste de Escala
+            </button>
           </>
         )}
         <button

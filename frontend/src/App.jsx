@@ -20,6 +20,7 @@ import LogoutModal from './components/LogoutModal';
 import { parseCarouselText } from './utils/carouselParser';
 import { customFetch } from './utils/customFetch';
 
+
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
     // Se o usuário veio da página de login, forçamos 'carrosseis' apenas no primeiro carregamento
@@ -79,7 +80,12 @@ export default function App() {
     logoSize: '13px',
     logoColor: '#ffffff',
     carouselTextSize: '15px',
-    carouselTextColor: '#e4e4e7'
+    carouselTextColor: '#e4e4e7',
+    titleTextSize: '40px',
+    bodyTextSize: '24px',
+    titleTextColor: '#ffffff',
+    bodyTextColor: '#e4e4e7',
+    logoPosition: 'left'
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -178,9 +184,18 @@ export default function App() {
 
   const setupSSE = () => {
     const token = localStorage.getItem('fo_token');
-    // Para SSE passamos o token via query param se necessário, ou deixamos a rota de SSE pública ou autenticada por token via query
     const url = token ? `/api/events?token=${encodeURIComponent(token)}` : '/api/events';
     const eventSource = new EventSource(url);
+
+    // Timeout para fechar o painel se ficar preso sem receber slides (ex: container reiniciado no meio da geração)
+    let stuckTimer = null;
+    const resetStuckTimer = () => {
+      if (stuckTimer) clearTimeout(stuckTimer);
+      stuckTimer = setTimeout(() => {
+        setLiveSession(prev => prev ? { ...prev, visible: false } : null);
+      }, 60000); // 60 segundos sem atividade → fecha
+    };
+
     eventSource.onmessage = function(event) {
       try {
         const obj = JSON.parse(event.data);
@@ -193,10 +208,13 @@ export default function App() {
             expanded: false
           });
           loadCarousels();
+          resetStuckTimer(); // inicia o watchdog
         } else if (obj.type === 'slide') {
+          resetStuckTimer(); // renova o watchdog a cada slide recebido
+          loadCarousels(); // recarrega a lista para mostrar a imagem do slide recém-criado
+          loadStats(); // atualiza o custo em tempo real
           setLiveSession(prev => {
             if (!prev) return prev;
-            // update or add slide
             const slides = [...prev.slides];
             const idx = slides.findIndex(s => s.num === obj.num);
             const slideData = {
@@ -212,13 +230,18 @@ export default function App() {
             return { ...prev, slides };
           });
         } else if (obj.type === 'done' || obj.type === 'registered') {
-          // reload carousels on completion
+          if (stuckTimer) clearTimeout(stuckTimer); // cancela o watchdog
           loadCarousels();
           loadStats();
+          // Fecha o painel automaticamente após 3 segundos
+          setTimeout(() => {
+            setLiveSession(prev => prev ? { ...prev, visible: false } : null);
+          }, 3000);
         }
       } catch (e) {}
     };
-    return () => eventSource.close();
+    return () => { eventSource.close(); if (stuckTimer) clearTimeout(stuckTimer); };
+
   };
 
   const handleCreateCarousel = async (payload) => {
@@ -261,6 +284,35 @@ export default function App() {
       }
     } catch (e) {
       showToast('Erro ao iniciar pipeline.');
+    }
+  };
+
+  const handleStartMockGeneration = async (carouselText, carouselId = null) => {
+    const payload = parseCarouselText(carouselText);
+    if (payload.slides.length === 0) {
+      alert('Não consegui extrair slides do carrossel!');
+      return;
+    }
+
+    if (carouselId) {
+      payload.id = carouselId;
+    }
+
+    try {
+      const res = await customFetch('/api/escala/criar-mock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        showToast('⚡ Pipeline de geração rápida (mock) concluído!');
+        setActiveTab('carrosseis');
+      } else {
+        const err = await res.json();
+        showToast(`Erro ao criar design rápido: ${err.error || err.detail}`);
+      }
+    } catch (e) {
+      showToast('Erro ao iniciar pipeline rápido.');
     }
   };
 
@@ -341,6 +393,7 @@ export default function App() {
                 stats={stats}
                 filterStatus={filterStatus}
                 setFilterStatus={setFilterStatus}
+                currentUser={currentUser}
                 onOpenLightbox={(id, slides, idx) => {
                   setLightboxCarouselId(id);
                   setLightboxSlides(slides);
@@ -401,6 +454,18 @@ export default function App() {
             {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} />}
             {activeTab === 'users' && <UsersManagement showToast={showToast} />}
             {activeTab === 'backups' && <BackupManagement showToast={showToast} />}
+            {activeTab === 'escala' && (
+              <Criador
+                onStartGeneration={handleStartMockGeneration}
+                showToast={showToast}
+                shouldAddFormMessage={shouldAddFormMessage}
+                clearAddFormMessage={() => setShouldAddFormMessage(false)}
+                initialMessages={criadorInitialMessages}
+                clearInitialMessages={() => setCriadorInitialMessages(null)}
+                isReadOnly={criadorReadOnly}
+                isMockFlow={true}
+              />
+            )}
           </>
         )}
       </div>

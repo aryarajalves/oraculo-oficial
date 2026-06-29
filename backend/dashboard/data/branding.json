@@ -1,9 +1,14 @@
 {
   "companyName": "FONTE Tete",
-  "logoText": "FONTE OCULTA",
+  "logoText": "@FONTEOCULTA",
   "logoSub": "PRODUÇÃO",
-  "logoSize": "13px",
+  "logoSize": "6px",
   "logoColor": "#ffffff",
   "carouselTextSize": "15px",
-  "carouselTextColor": "#e4e4e7"
+  "carouselTextColor": "#e4e4e7",
+  "titleTextSize": "18px",
+  "bodyTextSize": "12px",
+  "titleTextColor": "#ffffff",
+  "bodyTextColor": "#df0c7c",
+  "logoPosition": "right"
 }

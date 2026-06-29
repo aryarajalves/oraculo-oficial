@@ -5,7 +5,14 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import { logger } from "./logger.js";
 
-const JWT_SECRET = process.env.JWT_SECRET || "fonte-oculta-secret-key-change-in-prod";
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  if (process.env.NODE_ENV === 'production') {
+    logger.error('[AUTH]', '❌ JWT_SECRET não definido em produção — encerrando servidor por segurança.');
+    process.exit(1);
+  }
+  logger.warn('[AUTH]', '⚠️  JWT_SECRET não definido. Usando chave temporária (APENAS para desenvolvimento).');
+  return "fonte-oculta-dev-secret-CHANGE-ME";
+})();
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "24h";
 
 // Gera um token JWT contendo payload do usuário
@@ -60,8 +67,15 @@ export const ZIP_SCRIPT = path.join(__dirname, "..", "zip-carousels.py");
 export const generationJobs = new Map();
 export const sseClients = new Set();
 
-// Hash helper para senhas
+// Hash helper para senhas — HMAC-SHA256 com JWT_SECRET como salt
+// Resistente a rainbow tables. Novos usuários criados já usam este formato.
+// Usuários antigos (SHA-256 puro) continuarão funcionando via fallback no login.
 export function hashPassword(password) {
+  return crypto.createHmac('sha256', JWT_SECRET).update(password).digest('hex');
+}
+
+// Fallback para verificar senhas legadas (SHA-256 sem salt) durante a migração
+export function hashPasswordLegacy(password) {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
@@ -79,12 +93,11 @@ export function isUserSuperAdmin(email) {
 // Auth middleware
 export function requireAuth(req, res, next) {
   const publicPaths = [
-    '/login.html', '/login', 
-    '/auth/login', '/auth/logout', 
-    '/api/settings/branding', 
-    '/register.html', '/register', 
-    '/api/users/register',
-    '/api/debug-jobs'
+    '/login.html', '/login',
+    '/auth/login', '/auth/logout',
+    '/api/settings/branding',
+    '/register.html', '/register',
+    '/api/users/register'
   ];
   if (publicPaths.includes(req.path)) return next();
 
