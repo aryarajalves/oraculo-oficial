@@ -15,6 +15,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
   const [generating, setGenerating] = useState(false);
   const [lastCarouselText, setLastCarouselText] = useState(sessionStorage.getItem('criadorLastCarousel') || null);
   const [currentCarouselId, setCurrentCarouselId] = useState(null);
+  const [activeBriefing, setActiveBriefing] = useState(null);
   const msgsRef = useRef(null);
   const scrollAnchorRef = useRef(null);
 
@@ -151,6 +152,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
       showToast("⚠ Por favor, preencha o Título e o Tema antes de enviar.");
       return;
     }
+
+    setActiveBriefing(briefing);
 
     const displayUserText = `Briefing enviado para avaliação da IA: "${briefing.title || 'Novo Carrossel'}" (Tema: ${briefing.theme || 'Não definido'}, Formato: ${briefing.format})`;
 
@@ -439,8 +442,10 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                         {!isReadOnly && <button className="criador-action-btn" onClick={() => handleSaveDraft(m.content)}>+ Salvar rascunho</button>}
                         {(() => {
                           try {
-                            const parsed = parseCarouselText(m.content);
-                            return parsed && parsed.slides && parsed.slides.length > 0;
+                            const parsed = parseCarouselText(m.content, activeBriefing);
+                            const hasSlidesInText = parsed && parsed.slides && parsed.slides.length > 0;
+                            const hasSlidesInBriefing = activeBriefing && activeBriefing.slides && activeBriefing.slides.length > 0;
+                            return hasSlidesInText || hasSlidesInBriefing;
                           } catch (e) {
                             return false;
                           }
