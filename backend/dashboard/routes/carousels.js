@@ -57,6 +57,7 @@ router.get("/api/carousels/:id", async (req, res) => {
 
 // ── API: Create carousel ─────────────────────────────────────────────────────
 router.post("/api/carousels", async (req, res) => {
+  logger.info('[CarouselsAPI]', `CRIAR NOVO CARROSSEL (POST): ${JSON.stringify(req.body)}`);
   const all = await readData();
   let nextIdNum = all.length + 1;
   let newId = `carrossel-${String(nextIdNum).padStart(2, "0")}`;
@@ -88,16 +89,19 @@ router.post("/api/carousels", async (req, res) => {
     fs.mkdirSync(req.body.slidesDir, { recursive: true });
   }
 
+  logger.info('[CarouselsAPI]', `CRIADO COM SUCESSO: ${newId} (${newCarousel.title})`);
   res.json(newCarousel);
 });
 
 // ── API: Update carousel status/fields ──────────────────────────────────────
 router.put("/api/carousels/:id", async (req, res) => {
+  logger.info('[CarouselsAPI]', `ATUALIZAR CARROSSEL (PUT ${req.params.id}): ${JSON.stringify(req.body)}`);
   const all = await readData();
   const idx = all.findIndex(x => x.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Não encontrado" });
   all[idx] = { ...all[idx], ...req.body, id: all[idx].id };
   await writeData(all);
+  logger.info('[CarouselsAPI]', `ATUALIZADO COM SUCESSO: ${req.params.id} (${all[idx].title})`);
   res.json(all[idx]);
 });
 
@@ -188,14 +192,30 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
   if (!c) return res.status(404).json({ error: "Não encontrado" });
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
   if (!fs.existsSync(imgPath)) return res.status(404).json({ error: "Imagem não encontrada" });
+  
+  // Buscar a imagem limpa do Raw Cache se disponível
+  const rawFilename = req.params.filename.replace(/^slide-/, 'raw-');
+  const rawPath = path.join(getLocalSlidesDir(c), rawFilename);
+  const baseImgPath = fs.existsSync(rawPath) ? rawPath : imgPath;
+
   const { title, body, layout = "fullbleed" } = req.body;
   if (!title || !body) return res.status(400).json({ error: "title e body são obrigatórios" });
   try {
-    const { stdout } = await execFileAsync("python", [
+    const { stdout } = await execFileAsync(PYTHON, [
       COMPOSE_SCRIPT,
-      "--image", imgPath, "--title", title, "--body", body,
+      "--image", baseImgPath, "--title", title, "--body", body,
       "--layout", layout, "--output", imgPath
-    ], { timeout: 60000 });
+    ], {
+      timeout: 60000,
+      cwd: path.join(__dirname, '..', '..'),
+      env: {
+        ...process.env,
+        PYTHONPATH: [
+          path.join(__dirname, '..', '..'),
+          path.join(__dirname, '..', '..', 'python_packages'),
+        ].join(process.platform === 'win32' ? ';' : ':'),
+      }
+    });
     logger.info('[Carousel]', "recompose:", stdout.trim());
     const metaPath = imgPath.replace(/\.(jpg|jpeg|png)$/i, ".meta.json");
     fs.writeFileSync(metaPath, JSON.stringify({ title, body, layout }, null, 2));
@@ -256,11 +276,21 @@ router.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
   const { prompt, title, body, layout = "fullbleed" } = req.body;
   if (!prompt || !title || !body) return res.status(400).json({ error: "prompt, title e body são obrigatórios" });
   try {
-    const { stdout } = await execFileAsync("python", [
+    const { stdout } = await execFileAsync(PYTHON, [
       REGEN_SCRIPT,
       "--prompt", prompt, "--title", title, "--body", body,
       "--layout", layout, "--output", imgPath
-    ], { timeout: 180000 });
+    ], {
+      timeout: 180000,
+      cwd: path.join(__dirname, '..', '..'),
+      env: {
+        ...process.env,
+        PYTHONPATH: [
+          path.join(__dirname, '..', '..'),
+          path.join(__dirname, '..', '..', 'python_packages'),
+        ].join(process.platform === 'win32' ? ';' : ':'),
+      }
+    });
     logger.info('[Carousel]', "regen:", stdout.trim());
     res.json({ ok: true, message: stdout.trim() });
   } catch (e) {
@@ -408,9 +438,9 @@ router.post('/api/criador/generate', async (req, res) => {
   const newCarousel = {
     id:          newId,
     title:       payload.title || existingCarousel?.title || 'Carrossel',
-    theme:       slug,
+    theme:       payload.theme || existingCarousel?.theme || slug,
     format:      payload.format || existingCarousel?.format || 'B',
-    status:      'rascunho',
+    status:      'generating',
     createdAt:   existingCarousel?.createdAt || new Date().toISOString(),
     slidesDir:   outDir,
     slidePrefix: 'slide-',
@@ -443,11 +473,29 @@ router.post('/api/criador/generate', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
-  res.write(`data: ${JSON.stringify({ type: 'start', carouselId: newId, total: payload.slides.length })}\n\n`);
+  const broadcast = (data) => {
+    try {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    } catch (e) {}
+    sseClients.forEach(send => {
+      try {
+        send(data);
+      } catch (e) {}
+    });
+  };
+
+  logger.info('[Generator]', `PASSO 1: Iniciando pipeline para o carrossel ${newId}. Total de slides: ${payload.slides?.length}`);
+  broadcast({ type: 'log', msg: `⚙️ [Servidor] PASSO 1: Iniciando geração do carrossel ${newId}` });
 
   const PYTHON   = process.platform === 'win32' ? 'python' : 'python3';
-  const PIPELINE = path.join(__dirname, '..', '..', 'core', 'criador_pipeline.py');
-  const child = spawn(PYTHON, ['-X', 'utf8', PIPELINE, '--data', JSON.stringify(payload)], {
+  const scriptName = process.env.USE_MOCK_GENERATOR === 'true' ? 'generate_mock_slides.py' : 'criador_pipeline.py';
+  const PIPELINE = path.join(__dirname, '..', '..', 'core', scriptName);
+  
+  logger.info('[Generator]', `PASSO 2: Caminho do script: ${PIPELINE}. Python Exec: ${PYTHON} | Usando Mock: ${process.env.USE_MOCK_GENERATOR === 'true'}`);
+  broadcast({ type: 'log', msg: `⚙️ [Servidor] PASSO 2: Caminho do pipeline: ${PIPELINE} (Mock: ${process.env.USE_MOCK_GENERATOR === 'true'})` });
+
+  const spawnPayload = { ...payload, slidesDir: newCarousel.slidesDir };
+  const child = spawn(PYTHON, ['-X', 'utf8', PIPELINE, '--data', JSON.stringify(spawnPayload)], {
     shell: false,
     cwd: path.join(__dirname, '..', '..'),
     env: {
@@ -459,13 +507,17 @@ router.post('/api/criador/generate', async (req, res) => {
     },
   });
 
+  logger.info('[Generator]', `PASSO 3: Processo spawnado com PID ${child.pid}`);
+  broadcast({ type: 'log', msg: `⚙️ [Servidor] PASSO 3: Processo de geração de imagens iniciado` });
+
   child.on('error', (err) => {
+    logger.error('[Generator]', `PASSO 3 — FALHA NO SPAWN: ${err.message}. Stack: ${err.stack}`);
     const job = generationJobs.get(newId);
     if (job) {
       job.status = 'failed';
       job.logs.push(`Erro de spawn: ${err.message}`);
     }
-    res.write(`data: ${JSON.stringify({ type: 'error', msg: err.message })}\n\n`);
+    broadcast({ type: 'error', msg: `Falha ao iniciar Python: ${err.message}` });
     res.end();
   });
 
@@ -474,6 +526,7 @@ router.post('/api/criador/generate', async (req, res) => {
   let buf = '';
 
   child.stdout.on('data', (data) => {
+    logger.info('[Generator]', `DADOS RECEBIDOS DA SAÍDA DO PIPELINE: ${data.toString().trim()}`);
     buf += data.toString();
     const lines = buf.split('\n');
     buf = lines.pop();
@@ -509,11 +562,11 @@ router.post('/api/criador/generate', async (req, res) => {
           generatedFiles.push({ num: obj.num, estado: obj.estado, file: obj.file });
         }
         if (IS_PROD && obj.type === 'done') donePayload = obj;
-        res.write(`data: ${JSON.stringify(obj)}\n\n`);
+        broadcast(obj);
       } catch {
         const job = generationJobs.get(newId);
         if (job) job.logs.push(t);
-        res.write(`data: ${JSON.stringify({ type: 'log', msg: t })}\n\n`);
+        broadcast({ type: 'log', msg: t });
       }
     }
   });
@@ -521,13 +574,16 @@ router.post('/api/criador/generate', async (req, res) => {
   child.stderr.on('data', (data) => {
     const msg = data.toString().trim();
     if (msg) {
+      logger.error('[Generator]', `ERRO NO PIPELINE (STDERR): ${msg}`);
       const job = generationJobs.get(newId);
       if (job) job.logs.push(msg);
-      res.write(`data: ${JSON.stringify({ type: 'log', msg })}\n\n`);
+      broadcast({ type: 'log', msg: `⚠️ [Pipeline] ${msg}` });
     }
   });
 
   child.on('close', async (code) => {
+    logger.info('[Generator]', `PASSO 4: Script finalizado com código de saída ${code}`);
+    broadcast({ type: 'log', msg: `⚙️ [Servidor] PASSO 4: Processo encerrado com código ${code}` });
     if (buf.trim()) {
       try {
         const obj = JSON.parse(buf.trim());
@@ -548,11 +604,11 @@ router.post('/api/criador/generate', async (req, res) => {
             job.status = 'done';
           }
         }
-        if (IS_PROD && obj.type === 'slide' && obj.status === 'ok' && obj.file) {
+        if (obj.type === 'slide' && obj.status === 'ok' && obj.file) {
           generatedFiles.push({ num: obj.num, estado: obj.estado, file: obj.file });
         }
-        if (IS_PROD && obj.type === 'done') donePayload = obj;
-        res.write(`data: ${JSON.stringify(obj)}\n\n`);
+        if (obj.type === 'done') donePayload = obj;
+        broadcast(obj);
       } catch {}
     }
 
@@ -562,11 +618,12 @@ router.post('/api/criador/generate', async (req, res) => {
         job.status = 'failed';
       }
       job.logs.push(`Processo finalizado com código ${code}`);
+      logger.info('[Carousel]', `Job ${newId} finalizado. Logs do pipeline:\n${job.logs.join('\n')}`);
     }
 
     if (b2 && generatedFiles.length > 0 && donePayload) {
       try {
-        res.write(`data: ${JSON.stringify({ type: 'log', msg: '☁ Enviando imagens para o MinIO...' })}\n\n`);
+        broadcast({ type: 'log', msg: '☁ Enviando imagens para o MinIO...' });
 
         const slideUrls = [];
         for (const { num, estado, file } of generatedFiles) {
@@ -574,13 +631,19 @@ router.post('/api/criador/generate', async (req, res) => {
           try {
             const url = await b2.uploadImageToB2(newId, filename, file);
             slideUrls.push({ num, estado, filename, url });
-            res.write(`data: ${JSON.stringify({ type: 'log', msg: `☁ ${filename} → MinIO ✓` })}\n\n`);
+            broadcast({ type: 'log', msg: `☁ ${filename} → MinIO ✓` });
           } catch (err) {
-            res.write(`data: ${JSON.stringify({ type: 'log', msg: `☁ ${filename} falhou: ${err.message}` })}\n\n`);
+            broadcast({ type: 'log', msg: `☁ ${filename} falhou: ${err.message}` });
           }
-          try { fs.unlinkSync(file); } catch {}
+          // Em dev local, não apagamos a pasta do Desktop para o usuário poder acessar as artes locais se quiser.
+          // Se for produção, limpamos para poupar espaço.
+          if (IS_PROD) {
+            try { fs.unlinkSync(file); } catch {}
+          }
         }
-        try { fs.rmdirSync(donePayload.slides_dir); } catch {}
+        if (IS_PROD) {
+          try { fs.rmdirSync(donePayload.slides_dir); } catch {}
+        }
 
         const allCarousels = await readDataAsync();
         const currentIdx = allCarousels.findIndex(c => c.id === newId);
@@ -599,10 +662,10 @@ router.post('/api/criador/generate', async (req, res) => {
           await writeDataAsync(allCarousels);
         }
 
-        res.write(`data: ${JSON.stringify({ type: 'registered', id: newId, entry: allCarousels[currentIdx] })}\n\n`);
-        res.write(`data: ${JSON.stringify({ type: 'log', msg: `✓ ${newId} salvo no MinIO` })}\n\n`);
+        broadcast({ type: 'registered', id: newId, entry: allCarousels[currentIdx] });
+        broadcast({ type: 'log', msg: `✓ ${newId} salvo no MinIO` });
       } catch (err) {
-        res.write(`data: ${JSON.stringify({ type: 'error', msg: `Upload MinIO falhou: ${err.message}` })}\n\n`);
+        broadcast({ type: 'error', msg: `Upload MinIO falhou: ${err.message}` });
       }
     } else {
       // Fallback local se o módulo MinIO/B2 não estiver configurado
@@ -625,7 +688,8 @@ router.post('/api/criador/generate', async (req, res) => {
       }
     }
 
-    res.write(`data: ${JSON.stringify({ type: 'close', code })}\n\n`);
+    broadcast({ type: 'done', carouselId: newId });
+    broadcast({ type: 'close', code });
     res.end();
   });
 });
@@ -651,9 +715,27 @@ router.get('/api/debug-jobs', (req, res) => {
 
 // ── API: Criador — Chat unificado com streaming SSE ──────────────────────────
 router.post('/api/criador/stream', async (req, res) => {
-  const { messages } = req.body;
-  const system = AGENT_SYSTEM_PROMPTS['criador'];
+  const { messages, totalSlides } = req.body;
+  let system = AGENT_SYSTEM_PROMPTS['criador'];
   if (!system) return res.status(500).json({ error: 'Agente criador não configurado' });
+
+  // Injeta dinamicamente a quantidade de slides configurada no formulário dentro do System Prompt
+  const numSlides = Number(totalSlides) || 10;
+  if (numSlides !== 10) {
+    system = system
+      .replace(/completo de 10 slides/g, `completo de ${numSlides} slides`)
+      .replace(/ESTRUTURA DOS 10 SLIDES/g, `ESTRUTURA DOS ${numSlides} SLIDES`)
+      .replace(/10 ESTADOS:/g, `${numSlides} ESTADOS:`)
+      .replace(/S10/g, `S${numSlides}`)
+      .replace(/S9/g, `S${numSlides - 1}`)
+      .replace(/S8/g, `S${numSlides - 2}`)
+      .replace(/S10 \[CTA FIXO\]/g, `S${numSlides} [CTA FIXO]`)
+      .replace(/S9 \[SETUP CTA\]/g, `S${numSlides - 1} [SETUP CTA]`)
+      .replace(/S8 \[CRISTALIZAÇÃO\]/g, `S${numSlides - 2} [CRISTALIZAÇÃO]`);
+    
+    // Adiciona uma instrução clara no topo do system prompt instruindo a IA sobre a restrição de tamanho
+    system = `IMPORTANTE: Para esta geração, o usuário configurou e deseja estritamente um carrossel de exatamente ${numSlides} slides. Adapte o Método Jordânico de Curva Dramática e sintetize as etapas para caberem exatamente em ${numSlides} slides (S1 até S${numSlides}), garantindo que o slide final S${numSlides} seja o CTA FIXO.\n\n` + system;
+  }
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'messages é obrigatório' });
@@ -669,34 +751,61 @@ router.post('/api/criador/stream', async (req, res) => {
     return res.end();
   }
 
+  const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+  const OPENAI_MODEL = 'gpt-5.4';
+
   try {
     const formattedMessages = messages.map(msg => ({
       role: msg.role === 'ai' ? 'assistant' : msg.role,
       content: msg.content || ''
     }));
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gpt-5.4',
-        messages: [{ role: 'system', content: system }, ...formattedMessages],
-        max_completion_tokens: 4000,
-        temperature: 0.88,
-        stream: true,
-      }),
-    });
+    let response;
+    try {
+      response = await fetch(OPENAI_URL, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: OPENAI_MODEL,
+          messages: [{ role: 'system', content: system }, ...formattedMessages],
+          max_completion_tokens: 4000,
+          temperature: 0.88,
+          stream: true,
+        }),
+      });
+    } catch (fetchErr) {
+      // Erro de rede (DNS, conexão recusada, timeout, etc.)
+      const cause = fetchErr.cause?.message || fetchErr.cause?.code || '';
+      const detail = cause ? ` (causa: ${cause})` : '';
+      logger.error('[Carousel]', `criador/stream — falha de rede ao conectar com a OpenAI${detail}. URL: ${OPENAI_URL}. Erro: ${fetchErr.message}. Stack: ${fetchErr.stack}`);
+      const userMsg = `Erro de conexão com a OpenAI: não foi possível alcançar ${OPENAI_URL}.${detail} Verifique a conexão de rede do servidor ou se a API da OpenAI está fora do ar.`;
+      res.write(`data: ${JSON.stringify({ error: userMsg })}\n\n`);
+      return res.end();
+    }
 
     if (!response.ok) {
       let errText = `HTTP ${response.status}`;
+      let rawBody = '';
       try {
         const j = await response.json();
+        rawBody = JSON.stringify(j);
         errText = j.error?.message || errText;
       } catch {}
-      
-      if (errText.includes("quota") || errText.includes("billing") || response.status === 429) {
-        errText = "Você excedeu sua cota atual na OpenAI. Por favor, adicione créditos ou verifique sua forma de faturamento no painel da OpenAI: https://platform.openai.com/settings/organization/billing/overview";
+
+      logger.error('[Carousel]', `criador/stream — OpenAI retornou erro HTTP ${response.status}. Modelo: ${OPENAI_MODEL}. Corpo: ${rawBody}`);
+
+      if (response.status === 401) {
+        errText = 'A OPENAI_API_KEY configurada é inválida ou expirou. Verifique a chave no arquivo .env do servidor.';
+      } else if (response.status === 403) {
+        errText = 'Acesso negado pela OpenAI (403). A chave pode não ter permissão para usar o modelo ' + OPENAI_MODEL + '.';
+      } else if (response.status === 404) {
+        errText = `Modelo "${OPENAI_MODEL}" não encontrado na OpenAI (404). Verifique se o nome do modelo está correto ou se sua conta tem acesso a ele.`;
+      } else if (errText.includes('quota') || errText.includes('billing') || response.status === 429) {
+        errText = 'Você excedeu sua cota atual na OpenAI ou atingiu o limite de requisições. Adicione créditos em: https://platform.openai.com/settings/organization/billing/overview';
+      } else if (response.status >= 500) {
+        errText = `A OpenAI retornou um erro interno (${response.status}). Tente novamente em alguns instantes.`;
       }
+
       res.write(`data: ${JSON.stringify({ error: errText })}\n\n`);
       return res.end();
     }
@@ -727,9 +836,11 @@ router.post('/api/criador/stream', async (req, res) => {
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
   } catch (e) {
-    logger.error('[Carousel]', 'criador/stream error:', e.message);
-    if (!res.headersSent) res.status(500).json({ error: e.message });
-    else { res.write(`data: ${JSON.stringify({ error: e.message })}\n\n`); res.end(); }
+    const cause = e.cause?.message || e.cause?.code || '';
+    logger.error('[Carousel]', `criador/stream — erro inesperado: ${e.message}${cause ? ' | causa: ' + cause : ''}. Stack: ${e.stack}`);
+    const userMsg = `Erro inesperado ao processar resposta da IA: ${e.message}${cause ? ' (' + cause + ')' : ''}`;
+    if (!res.headersSent) res.status(500).json({ error: userMsg });
+    else { res.write(`data: ${JSON.stringify({ error: userMsg })}\n\n`); res.end(); }
   }
 });
 
@@ -790,8 +901,8 @@ router.post("/api/escala/criar-mock", async (req, res) => {
     createdAt:   baseCarousel.createdAt || new Date().toISOString(),
     slidesDir:   outDir.replace(/\\/g, '/'),
     slidePrefix: 'slide-',
-    totalSlides: slidesData.length,
-    imageQuality: 'high',
+    totalSlides: payload.totalSlides || slidesData.length || baseCarousel.totalSlides || 10,
+    imageQuality: payload.imageQuality || baseCarousel.imageQuality || 'high',
     caption:     payload.caption || baseCarousel.caption || '',
     notes:       notesContent,
     chatHistory: baseCarousel.chatHistory || [],
@@ -836,6 +947,7 @@ router.post("/api/escala/criar-mock", async (req, res) => {
         slides: slidesData,
         logoText: branding.logoText || "FONTE OCULTA",
         logoColor: branding.logoColor || "#ffffff",
+        logoSize: branding.logoSize || "22px",
         carouselTextColor: branding.carouselTextColor || "#e4e4e7",
         titleTextSize: branding.titleTextSize || "40px",
         bodyTextSize: branding.bodyTextSize || "24px",
@@ -848,65 +960,140 @@ router.post("/api/escala/criar-mock", async (req, res) => {
         env: { ...process.env }
       });
 
-      child.on('error', (err) => {
-        logger.error('[Carousel mock]', `Erro ao executar script python de mock: ${err.message}`);
-      });
+      const generatedFiles = [];
+      let donePayload = null;
 
       child.stdout.on('data', (chunk) => {
-        logger.info('[Carousel mock stdout]', chunk.toString().trim());
+        const lines = chunk.toString().split('\n');
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            const obj = JSON.parse(line);
+            if (obj.type === 'slide' && obj.status === 'ok') {
+              // No script python, o campo filename retornado não tem o path completo
+              const fileAbsPath = path.join(outDir, obj.filename);
+              generatedFiles.push({
+                num: obj.num,
+                estado: obj.estado || 'PRODUÇÃO',
+                file: fileAbsPath,
+                filename: obj.filename
+              });
+              
+              // Notificar progresso de geração do slide via SSE
+              sseClients.forEach(send => send({
+                type: 'slide',
+                carouselId: finalId,
+                num: obj.num,
+                total: slidesData.length,
+                estado: obj.estado || 'PRODUÇÃO',
+                status: 'generating_image',
+                filename: obj.filename,
+                title_text: slidesData[obj.num - 1]?.title_text || ''
+              }));
+            } else if (obj.type === 'done') {
+              donePayload = obj;
+            }
+          } catch (e) {}
+        }
       });
 
       child.stderr.on('data', (chunk) => {
         logger.error('[Carousel mock stderr]', chunk.toString().trim());
       });
 
-      await new Promise(r => setTimeout(r, 1000));
-      
-      sseClients.forEach(send => send({
-        type: 'start',
-        carouselId: finalId,
-        total: slidesData.length
-      }));
+      // Aguarda o encerramento do processo python
+      const code = await new Promise((resolve) => {
+        child.on('close', resolve);
+      });
 
-      const currentSlidesList = [];
-      for (let i = 1; i <= slidesData.length; i++) {
-        await new Promise(r => setTimeout(r, 10000));
-        
-        const filename = `slide-${String(i).padStart(2, '0')}.png`;
-        currentSlidesList.push(filename);
+      logger.info('[Carousel mock]', `Script Python finalizou com código ${code}. Arquivos gerados: ${generatedFiles.length}`);
 
-        // Adiciona o slide criado no banco para que o frontend carregue progressivamente
+      if (generatedFiles.length > 0) {
+        const currentSlidesList = [];
+
+        if (b2) {
+          sseClients.forEach(send => send({
+            type: 'log',
+            carouselId: finalId,
+            msg: '☁ Enviando slides gerados para o MinIO...'
+          }));
+
+          const slideUrls = [];
+          for (const { num, estado, file, filename } of generatedFiles) {
+            try {
+              // Upload direto para o bucket do MinIO
+              const url = await b2.uploadImageToB2(finalId, filename, file);
+              slideUrls.push({ num, estado, filename, url });
+              currentSlidesList.push(filename);
+              
+              sseClients.forEach(send => send({
+                type: 'log',
+                carouselId: finalId,
+                msg: `☁ ${filename} → MinIO ✓`
+              }));
+
+              // Adiciona o slide criado no banco progressivamente para atualizar a interface
+              const localCarousels = await readDataAsync();
+              const idx = localCarousels.findIndex(c => c.id === finalId);
+              if (idx >= 0) {
+                localCarousels[idx].slides = [...currentSlidesList];
+                await writeDataAsync(localCarousels);
+              }
+
+              // Avisa o frontend que este slide está com imagem pronta (Mock)
+              sseClients.forEach(send => send({
+                type: 'slide',
+                carouselId: finalId,
+                num: num,
+                total: slidesData.length,
+                estado: estado,
+                status: 'ok',
+                filename: filename
+              }));
+
+            } catch (err) {
+              logger.error('[Carousel mock upload]', `Falha no upload de ${filename} para o MinIO: ${err.message}`);
+            }
+
+            // Limpa arquivo temporário local no container para não acumular lixo
+            try { fs.unlinkSync(file); } catch {}
+          }
+
+          // Limpa pasta temporária local do container
+          try { fs.rmdirSync(outDir); } catch {}
+        } else {
+          // Local fallback: files are stored on disk in outDir
+          for (const { num, estado, filename } of generatedFiles) {
+            currentSlidesList.push(filename);
+            
+            // Avisa o frontend que este slide está pronto localmente
+            sseClients.forEach(send => send({
+              type: 'slide',
+              carouselId: finalId,
+              num: num,
+              total: slidesData.length,
+              estado: estado,
+              status: 'ok',
+              filename: filename
+            }));
+          }
+        }
+
+        // Atualiza status final do carrossel no banco local de dados
         const localCarousels = await readDataAsync();
         const idx = localCarousels.findIndex(c => c.id === finalId);
         if (idx >= 0) {
-          localCarousels[idx].slides = [...currentSlidesList];
+          localCarousels[idx].status = 'pronto';
+          localCarousels[idx].totalSlides = currentSlidesList.length;
+          localCarousels[idx].slides = currentSlidesList;
+          if (!localCarousels[idx].cost || localCarousels[idx].cost === 0) {
+            localCarousels[idx].cost = slidesData.length * 0.08;
+          }
           await writeDataAsync(localCarousels);
         }
-
-        sseClients.forEach(send => send({
-          type: 'slide',
-          carouselId: finalId,
-          num: i,
-          total: slidesData.length,
-          estado: 'PRODUÇÃO',
-          status: 'ok',
-          filename: filename,
-          title_text: slidesData[i - 1].title_text
-        }));
       }
 
       await new Promise(r => setTimeout(r, 1000));
-      
-      const localCarousels = await readDataAsync();
-      const idx = localCarousels.findIndex(c => c.id === finalId);
-      if (idx >= 0) {
-        localCarousels[idx].status = 'pronto';
-        // Garante que o custo simulado (mock) fique persistido no JSON
-        if (!localCarousels[idx].cost || localCarousels[idx].cost === 0) {
-          localCarousels[idx].cost = slidesData.length * 0.08;
-        }
-        await writeDataAsync(localCarousels);
-      }
 
       sseClients.forEach(send => send({
         type: 'done',
@@ -914,7 +1101,7 @@ router.post("/api/escala/criar-mock", async (req, res) => {
       }));
 
     } catch (err) {
-      logger.error('[Carousel mock simulation]', `Erro na simulação do mock: ${err.message}`);
+      logger.error('[Carousel mock simulation]', `Erro na simulação e upload do mock: ${err.message}`);
     }
   })();
 });
