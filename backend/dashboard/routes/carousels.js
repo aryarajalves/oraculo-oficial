@@ -190,16 +190,31 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
   const all = await readData();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Não encontrado" });
+  
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
+  const rawFilename = req.params.filename.replace(/^slide-/, 'raw-');
+  const rawPath = path.join(getLocalSlidesDir(c), rawFilename);
+
+  // Se o MinIO/B2 estiver ativo e a imagem não estiver localmente, baixa do bucket
+  if (!fs.existsSync(imgPath) && b2) {
+    try {
+      await b2.downloadImageFromB2(c.id, req.params.filename, imgPath);
+      try {
+        await b2.downloadImageFromB2(c.id, rawFilename, rawPath);
+      } catch {}
+    } catch (err) {
+      logger.warn('[Carousel recompose]', `Falha ao baixar imagem do B2 para recompor localmente: ${err.message}`);
+    }
+  }
+
   if (!fs.existsSync(imgPath)) return res.status(404).json({ error: "Imagem não encontrada" });
   
   // Buscar a imagem limpa do Raw Cache se disponível
-  const rawFilename = req.params.filename.replace(/^slide-/, 'raw-');
-  const rawPath = path.join(getLocalSlidesDir(c), rawFilename);
   const baseImgPath = fs.existsSync(rawPath) ? rawPath : imgPath;
 
   const { title, body, layout = "fullbleed" } = req.body;
   if (!title || !body) return res.status(400).json({ error: "title e body são obrigatórios" });
+  
   try {
     const { stdout } = await execFileAsync(PYTHON, [
       COMPOSE_SCRIPT,
@@ -216,9 +231,22 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
         ].join(process.platform === 'win32' ? ';' : ':'),
       }
     });
+    
     logger.info('[Carousel]', "recompose:", stdout.trim());
     const metaPath = imgPath.replace(/\.(jpg|jpeg|png)$/i, ".meta.json");
     fs.writeFileSync(metaPath, JSON.stringify({ title, body, layout }, null, 2));
+
+    // Se o MinIO/B2 estiver ativo, envia de volta para o bucket e remove do container
+    if (b2) {
+      try {
+        await b2.uploadImageToB2(c.id, req.params.filename, imgPath);
+        try { fs.unlinkSync(imgPath); } catch {}
+        try { fs.unlinkSync(rawPath); } catch {}
+      } catch (uploadErr) {
+        logger.error('[Carousel recompose upload]', `Erro ao reenviar slide atualizado para o B2: ${uploadErr.message}`);
+      }
+    }
+
     res.json({ ok: true, message: stdout.trim() });
   } catch (e) {
     logger.error('[Carousel]', "recompose error:", e.message);

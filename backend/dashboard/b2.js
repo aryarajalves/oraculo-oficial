@@ -1,7 +1,7 @@
 // dashboard/b2.js — Backblaze B2 client (S3-compatible)
 // Usado em produção para armazenar carousels.json e imagens
 
-import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command, CreateBucketCommand } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command, CreateBucketCommand, PutBucketPolicyCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
 import path from "path";
 import { Readable } from "stream";
@@ -38,13 +38,37 @@ function getClient() {
 async function ensureBucketExists() {
   if (_bucketInitialized) return;
   const client = getClient();
+  const policy = JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Sid: "PublicRead",
+        Effect: "Allow",
+        Principal: "*",
+        Action: ["s3:GetObject"],
+        Resource: [`arn:aws:s3:::${BUCKET}/*`]
+      }
+    ]
+  });
+
   try {
     const cmd = new CreateBucketCommand({ Bucket: BUCKET });
     await client.send(cmd);
     logger.info('[B2]', `Bucket "${BUCKET}" criado ou verificado com sucesso.`);
+    
+    await client.send(new PutBucketPolicyCommand({ Bucket: BUCKET, Policy: policy }));
+    logger.info('[B2]', `Política pública de leitura configurada no bucket "${BUCKET}".`);
   } catch (e) {
     if (e.name !== "BucketAlreadyExists" && e.name !== "BucketAlreadyOwnedByYou" && e.code !== "BucketAlreadyExists") {
       logger.error('[B2]', `Erro ao verificar/criar bucket "${BUCKET}":`, e.message);
+    } else {
+      // Se já existe, tenta aplicar/atualizar a política para garantir que esteja pública
+      try {
+        await client.send(new PutBucketPolicyCommand({ Bucket: BUCKET, Policy: policy }));
+        logger.info('[B2]', `Política pública de leitura atualizada no bucket existente "${BUCKET}".`);
+      } catch (policyErr) {
+        logger.error('[B2]', `Erro ao atualizar política no bucket existente:`, policyErr.message);
+      }
     }
   }
   _bucketInitialized = true;
@@ -106,6 +130,18 @@ export async function uploadImageToB2(carouselId, filename, filePath) {
   });
   await getClient().send(cmd);
   return b2ImageUrl(carouselId, filename);
+}
+
+export async function downloadImageFromB2(carouselId, filename, destPath) {
+  await ensureBucketExists();
+  const cmd = new GetObjectCommand({
+    Bucket: BUCKET,
+    Key: `${PREFIX}/${carouselId}/${filename}`,
+  });
+  const res = await getClient().send(cmd);
+  const buf = await streamToBuffer(res.Body);
+  fs.mkdirSync(path.dirname(destPath), { recursive: true });
+  fs.writeFileSync(destPath, buf);
 }
 
 export async function listImagesInB2(carouselId) {

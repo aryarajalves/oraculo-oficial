@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 export default function Dashboard({
   allCarousels,
@@ -8,10 +9,12 @@ export default function Dashboard({
   onOpenLightbox,
   onOpenEditModal,
   onLoadCarousels,
+  onLoadStats,
   showToast,
   onOpenHistoryModal,
   onLoadChatHistory
 }) {
+  const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
   const [expandedCards, setExpandedCards] = useState({});
   const [selectedIds, setSelectedIds] = useState([]);
@@ -19,17 +22,28 @@ export default function Dashboard({
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [selectedDetailsCarousel, setSelectedDetailsCarousel] = useState(null);
   const [isCaptionMaximized, setIsCaptionMaximized] = useState(false);
-  const PAGE_SIZE = 12;
+
+  // Trava scroll do body quando qualquer modal estiver aberto
+  const anyModalOpen = !!selectedDetailsCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized;
+  useScrollLock(anyModalOpen);
+
+  const handlePageSizeChange = (val) => {
+    setPageSize(Number(val));
+    setCurrentPage(1);
+  };
 
   // Filter & Pagination
   const filtered = allCarousels.filter(c => {
     if (filterStatus === 'all') return true;
+    if (filterStatus === 'rascunho') {
+      return c.status === 'rascunho' || c.status === 'generating';
+    }
     return c.status === filterStatus;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageStartIndex = (currentPage - 1) * PAGE_SIZE;
-  const paginated = filtered.slice(pageStartIndex, pageStartIndex + PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const pageStartIndex = (currentPage - 1) * pageSize;
+  const paginated = filtered.slice(pageStartIndex, pageStartIndex + pageSize);
 
   // Reseta seleção ao mudar o filtro
   useEffect(() => {
@@ -118,6 +132,7 @@ export default function Dashboard({
         setSelectedIds(prev => prev.filter(x => x !== deleteTargetId));
         setDeleteTargetId(null);
         onLoadCarousels();
+        if (onLoadStats) onLoadStats();
       }
     } catch (e) {
       showToast('Erro ao excluir carrossel.');
@@ -137,6 +152,7 @@ export default function Dashboard({
         setSelectedIds([]);
         setIsBulkDeleteModalOpen(false);
         onLoadCarousels();
+        if (onLoadStats) onLoadStats();
       }
     } catch (e) {
       showToast('Erro ao excluir carrosséis em lote.');
@@ -252,15 +268,18 @@ export default function Dashboard({
 
                   <div className="card-header" onClick={() => toggleExpand(c.id)}>
                     {c.slides && c.slides.length > 0 ? (
-                      <img src={`/api/carousels/${c.id}/image/${c.slides[0]}`} className="card-thumb" alt="" />
+                      <img src={`/api/carousels/${c.id}/image/${c.slides[0]}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}`} className="card-thumb" alt="" />
                     ) : (
-                      <div className="card-thumb-placeholder">🎨</div>
+                      <div className="card-thumb-placeholder">{c.status === 'generating' ? '⏳' : '🎨'}</div>
                     )}
                     <div className="card-meta">
                       <div className="card-title">{c.title}</div>
                       <div className="card-badges">
                         <span className="badge badge-format">F: {c.format}</span>
-                        <span className={`badge badge-${c.status}`}>{c.status}</span>
+                        <span className={`badge badge-${c.status}`}>{c.status === 'generating' ? 'gerando' : c.status}</span>
+                        {c.preset === 'escala' && (
+                          <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', fontWeight: 'bold' }}>MOCK</span>
+                        )}
                         {c.cost > 0 && <span className="card-cost">${c.cost}</span>}
                       </div>
                       <div className="card-date">
@@ -272,28 +291,46 @@ export default function Dashboard({
                   {isExpanded && (
                     <>
                       <div className="slide-strip open">
-                        {c.slides?.map((slide, idx) => (
-                          <div className="slide-thumb-wrap" key={idx}>
-                            <img
-                              src={`/api/carousels/${c.id}/image/${slide}`}
-                              className="slide-thumb"
-                              alt=""
-                              onClick={() => onOpenLightbox(c.id, c.slides, idx)}
-                            />
-                            <div className="slide-thumb-num">{idx + 1}</div>
-                            <div className="slide-actions-overlay">
-                              <button className="slide-icon-btn slide-icon-btn-dl" onClick={() => {
-                                const a = document.createElement('a');
-                                a.href = `/api/carousels/${c.id}/image/${slide}`;
-                                a.download = slide;
-                                a.click();
-                              }}>↓</button>
-                              <button className="slide-icon-btn slide-icon-btn-edit" onClick={() => onOpenEditModal(c.id, slide)}>✎</button>
-                            </div>
-                          </div>
-                        ))}
+                        {Array.from({ length: c.status === 'generating' ? (c.totalSlides || 10) : (c.slides?.length || 0) }).map((_, idx) => {
+                          const slide = c.slides && c.slides[idx];
+                          if (slide) {
+                            return (
+                              <div className="slide-thumb-wrap" key={idx}>
+                                <img
+                                  src={`/api/carousels/${c.id}/image/${slide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}`}
+                                  className="slide-thumb"
+                                  alt=""
+                                />
+                                <div className="slide-thumb-num">{idx + 1}</div>
+                                <div className="slide-actions-overlay" style={{ cursor: 'pointer' }} onClick={() => onOpenLightbox(c.id, c.slides, idx)}>
+                                  <button className="slide-icon-btn" title="Visualizar/Maximizar" style={{ background: 'var(--green, #22c55e)', color: '#fff' }}>👁</button>
+                                  <button className="slide-icon-btn slide-icon-btn-dl" title="Baixar" onClick={(e) => {
+                                    e.stopPropagation();
+                                    const a = document.createElement('a');
+                                    a.href = `/api/carousels/${c.id}/image/${slide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}`;
+                                    a.download = slide;
+                                    a.click();
+                                  }}>↓</button>
+                                  <button className="slide-icon-btn slide-icon-btn-edit" title="Editar" onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenEditModal(c.id, slide);
+                                  }}>✎</button>
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            return (
+                              <div className="slide-thumb-wrap" key={idx}>
+                                <div className="slide-thumb-loading">
+                                  <div className="slide-thumb-spinner"></div>
+                                </div>
+                                <div className="slide-thumb-num">{idx + 1}</div>
+                              </div>
+                            );
+                          }
+                        })}
                       </div>
-                      {c.caption && <div className="caption-box open">{c.caption}</div>}
+                      {c.caption && <div className="caption-box open">{c.caption_full || c.caption}</div>}
                     </>
                   )}
 
@@ -352,22 +389,50 @@ export default function Dashboard({
           )}
         </div>
 
-        {totalPages > 1 && (
-          <div className="pagination">
-            <span className="pagination-info">Página {currentPage} de {totalPages}</span>
-            <div className="pagination-controls">
-              <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Anterior</button>
-              {Array.from({ length: totalPages }).map((_, idx) => (
-                <button
-                  key={idx}
-                  className={`page-btn ${currentPage === idx + 1 ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(idx + 1)}
-                >
-                  {idx + 1}
-                </button>
-              ))}
-              <button className="page-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)}>Próxima</button>
+        {filtered.length > 0 && (
+          <div className="pagination" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="pagination-info" style={{ margin: 0 }}>Mostrar</span>
+              <select
+                value={pageSize}
+                onChange={e => handlePageSizeChange(e.target.value)}
+                style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text)',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  fontFamily: 'inherit'
+                }}
+              >
+                <option value="20">20 por página</option>
+                <option value="50">50 por página</option>
+                <option value="100">100 por página</option>
+              </select>
             </div>
+
+            {totalPages > 1 && (
+              <div className="pagination-controls" style={{ margin: 0 }}>
+                <button className="page-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}>Anterior</button>
+                {Array.from({ length: totalPages }).map((_, idx) => (
+                  <button
+                    key={idx}
+                    className={`page-btn ${currentPage === idx + 1 ? 'active' : ''}`}
+                    onClick={() => setCurrentPage(idx + 1)}
+                  >
+                    {idx + 1}
+                  </button>
+                ))}
+                <button className="page-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)}>Próxima</button>
+              </div>
+            )}
+
+            <span className="pagination-info" style={{ margin: 0 }}>
+              Página {currentPage} de {totalPages} ({filtered.length} no total)
+            </span>
           </div>
         )}
       </div>
@@ -413,15 +478,20 @@ export default function Dashboard({
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', color: '#e4e4e7', fontSize: '13px' }}>
-              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
-                <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Título</span>
-                <strong style={{ fontSize: '14px', color: '#ffffff' }}>{selectedDetailsCarousel.title || 'Sem título'}</strong>
+              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+                <span style={{ color: 'var(--gold, #C9A84C)', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', letterSpacing: '0.5px' }}>
+                  Título / Gancho
+                  {selectedDetailsCarousel.preset === 'escala' && (
+                    <span style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', padding: '1px 6px', borderRadius: '4px', fontSize: '9px', fontWeight: 'bold' }}>MOCK</span>
+                  )}
+                </span>
+                <strong style={{ fontSize: '16px', color: '#ffffff', lineHeight: '1.4', display: 'block' }}>{selectedDetailsCarousel.title || 'Sem título'}</strong>
               </div>
 
               <div style={{ display: 'flex', gap: '16px' }}>
-                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Tema</span>
-                  <span style={{ fontFamily: 'monospace', color: 'var(--cyan, #38bdf8)' }}>{selectedDetailsCarousel.theme || 'Não definido'}</span>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px' }}>
+                  <span style={{ color: 'var(--gold, #C9A84C)', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', display: 'block', marginBottom: '6px', letterSpacing: '0.5px' }}>Tema</span>
+                  <span style={{ fontFamily: 'monospace', color: '#ffffff', fontSize: '14px', fontWeight: '600', background: 'rgba(56, 189, 248, 0.1)', padding: '4px 8px', borderRadius: '4px', border: '1px solid rgba(56, 189, 248, 0.2)', display: 'inline-block' }}>{selectedDetailsCarousel.theme || 'Não definido'}</span>
                 </div>
                 <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
                   <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Slides</span>
@@ -431,7 +501,18 @@ export default function Dashboard({
 
               <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
                 <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Qualidade / Resolução</span>
-                <span style={{ textTransform: 'capitalize', fontWeight: '500' }}>{selectedDetailsCarousel.imageQuality || 'Alta (high)'}</span>
+                <span style={{ textTransform: 'capitalize', fontWeight: '500' }}>
+                  {(() => {
+                    const q = selectedDetailsCarousel.imageQuality;
+                    if (q === 'low') return 'Baixa (Low)';
+                    if (q === 'medium') return 'Média (Medium)';
+                    if (q === 'high') return 'Alta (High)';
+                    if (q === 'hd') return 'HD (DALL-E 3)';
+                    if (q === 'standard') return 'Padrão (DALL-E 3)';
+                    if (q === 'auto') return 'Automático (Auto)';
+                    return q || 'Alta (High)';
+                  })()}
+                </span>
               </div>
 
               <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
@@ -463,7 +544,7 @@ export default function Dashboard({
                     fontSize: '11px',
                     color: '#d4d4d8'
                   }}>
-                    {selectedDetailsCarousel.caption}
+                    {selectedDetailsCarousel.caption_full || selectedDetailsCarousel.caption}
                   </div>
                 </div>
               )}
@@ -540,14 +621,14 @@ export default function Dashboard({
               overflowY: 'auto',
               border: '1px solid rgba(255,255,255,0.05)'
             }}>
-              {selectedDetailsCarousel.caption}
+              {selectedDetailsCarousel.caption_full || selectedDetailsCarousel.caption}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', gap: '12px' }}>
               <button 
                 className="btn btn-outline" 
                 style={{ padding: '8px 20px' }} 
                 onClick={() => {
-                  navigator.clipboard.writeText(selectedDetailsCarousel.caption);
+                  navigator.clipboard.writeText(selectedDetailsCarousel.caption_full || selectedDetailsCarousel.caption);
                   showToast('Legenda copiada para a área de transferência!');
                 }}
               >
