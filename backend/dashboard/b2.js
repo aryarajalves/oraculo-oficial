@@ -1,10 +1,11 @@
 // dashboard/b2.js — Backblaze B2 client (S3-compatible)
 // Usado em produção para armazenar carousels.json e imagens
 
-import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
+import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command, CreateBucketCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
 import path from "path";
 import { Readable } from "stream";
+import { logger } from "./logger.js";
 
 // ── Config ──────────────────────────────────────────────────────────────────
 const BUCKET      = process.env.MINIO_BUCKET      || "oraculo-bucket";
@@ -20,6 +21,8 @@ export const B2_PUBLIC_URL = `${MINIO_PUBLIC_URL}/${BUCKET}`;
 
 // ── Client ──────────────────────────────────────────────────────────────────
 let _client = null;
+let _bucketInitialized = false;
+
 function getClient() {
   if (!_client) {
     _client = new S3Client({
@@ -30,6 +33,21 @@ function getClient() {
     });
   }
   return _client;
+}
+
+async function ensureBucketExists() {
+  if (_bucketInitialized) return;
+  const client = getClient();
+  try {
+    const cmd = new CreateBucketCommand({ Bucket: BUCKET });
+    await client.send(cmd);
+    logger.info('[B2]', `Bucket "${BUCKET}" criado ou verificado com sucesso.`);
+  } catch (e) {
+    if (e.name !== "BucketAlreadyExists" && e.name !== "BucketAlreadyOwnedByYou" && e.code !== "BucketAlreadyExists") {
+      logger.error('[B2]', `Erro ao verificar/criar bucket "${BUCKET}":`, e.message);
+    }
+  }
+  _bucketInitialized = true;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -46,6 +64,7 @@ function streamToBuffer(stream) {
 const DATA_KEY = `${PREFIX}/carousels.json`;
 
 export async function readDataFromB2() {
+  await ensureBucketExists();
   try {
     const cmd = new GetObjectCommand({ Bucket: BUCKET, Key: DATA_KEY });
     const res = await getClient().send(cmd);
@@ -58,6 +77,7 @@ export async function readDataFromB2() {
 }
 
 export async function writeDataToB2(data) {
+  await ensureBucketExists();
   const body = JSON.stringify(data, null, 2);
   const cmd = new PutObjectCommand({
     Bucket: BUCKET,
@@ -74,6 +94,7 @@ export function b2ImageUrl(carouselId, filename) {
 }
 
 export async function uploadImageToB2(carouselId, filename, filePath) {
+  await ensureBucketExists();
   const body = fs.readFileSync(filePath);
   const ext  = path.extname(filename).toLowerCase();
   const mime = ext === ".png" ? "image/png" : "image/jpeg";
@@ -88,6 +109,7 @@ export async function uploadImageToB2(carouselId, filename, filePath) {
 }
 
 export async function listImagesInB2(carouselId) {
+  await ensureBucketExists();
   const cmd = new ListObjectsV2Command({
     Bucket: BUCKET,
     Prefix: `${PREFIX}/${carouselId}/`,
