@@ -51,7 +51,7 @@ export default function Dashboard({
   }, [filterStatus]);
 
   const toggleExpand = (id) => {
-    setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
+    setExpandedCards(prev => (prev[id] ? {} : { [id]: true }));
   };
 
   const handleSelectCard = (id) => {
@@ -163,7 +163,7 @@ export default function Dashboard({
   const isAllSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedIds.includes(id));
 
   return (
-    <div>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 120px)' }}>
       <div className="stats-row">
         <div className="stat-card" style={{ '--accent': 'var(--gold)' }}>
           <div className="stat-num">{stats?.total || 0}</div>
@@ -187,8 +187,9 @@ export default function Dashboard({
         </div>
       </div>
 
-      <div className="section">
-        <div className="section-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
+      <div className="section" style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, justifyContent: 'flex-start' }}>
+          <div className="section-header" style={{ flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div className="section-title">Carrosséis</div>
             {filtered.length > 0 && (
@@ -387,6 +388,7 @@ export default function Dashboard({
               );
             })
           )}
+        </div>
         </div>
 
         {filtered.length > 0 && (
