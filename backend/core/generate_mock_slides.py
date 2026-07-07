@@ -190,6 +190,19 @@ def main():
         filepath = os.path.join(slides_dir, filename)
         img.save(filepath, 'PNG')
 
+        # Cria o arquivo meta correspondente para carregar preenchido no dashboard
+        meta_filename = f"slide-{str(num).zfill(2)}.meta.json"
+        meta_filepath = os.path.join(slides_dir, meta_filename)
+        try:
+            with open(meta_filepath, 'w', encoding='utf-8') as mf:
+                json.dump({
+                    "title": title_text,
+                    "body": text_content,
+                    "layout": "text_only"
+                }, mf, ensure_ascii=False, indent=2)
+        except Exception as e:
+            pass
+
         print(json.dumps({
             "type": "slide",
             "num": num,

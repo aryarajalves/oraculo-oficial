@@ -36,11 +36,72 @@ MARGIN_L   = 72
 MARGIN_R   = 72
 MAX_TW     = W - MARGIN_L - MARGIN_R   # 936px
 
-FD         = Path("C:/Windows/Fonts")
-F_HEAVY    = str(FD / "Franklin Gothic Pro-Heavy.ttf")
-F_HEAVY_IT = str(FD / "Franklin Gothic Pro-HeavyItalic.ttf")
-F_REGULAR  = str(FD / "Inter-Regular-slnt=0.ttf")
-F_BOLD     = str(FD / "Inter-Bold-slnt=0.ttf")
+import json
+import sys
+import os
+
+# Localizador de fontes multiplataforma para Windows e Linux (Docker)
+def get_font_path(font_name):
+    if sys.platform == "win32":
+        win_path = os.path.join(os.environ.get("WINDIR", "C:\\Windows"), "Fonts", font_name)
+        if os.path.exists(win_path):
+            return win_path
+    else:
+        linux_paths = [
+            f"/usr/share/fonts/truetype/dejavu/{font_name}",
+            f"/usr/share/fonts/truetype/liberation/{font_name}",
+            f"/usr/share/fonts/truetype/lato/{font_name}",
+            f"/usr/share/fonts/truetype/freefont/{font_name}",
+        ]
+        name_lower = font_name.lower()
+        if "franklin" in name_lower or "heavy" in name_lower:
+            linux_paths.insert(0, "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+            linux_paths.insert(1, "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf")
+        elif "inter" in name_lower or "regular" in name_lower:
+            linux_paths.insert(0, "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+            linux_paths.insert(1, "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf")
+            
+        for p in linux_paths:
+            if os.path.exists(p):
+                return p
+    return None
+
+F_HEAVY = get_font_path("Franklin Gothic Pro-Heavy.ttf") or get_font_path("DejaVuSans-Bold.ttf") or "arialbd.ttf"
+F_HEAVY_IT = get_font_path("Franklin Gothic Pro-HeavyItalic.ttf") or get_font_path("DejaVuSans-Bold.ttf") or "arialbi.ttf"
+F_REGULAR = get_font_path("Inter-Regular-slnt=0.ttf") or get_font_path("DejaVuSans.ttf") or "arial.ttf"
+F_BOLD = get_font_path("Inter-Bold-slnt=0.ttf") or get_font_path("DejaVuSans-Bold.ttf") or "arialbd.ttf"
+
+# Carrega as configurações de branding dinâmicas do dashboard
+BRANDING_FILE = Path(__file__).parent.parent.parent / "dashboard" / "data" / "branding.json"
+branding = {}
+if BRANDING_FILE.exists():
+    try:
+        with open(BRANDING_FILE, "r", encoding="utf-8") as f:
+            branding = json.load(f)
+    except Exception as e:
+        pass
+
+BRAND_LOGO_TEXT      = branding.get("logoText", "@afonteoculta")
+BRAND_LOGO_COLOR     = branding.get("logoColor", "#ffffff")
+try:
+    BRAND_LOGO_SIZE  = int(str(branding.get("logoSize", "26")).replace("px", "").replace("pt", "").strip())
+except:
+    BRAND_LOGO_SIZE  = 26
+
+BRAND_LOGO_POSITION  = branding.get("logoPosition", "left")
+
+try:
+    BRAND_TITLE_SIZE = int(str(branding.get("titleTextSize", "70")).replace("px", "").replace("pt", "").strip())
+except:
+    BRAND_TITLE_SIZE = 70
+
+try:
+    BRAND_BODY_SIZE  = int(str(branding.get("bodyTextSize", "35")).replace("px", "").replace("pt", "").strip())
+except:
+    BRAND_BODY_SIZE  = 35
+
+BRAND_TITLE_COLOR    = branding.get("titleTextColor", "#ffffff")
+BRAND_BODY_COLOR     = branding.get("bodyTextColor", branding.get("carouselTextColor", "#e4e4e7"))
 
 
 # ── PRESETS ────────────────────────────────────────────────────────────────────
@@ -180,11 +241,27 @@ def _vignette(img: Image.Image, strength: float = 0.30) -> Image.Image:
     return Image.alpha_composite(img.convert("RGBA"), ov)
 
 
+def hex_to_rgb(hex_str: str, default: tuple) -> tuple:
+    hex_str = hex_str.lstrip('#')
+    try:
+        return tuple(int(hex_str[i:i+2], 16) for i in (0, 2, 4))
+    except:
+        return default
+
 # ── WATERMARK ─────────────────────────────────────────────────────────────────
 def _watermark(draw: ImageDraw.Draw, color: tuple):
-    mark = "@afonteoculta"
-    f    = _font(F_REGULAR, 26)
-    draw.text((MARGIN_L, 44), mark, font=f, fill=color)
+    logo_color = hex_to_rgb(BRAND_LOGO_COLOR, color)
+    f = _font(F_REGULAR, BRAND_LOGO_SIZE)
+    mark = BRAND_LOGO_TEXT
+    
+    # Se logoPosition for right, desenha no canto superior direito respeitando a margem MARGIN_R
+    if BRAND_LOGO_POSITION == "right":
+        bbox = draw.textbbox((0, 0), mark, font=f)
+        logo_w = bbox[2] - bbox[0]
+        draw.text((W - logo_w - MARGIN_R, 44), mark, font=f, fill=logo_color)
+    else:
+        # Padrão: esquerda superior
+        draw.text((MARGIN_L, 44), mark, font=f, fill=logo_color)
 
 
 # ── MARKUP PARSER ─────────────────────────────────────────────────────────────
@@ -409,14 +486,18 @@ def compose_image_slide(img_bytes: bytes, title: str, body: str,
 
     # ── Parâmetros base ──────────────────────────────────────────────────────
     if cover:
-        T_START, T_MIN  = 82, 52     # menor: título não domina a imagem
-        B_MAX, B_MIN    = 38, 30     # aumentado para melhor legibilidade
+        T_START = int(BRAND_TITLE_SIZE * 1.15)
+        T_MIN   = int(BRAND_TITLE_SIZE * 0.85)
+        B_MAX   = BRAND_BODY_SIZE
+        B_MIN   = int(BRAND_BODY_SIZE * 0.80)
         BOTTOM_PAD      = 72
         GAP             = 18
         Y_FRACS         = [0.67, 0.62, 0.57, 0.52, 0.47]   # permite subir um pouco mais se necessário
     else:
-        T_START, T_MIN  = 70, 44     # menor: imagem respira mais
-        B_MAX, B_MIN    = 42, 32     # aumentado para melhor legibilidade
+        T_START = BRAND_TITLE_SIZE
+        T_MIN   = int(BRAND_TITLE_SIZE * 0.70)
+        B_MAX   = BRAND_BODY_SIZE
+        B_MIN   = int(BRAND_BODY_SIZE * 0.80)
         BOTTOM_PAD      = 80
         GAP             = 20
         Y_FRACS         = [0.72, 0.67, 0.62, 0.57, 0.52, 0.47, 0.42]   # permite subir até 42% se o texto for longo
@@ -560,8 +641,10 @@ def compose_text_slide(title: str, body: str, preset: dict) -> Image.Image:
                    fill=accent_rgb + (255,))
 
     # ── Tamanhos de fonte iniciais ───────────────────────────────────────────
-    T_START, T_MIN = 88, 60
-    B_START, B_MIN = 42, 32
+    T_START = BRAND_TITLE_SIZE
+    T_MIN   = max(BRAND_TITLE_SIZE - 20, 30)
+    B_START = BRAND_BODY_SIZE
+    B_MIN   = max(BRAND_BODY_SIZE - 10, 18)
     PAD_BOT        = 90
     GAP_TITLE_BODY = 32
     text_x         = MARGIN_L
@@ -677,8 +760,10 @@ def compose_card_slide(img_bytes: bytes, title: str, body: str, preset: dict) ->
     avail = H - ty - 52 # 580px
 
     # Tamanhos base
-    T_START, T_MIN = 64, 44
-    B_START, B_MIN = 34, 26
+    T_START = int(BRAND_TITLE_SIZE * 0.90)
+    T_MIN   = int(BRAND_TITLE_SIZE * 0.65)
+    B_START = int(BRAND_BODY_SIZE * 0.90)
+    B_MIN   = int(BRAND_BODY_SIZE * 0.65)
     GAP = 20
 
     # Ajusta título para caber horizontalmente
