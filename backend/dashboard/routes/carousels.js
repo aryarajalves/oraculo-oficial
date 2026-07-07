@@ -1086,6 +1086,9 @@ router.post("/api/escala/criar-mock", async (req, res) => {
           localCarousels[idx].status = 'pronto';
           localCarousels[idx].totalSlides = currentSlidesList.length;
           localCarousels[idx].slides = currentSlidesList;
+          if (b2) {
+            localCarousels[idx].b2BaseUrl = b2.b2ImageUrl(finalId, '');
+          }
           if (!localCarousels[idx].cost || localCarousels[idx].cost === 0) {
             localCarousels[idx].cost = slidesData.length * 0.08;
           }

@@ -70,6 +70,7 @@ export async function initDb() {
       slide_prefix VARCHAR(100),
       total_slides INTEGER,
       image_quality VARCHAR(100) DEFAULT 'high',
+      b2_base_url TEXT,
       caption TEXT,
       notes TEXT,
       slides JSONB,
@@ -166,6 +167,7 @@ export async function initDb() {
   try {
     await query(createCarouselsTable);
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS image_quality VARCHAR(100) DEFAULT 'high'");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS b2_base_url TEXT");
     await query(createReelsHistoryTable);
     await query(createDashboardUsersTable);
     await query(createInvitationsTable);

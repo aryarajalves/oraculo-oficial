@@ -44,6 +44,7 @@ export function mapCarouselFromDb(row) {
     caption: row.caption,
     notes: row.notes,
     imageQuality: row.image_quality || 'high',
+    b2BaseUrl: row.b2_base_url || '',
     slides: typeof row.slides === 'string' ? JSON.parse(row.slides) : (row.slides || []),
     chatHistory: typeof row.chat_history === 'string' ? JSON.parse(row.chat_history) : (row.chat_history || [])
   };
@@ -73,8 +74,8 @@ export async function writeData(data) {
       const upsertQuery = `
         INSERT INTO carousels (
           id, title, theme, praca, format, preset, status, created_at,
-          slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history, image_quality
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+          slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history, image_quality, b2_base_url
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
           theme = EXCLUDED.theme,
@@ -90,7 +91,8 @@ export async function writeData(data) {
           notes = EXCLUDED.notes,
           slides = EXCLUDED.slides,
           chat_history = EXCLUDED.chat_history,
-          image_quality = EXCLUDED.image_quality
+          image_quality = EXCLUDED.image_quality,
+          b2_base_url = EXCLUDED.b2_base_url
       `;
       const params = [
         c.id,
@@ -108,7 +110,8 @@ export async function writeData(data) {
         c.notes || '',
         JSON.stringify(c.slides || []),
         JSON.stringify(c.chatHistory || []),
-        c.imageQuality || 'high'
+        c.imageQuality || 'high',
+        c.b2BaseUrl || ''
       ];
       await query(upsertQuery, params);
     }
