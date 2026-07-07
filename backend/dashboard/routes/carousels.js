@@ -146,7 +146,11 @@ router.get("/api/carousels/:id/image/:filename", async (req, res) => {
   const isUploadedToB2 = c.b2BaseUrl || (c.slides && c.slides.length > 0 && typeof c.slides[0] === 'object' && c.slides[0].url);
 
   if (isUploadedToB2 && b2) {
-    const url = b2.b2ImageUrl(req.params.id, req.params.filename);
+    let url = b2.b2ImageUrl(req.params.id, req.params.filename);
+    const queryStr = new URLSearchParams(req.query).toString();
+    if (queryStr) {
+      url += `?${queryStr}`;
+    }
     return res.redirect(302, url);
   }
 
