@@ -194,3 +194,24 @@ Centralizar todas as configurações editáveis do dashboard no PostgreSQL para 
 ### Importante
 - A `JWT_SECRET` é obrigatória no `.env` do servidor. É a única variável necessária além do banco.
 - Não trocar a `JWT_SECRET` após a migração sem re-encriptar as keys.
+
+---
+
+## [2026-07-07] Adição da Coluna de Qualidade de Imagem nos Carrosséis
+
+### Motivação
+Adicionar persistência para o campo `image_quality` no banco de dados PostgreSQL para suportar a recuperação e validação de configurações personalizadas de qualidade de imagem geradas a partir do briefing.
+
+### Alterações de Tabela
+- **`carousels`**
+  - Nova coluna: `image_quality` VARCHAR(100) DEFAULT 'high' (armazena o preset de qualidade do carrossel: auto, low, medium, high, standard, hd)
+
+### Scripts de Migração
+- **Script de Migração:** Integrado automaticamente na inicialização do banco no `backend/dashboard/db.js` via `ALTER TABLE carousels ADD COLUMN IF NOT EXISTS image_quality VARCHAR(100) DEFAULT 'high';`
+
+### Instruções para Deploy
+1. Rebuildar e reiniciar os containers:
+   ```bash
+   docker compose -f docker/docker-compose-local.yml up -d --build --force-recreate
+   ```
+

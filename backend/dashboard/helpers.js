@@ -43,6 +43,7 @@ export function mapCarouselFromDb(row) {
     totalSlides: row.total_slides,
     caption: row.caption,
     notes: row.notes,
+    imageQuality: row.image_quality || 'high',
     slides: typeof row.slides === 'string' ? JSON.parse(row.slides) : (row.slides || []),
     chatHistory: typeof row.chat_history === 'string' ? JSON.parse(row.chat_history) : (row.chat_history || [])
   };
@@ -50,7 +51,7 @@ export function mapCarouselFromDb(row) {
 
 export async function readData() {
   try {
-    const res = await query("SELECT * FROM carousels ORDER BY id ASC");
+    const res = await query("SELECT * FROM carousels ORDER BY created_at ASC");
     return res.rows.map(mapCarouselFromDb);
   } catch (err) {
     logger.error('[Helpers]',"Erro ao ler carrosséis do banco:", err);
@@ -72,8 +73,8 @@ export async function writeData(data) {
       const upsertQuery = `
         INSERT INTO carousels (
           id, title, theme, praca, format, preset, status, created_at,
-          slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+          slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history, image_quality
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
           theme = EXCLUDED.theme,
@@ -88,7 +89,8 @@ export async function writeData(data) {
           caption = EXCLUDED.caption,
           notes = EXCLUDED.notes,
           slides = EXCLUDED.slides,
-          chat_history = EXCLUDED.chat_history
+          chat_history = EXCLUDED.chat_history,
+          image_quality = EXCLUDED.image_quality
       `;
       const params = [
         c.id,
@@ -105,7 +107,8 @@ export async function writeData(data) {
         c.caption || '',
         c.notes || '',
         JSON.stringify(c.slides || []),
-        JSON.stringify(c.chatHistory || [])
+        JSON.stringify(c.chatHistory || []),
+        c.imageQuality || 'high'
       ];
       await query(upsertQuery, params);
     }
