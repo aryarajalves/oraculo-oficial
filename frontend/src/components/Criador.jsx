@@ -418,73 +418,15 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                         });
                       }
 
-                      // Para a IA: processa linha por linha para injetar botões
+                      // Para a IA: renderiza linha por linha sem botões de ação
                       const lines = m.content.split('\n');
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                          {lines.map((line, lIdx) => {
-                            const temaMatch = line.match(/(?:Tema|tema)\s*:\s*(.+)/i);
-                            const tituloMatch = line.match(/(?:T[IÍ]tulo|t[ií]tulo)s*:\s*(.+)/i);
-                            const listMatch = line.match(/^\s*[-\*•]\s+(.+)/);
-                            
-                            let button = null;
-                            if (temaMatch) {
-                              const value = temaMatch[1].trim().replace(/\*\*|_/g, '').trim();
-                              if (value.length > 0) {
-                                button = (
-                                  <button
-                                    onClick={() => {
-                                      window.dispatchEvent(new CustomEvent('preencher-briefing', { detail: { type: 'theme', value } }));
-                                      if (showToast) showToast("✓ Tema preenchido!");
-                                    }}
-                                    className="btn-escala-preencher"
-                                    style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(201, 168, 76, 0.15)', border: '1px solid rgba(201, 168, 76, 0.3)', color: 'var(--gold)', fontSize: '10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}
-                                  >
-                                    ⚡ Usar Tema
-                                  </button>
-                                );
-                              }
-                            } else if (tituloMatch) {
-                              const value = tituloMatch[1].trim().replace(/\*\*|_/g, '').replace(/^["'“”]/, '').replace(/["'“”]$/, '').trim();
-                              if (value.length > 0) {
-                                button = (
-                                  <button
-                                    onClick={() => {
-                                      window.dispatchEvent(new CustomEvent('preencher-briefing', { detail: { type: 'title', value } }));
-                                      if (showToast) showToast("✓ Título preenchido!");
-                                    }}
-                                    className="btn-escala-preencher"
-                                    style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(201, 168, 76, 0.15)', border: '1px solid rgba(201, 168, 76, 0.3)', color: 'var(--gold)', fontSize: '10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}
-                                  >
-                                    ⚡ Usar Título
-                                  </button>
-                                );
-                              }
-                            } else if (listMatch) {
-                              const value = listMatch[1].trim().replace(/\*\*|_/g, '').replace(/^["'“”]/, '').replace(/["'“”]$/, '').trim();
-                              if (value.length > 5 && value.length < 90 && !value.toLowerCase().startsWith('slide') && !value.toLowerCase().startsWith('conteudo')) {
-                                button = (
-                                  <button
-                                    onClick={() => {
-                                      window.dispatchEvent(new CustomEvent('preencher-briefing', { detail: { type: 'title', value } }));
-                                      if (showToast) showToast("✓ Título preenchido!");
-                                    }}
-                                    className="btn-escala-preencher"
-                                    style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', background: 'rgba(201, 168, 76, 0.15)', border: '1px solid rgba(201, 168, 76, 0.3)', color: 'var(--gold)', fontSize: '10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', transition: 'all 0.2s' }}
-                                  >
-                                    ⚡ Usar Título
-                                  </button>
-                                );
-                              }
-                            }
-
-                            return (
-                              <div key={lIdx} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', minHeight: '22px' }}>
-                                <span>{line}</span>
-                                {button}
-                              </div>
-                            );
-                          })}
+                          {lines.map((line, lIdx) => (
+                            <div key={lIdx} style={{ minHeight: '22px' }}>
+                              <span>{line}</span>
+                            </div>
+                          ))}
                         </div>
                       );
                     })()}
