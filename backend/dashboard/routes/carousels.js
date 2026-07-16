@@ -241,11 +241,17 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
   const { title, body, layout = "fullbleed" } = req.body;
   if (!title || !body) return res.status(400).json({ error: "title e body são obrigatórios" });
   
+  // Obter o preset do carrossel e mapear para o v3
+  let preset = c.preset || "revelacao";
+  if (preset === "manuscrito_sagrado") {
+    preset = "sagrado";
+  }
+
   try {
     const { stdout } = await execFileAsync(PYTHON, [
       COMPOSE_SCRIPT,
       "--image", baseImgPath, "--title", title, "--body", body,
-      "--layout", layout, "--output", imgPath
+      "--layout", layout, "--preset", preset, "--output", imgPath
     ], {
       timeout: 60000,
       cwd: path.join(__dirname, '..', '..'),
