@@ -138,10 +138,38 @@ export async function writeDataAsync(data) {
 
 export function getLocalSlidesDir(c) {
   if (!c.slidesDir) return "";
-  if (c.slidesDir.startsWith("b2://")) {
-    return path.join("C:\\Users\\julia\\Desktop", `carrossel-${c.theme}`);
+  
+  let dir = c.slidesDir;
+  
+  // Se estamos dentro do contêiner Linux e a pasta começa com formato do Windows
+  if (process.platform !== 'win32' && (dir.includes("Desktop") || dir.includes("Área de Trabalho") || /^[a-zA-Z]:/i.test(dir))) {
+    const parts = dir.replace(/\\/g, '/').split('/');
+    const folderName = parts[parts.length - 1];
+    return path.join("/app/backend/storage/carousels", folderName);
   }
-  return c.slidesDir;
+  
+  // Se for Windows mas o usuário atual for diferente de julia
+  if (process.platform === 'win32' && dir.includes("julia")) {
+    const userProfile = process.env.USERPROFILE || 'C:/Users/julia';
+    const onedrivePath = path.join(userProfile, 'OneDrive', 'Área de Trabalho');
+    const normalDesktop = path.join(userProfile, 'Desktop');
+    const hasOneDrive = fs.existsSync(onedrivePath);
+    const targetDesktop = hasOneDrive ? onedrivePath : normalDesktop;
+    
+    const parts = dir.replace(/\\/g, '/').split('/');
+    const folderName = parts[parts.length - 1];
+    return path.join(targetDesktop, folderName);
+  }
+
+  if (c.slidesDir.startsWith("b2://")) {
+    const baseDir = process.platform === 'win32' 
+      ? (fs.existsSync(path.join(process.env.USERPROFILE || 'C:/Users/julia', 'OneDrive', 'Área de Trabalho')) 
+          ? path.join(process.env.USERPROFILE || 'C:/Users/julia', 'OneDrive', 'Área de Trabalho') 
+          : path.join(process.env.USERPROFILE || 'C:/Users/julia', 'Desktop'))
+      : "/app/backend/storage/carousels";
+    return path.join(baseDir, `carrossel-${c.theme}`);
+  }
+  return dir;
 }
 
 export function getSlidesFromDir(dir, prefix = "slide-") {

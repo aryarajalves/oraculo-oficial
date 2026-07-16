@@ -41,7 +41,17 @@ router.get("/api/carousels", async (req, res) => {
   const all = await readDataAsync();
   const carousels = all.map(c => {
     const slides = getSlidesForCarousel(c);
-    return { ...c, slidesFound: slides.length, slides };
+    let cost = c.cost;
+    if (cost === undefined || cost === 0) {
+      const imageProvider = process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
+      let costPerImage = 0.08;
+      if (imageProvider === 'fal') costPerImage = 0.003;
+      else if (imageProvider === 'gemini') costPerImage = 0.015;
+      else if (imageProvider === 'gpt-image-1-mini' || imageProvider === 'dall-e-2') costPerImage = 0.02;
+
+      cost = (slides.length || c.totalSlides || 10) * costPerImage;
+    }
+    return { ...c, slidesFound: slides.length, slides, cost };
   });
   res.json(carousels);
 });
@@ -52,7 +62,19 @@ router.get("/api/carousels/:id", async (req, res) => {
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
   const slides = getSlidesForCarousel(c);
-  res.json({ ...c, slides });
+  
+  let cost = c.cost;
+  if (cost === undefined || cost === 0) {
+    const imageProvider = process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
+    let costPerImage = 0.08;
+    if (imageProvider === 'fal') costPerImage = 0.003;
+    else if (imageProvider === 'gemini') costPerImage = 0.015;
+    else if (imageProvider === 'gpt-image-1-mini' || imageProvider === 'dall-e-2') costPerImage = 0.02;
+
+    cost = (slides.length || c.totalSlides || 10) * costPerImage;
+  }
+
+  res.json({ ...c, slides, cost });
 });
 
 // ── API: Create carousel ─────────────────────────────────────────────────────
@@ -463,9 +485,17 @@ router.post('/api/criador/generate', async (req, res) => {
   }
 
   const slug = payload.title ? slugify(payload.title) : 'sem-titulo';
-  const outDir = process.platform === 'win32'
-    ? `C:/Users/julia/Desktop/carrossel-${slug}`
-    : `/tmp/carrossel-${slug}`;
+  let outDir;
+  if (process.platform === 'win32') {
+    const userProfile = process.env.USERPROFILE || 'C:/Users/julia';
+    const onedrivePath = path.join(userProfile, 'OneDrive', 'Área de Trabalho');
+    const hasOneDrive = fs.existsSync(onedrivePath);
+    outDir = hasOneDrive
+      ? path.join(onedrivePath, `${newId}-${slug}`).replace(/\\/g, '/')
+      : path.join(userProfile, 'Desktop', `${newId}-${slug}`).replace(/\\/g, '/');
+  } else {
+    outDir = `/app/backend/storage/carousels/${newId}-${slug}`;
+  }
 
   const newCarousel = {
     id:          newId,
@@ -680,6 +710,14 @@ router.post('/api/criador/generate', async (req, res) => {
         const allCarousels = await readDataAsync();
         const currentIdx = allCarousels.findIndex(c => c.id === newId);
         if (currentIdx >= 0) {
+          const imageProvider = process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
+          let costPerImage = 0.08;
+          if (imageProvider === 'fal') costPerImage = 0.003;
+          else if (imageProvider === 'gemini') costPerImage = 0.015;
+          else if (imageProvider === 'gpt-image-1-mini' || imageProvider === 'dall-e-2') costPerImage = 0.02;
+
+          const totalCost = slideUrls.length * costPerImage;
+
           allCarousels[currentIdx] = {
             ...allCarousels[currentIdx],
             title:       donePayload.title   || payload.title   || 'Carrossel',
@@ -689,6 +727,7 @@ router.post('/api/criador/generate', async (req, res) => {
             notes:       donePayload.notes   || payload.notes   || '',
             b2BaseUrl:   b2.b2ImageUrl(newId, ''),
             slides:      slideUrls,
+            cost:        totalCost,
           };
           if (donePayload.revisor_score) allCarousels[currentIdx].revisorScore = donePayload.revisor_score;
           await writeDataAsync(allCarousels);
@@ -784,7 +823,7 @@ router.post('/api/criador/stream', async (req, res) => {
   }
 
   const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-  const OPENAI_MODEL = 'gpt-5.4';
+  const OPENAI_MODEL = process.env.COPY_GENERATION_MODEL || 'gpt-4o';
 
   try {
     const formattedMessages = messages.map(msg => ({
@@ -794,16 +833,23 @@ router.post('/api/criador/stream', async (req, res) => {
 
     let response;
     try {
+      const payload = {
+        model: OPENAI_MODEL,
+        messages: [{ role: 'system', content: system }, ...formattedMessages],
+        max_completion_tokens: 4000,
+        stream: true,
+      };
+
+      // Modelos o1, o3 ou gpt-5 não suportam alteração de temperatura na API da OpenAI
+      const isReasoningModel = OPENAI_MODEL.startsWith('o1-') || OPENAI_MODEL.startsWith('o3-') || OPENAI_MODEL.startsWith('gpt-5');
+      if (!isReasoningModel) {
+        payload.temperature = 0.88;
+      }
+
       response = await fetch(OPENAI_URL, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: OPENAI_MODEL,
-          messages: [{ role: 'system', content: system }, ...formattedMessages],
-          max_completion_tokens: 4000,
-          temperature: 0.88,
-          stream: true,
-        }),
+        body: JSON.stringify(payload),
       });
     } catch (fetchErr) {
       // Erro de rede (DNS, conexão recusada, timeout, etc.)
@@ -865,7 +911,7 @@ router.post('/api/criador/stream', async (req, res) => {
       }
     }
 
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+    res.write(`data: ${JSON.stringify({ done: true, model: OPENAI_MODEL })}\n\n`);
     res.end();
   } catch (e) {
     const cause = e.cause?.message || e.cause?.code || '';

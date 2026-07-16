@@ -146,8 +146,20 @@ def main():
         sys.exit(1)
 
     slug = slugify(title)
-    out_dir = Path(f"C:/Users/julia/Desktop/carrossel-{slug}") if IS_WIN \
-              else Path(f"/tmp/carrossel-{slug}")
+    carousel_id = payload.get("id")
+    if not carousel_id:
+        carousel_id = f"carrossel-{slug}"
+    else:
+        carousel_id = str(carousel_id)
+
+    if IS_WIN:
+        user_profile = os.environ.get("USERPROFILE", "C:/Users/julia")
+        onedrive_desktop = Path(user_profile) / "OneDrive" / "Área de Trabalho"
+        normal_desktop = Path(user_profile) / "Desktop"
+        desktop = onedrive_desktop if onedrive_desktop.exists() else normal_desktop
+        out_dir = desktop / f"{carousel_id}-{slug}"
+    else:
+        out_dir = Path(f"/app/backend/storage/carousels/{carousel_id}-{slug}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     total = len(slides)
@@ -213,11 +225,29 @@ def main():
             continue
 
         out_file = out_dir / f"slide-{num}.jpg"
+        raw_file = out_dir / f"raw-{num}.jpg"
         try:
+            # Salvar a imagem base sem texto (Raw Cache)
+            if img_bytes:
+                raw_file.write_bytes(img_bytes)
+            
             if isinstance(final_img, bytes):
                 out_file.write_bytes(final_img)
             else:
                 final_img.save(str(out_file), "JPEG", quality=95)
+                
+            # Salvar metadados do slide para permitir edição posterior com textos preenchidos
+            try:
+                meta_file = out_file.with_suffix(".meta.json")
+                meta_data = {
+                    "title": s_title,
+                    "body": body,
+                    "layout": layout
+                }
+                meta_file.write_text(json.dumps(meta_data, ensure_ascii=False, indent=2), encoding="utf-8")
+            except Exception as ex_meta:
+                pass
+                
             ok_count += 1
             out({"type": "slide", "num": idx, "total": total, "estado": estado,
                  "status": "ok", "file": str(out_file)})

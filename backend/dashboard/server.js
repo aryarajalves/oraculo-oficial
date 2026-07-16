@@ -1,3 +1,4 @@
+import "./loadEnv.js";
 // dashboard/server.js — Oráculo Manager Content Dashboard
 import express from "express";
 import cors from "cors";
@@ -28,31 +29,18 @@ import { resetBackupScheduler } from "./backupManager.js";
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// ── Load .env from project root ──────────────────────────────────────────────
-(function loadEnv() {
-  try {
-    let envPath = path.join(__dirname, '..', '.env');
-    if (!fs.existsSync(envPath)) {
-      envPath = path.join(__dirname, '..', '..', '.env');
-    }
-    const lines = fs.readFileSync(envPath, 'utf-8').split('\n');
-    for (const line of lines) {
-      const t = line.trim();
-      if (!t || t.startsWith('#')) continue;
-      const eq = t.indexOf('=');
-      if (eq < 0) continue;
-      const k = t.slice(0, eq).trim();
-      const v = t.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
-      if (k && !process.env[k]) process.env[k] = v;
-    }
-  } catch {}
-})();
-
 const app = express();
 const PORT = process.env.PORT || 3131;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Garante a existência da pasta persistente de carrosséis
+const storageDir = path.join(__dirname, "..", "storage", "carousels");
+if (!fs.existsSync(storageDir)) {
+  fs.mkdirSync(storageDir, { recursive: true });
+  logger.info('[SERVER]', `Diretório criado: ${storageDir}`);
+}
 
 // ── Middleware global de Log de Requisições HTTP ──────────────────────────────
 app.use((req, res, next) => {
@@ -92,7 +80,18 @@ app.use(requireAuth);
 app.use('/auth', rateLimiter(10, 60000));
 
 // 2. Geração e Backups (carousels, services, backups): 30 requisições por minuto
-app.use('/api/carousels', rateLimiter(30, 60000));
+// Exceção: visualizar imagem/thumbnail/meta/download de slide usa um limite bem
+// mais alto e um "balde" (contador) separado — navegar/maximizar slides no
+// Lightbox dispara várias requisições legítimas em sequência rápida e não deve
+// competir com o limite das operações de escrita (criar, publicar, excluir).
+const carouselsMediaLimiter = rateLimiter(300, 60000, '/api/carousels:media');
+const carouselsGeneralLimiter = rateLimiter(30, 60000, '/api/carousels:general');
+app.use('/api/carousels', (req, res, next) => {
+  const isMediaRoute = /\/(image|download)\/|\/meta$/.test(req.path);
+  return isMediaRoute
+    ? carouselsMediaLimiter(req, res, next)
+    : carouselsGeneralLimiter(req, res, next);
+});
 app.use('/api/services', rateLimiter(30, 60000));
 app.use('/api/backups', rateLimiter(30, 60000));
 
