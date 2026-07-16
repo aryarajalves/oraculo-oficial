@@ -54,6 +54,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
     setMessages(prev => [...prev, { role: 'ai', content: '', id: aiMessageId, streaming: true }]);
 
     let fullText = '';
+    let responseModel = 'gpt-4o';
+    let costUsd = 0;
     try {
       const chatHistory = messages.filter(m => m.role !== 'form');
       const res = await fetch('/api/criador/stream', {
@@ -92,7 +94,18 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
               setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, content: fullText } : m));
             }
             if (json.done) {
-              setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, streaming: false } : m));
+              if (json.model) responseModel = json.model;
+              const totalWords = fullText.split(/\s+/).length + text.split(/\s+/).length;
+              const approxTokens = totalWords * 1.33;
+              costUsd = approxTokens * 0.00001; 
+
+              setMessages(prev => prev.map(m => m.id === aiMessageId ? { 
+                ...m, 
+                streaming: false,
+                timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' de ' + new Date().toLocaleDateString('pt-BR'),
+                costUSD: costUsd,
+                model: responseModel
+              } : m));
             }
           } catch {}
         }
@@ -103,9 +116,21 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
 
       if (currentCarouselId) {
         const updatedMessages = [
-          ...messages.filter(m => m.role !== 'form'),
+          ...messages.filter(m => m.role !== 'form').map(m => ({
+            role: m.role,
+            content: m.content,
+            model: m.model,
+            costUSD: m.costUSD,
+            timestamp: m.timestamp
+          })),
           { role: 'user', content: text },
-          { role: 'ai', content: fullText }
+          { 
+            role: 'ai', 
+            content: fullText,
+            model: responseModel,
+            costUSD: costUsd,
+            timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' de ' + new Date().toLocaleDateString('pt-BR')
+          }
         ];
         try {
           await fetch(`/api/carousels/${currentCarouselId}`, {
@@ -208,6 +233,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
     setMessages(prev => [...prev, { role: 'ai', content: '', id: aiMessageId, streaming: true }]);
 
     let fullText = '';
+    let responseModel = 'gpt-4o';
+    let costUsd = 0;
     try {
       const chatHistory = messages.filter(m => m.role !== 'form');
       const history = [...chatHistory, { role: 'user', content: actualAIPrompt }];
@@ -252,7 +279,18 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
               setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, content: fullText } : m));
             }
             if (json.done) {
-              setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, streaming: false } : m));
+              if (json.model) responseModel = json.model;
+              const totalWords = fullText.split(/\s+/).length + actualAIPrompt.split(/\s+/).length;
+              const approxTokens = totalWords * 1.33;
+              costUsd = approxTokens * 0.00001;
+
+              setMessages(prev => prev.map(m => m.id === aiMessageId ? { 
+                ...m, 
+                streaming: false,
+                timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' de ' + new Date().toLocaleDateString('pt-BR'),
+                costUSD: costUsd,
+                model: responseModel
+              } : m));
             }
           } catch {}
         }
@@ -264,9 +302,21 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
       const targetId = createdId || currentCarouselId;
       if (targetId) {
         const updatedMessages = [
-          ...messages.filter(m => m.role !== 'form'),
+          ...messages.filter(m => m.role !== 'form').map(m => ({
+            role: m.role,
+            content: m.content,
+            model: m.model,
+            costUSD: m.costUSD,
+            timestamp: m.timestamp
+          })),
           { role: 'user', content: displayUserText },
-          { role: 'ai', content: fullText }
+          { 
+            role: 'ai', 
+            content: fullText,
+            model: responseModel,
+            costUSD: costUsd,
+            timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' de ' + new Date().toLocaleDateString('pt-BR')
+          }
         ];
         try {
           await fetch(`/api/carousels/${targetId}`, {
@@ -436,6 +486,18 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                       );
                     })()}
                     {m.streaming && <span className="criador-cursor"></span>}
+                    {m.role === 'ai' && !m.streaming && (
+                      <div style={{ marginTop: '8px', fontSize: '10.5px', color: 'rgba(237, 232, 223, 0.45)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>
+                          {m.timestamp || (new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' de ' + new Date().toLocaleDateString('pt-BR'))}
+                        </span>
+                        {m.costUSD !== undefined && (
+                          <span style={{ color: 'var(--gold)', fontWeight: '500' }}>
+                            Modelo: {(m.model || 'gpt-4o').toUpperCase()} | Custo: ${m.costUSD.toFixed(4)} USD (~R$ {(m.costUSD * 5).toFixed(3)} BRL)
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {m.role === 'ai' && !m.streaming && m.content && (
                       <div className="criador-msg-actions" style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
                         <button className="criador-action-btn" onClick={() => navigator.clipboard.writeText(m.content)}>Copiar tudo</button>
