@@ -52,6 +52,7 @@ const MANAGED_KEYS = [
   { key: 'NOTION_TOKEN',         label: 'Notion Token',             group: 'Integrações' },
   { key: 'APIFY_API_KEY',        label: 'Apify API Key',            group: 'Integrações' },
   { key: 'ACTIVE_IMAGE_PROVIDER',label: 'Provedor de Imagem Ativo', group: 'Geração de Imagem' },
+  { key: 'COPY_GENERATION_MODEL',label: 'Modelo de Copy Ativo',      group: 'Texto & Copy' },
 ];
 
 function readEnvFile() {
@@ -194,7 +195,7 @@ router.get("/api/stats", async (req, res) => {
     statusCount[c.status] = (statusCount[c.status] || 0) + 1;
     const slides = getSlidesFromDir(getLocalSlidesDir(c), c.slidePrefix);
     totalSlides += slides.length;
-    if (c.costUSD) totalCost += Number(c.costUSD) || 0;
+    if (c.cost) totalCost += Number(c.cost) || 0;
   });
   res.json({
     totalCarousels: all.length,
@@ -219,9 +220,13 @@ router.get('/api/settings/keys', (req, res) => {
     masked: maskValue(env[key] || ''),
     set: !!(env[key] && env[key] !== `sua_${key.toLowerCase()}_aqui`),
   }));
+  let activeProvider = env['ACTIVE_IMAGE_PROVIDER'] || 'gpt-image-2';
+  if (activeProvider === 'dall-e-2') activeProvider = 'gpt-image-1-mini';
+
   res.json({
     keys: result,
-    activeProvider: env['ACTIVE_IMAGE_PROVIDER'] || 'gpt-image-2',
+    activeProvider,
+    activeCopyModel: env['COPY_GENERATION_MODEL'] || 'gpt-4o',
   });
 });
 
@@ -568,6 +573,124 @@ router.post('/api/agent/chat', async (req, res) => {
     res.json({ reply: data.choices[0].message.content });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ── API: Visualizador de Logs ──────────────────────────────────────────────────
+router.get("/api/logs", async (req, res) => {
+  const LOGS_FILE = path.join(__dirname, "..", "..", "logs", "app.log");
+  try {
+    if (!fs.existsSync(LOGS_FILE)) {
+      return res.json({ logs: [], totalLines: 0, availableDates: [], status: { whatsapp: true, rabbitmq: true } });
+    }
+
+    const { date, level, search, limit = 2000 } = req.query;
+    const content = fs.readFileSync(LOGS_FILE, "utf-8");
+    const rawLines = content.split("\n").filter(Boolean);
+
+    // Obter datas únicas com logs
+    const datesSet = new Set();
+    rawLines.forEach(line => {
+      const parts = line.split(" - ");
+      if (parts.length >= 4) {
+        const datetime = parts[0];
+        const datePart = datetime.split(" ")[0]; // DD/MM/YYYY
+        if (datePart && /^\d{2}\/\d{2}\/\d{4}$/.test(datePart)) {
+          datesSet.add(datePart);
+        }
+      }
+    });
+    const availableDates = Array.from(datesSet).reverse(); // Mais recente primeiro
+
+    let filterDate = date;
+    if (!filterDate && availableDates.length > 0) {
+      filterDate = availableDates[0]; // Padrão: mais recente
+    }
+
+    // Converter YYYY-MM-DD para DD/MM/YYYY
+    if (filterDate && filterDate.includes("-")) {
+      const dateParts = filterDate.split("-");
+      if (dateParts.length === 3) {
+        filterDate = `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+      }
+    }
+
+    let parsed = rawLines.map((line, idx) => {
+      const parts = line.split(" - ");
+      if (parts.length >= 4) {
+        const datetime = parts[0];
+        const tag = parts[1];
+        const lvl = parts[2];
+        const msg = parts.slice(3).join(" - ");
+        return { id: idx + 1, datetime, tag, level: lvl, message: msg };
+      }
+      return { id: idx + 1, datetime: "", tag: "SYSTEM", level: "INFO", message: line };
+    });
+
+    if (filterDate) {
+      parsed = parsed.filter(l => l.datetime.startsWith(filterDate));
+    }
+    
+    if (level) {
+      parsed = parsed.filter(l => l.level === level.toUpperCase());
+    }
+
+    if (search) {
+      const q = search.toLowerCase();
+      parsed = parsed.filter(l => 
+        l.message.toLowerCase().includes(q) || 
+        l.tag.toLowerCase().includes(q)
+      );
+    }
+
+    const totalLines = parsed.length;
+    const limited = parsed.slice(-Number(limit));
+
+    res.json({
+      logs: limited,
+      totalLines,
+      availableDates,
+      selectedDate: filterDate,
+      status: {
+        whatsapp: true,
+        rabbitmq: true
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete("/api/logs", async (req, res) => {
+  const LOGS_FILE = path.join(__dirname, "..", "..", "logs", "app.log");
+  try {
+    if (fs.existsSync(LOGS_FILE)) {
+      fs.writeFileSync(LOGS_FILE, "", "utf-8");
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post("/api/logs/delete-items", async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids)) {
+    return res.status(400).json({ error: "O parâmetro 'ids' deve ser um array." });
+  }
+  const LOGS_FILE = path.join(__dirname, "..", "..", "logs", "app.log");
+  try {
+    if (!fs.existsSync(LOGS_FILE)) {
+      return res.json({ ok: true });
+    }
+    const content = fs.readFileSync(LOGS_FILE, "utf-8");
+    const rawLines = content.split("\n").filter(Boolean);
+    // Filtrar as linhas baseando-se no ID (index + 1)
+    const newLines = rawLines.filter((_, idx) => !ids.includes(idx + 1));
+    fs.writeFileSync(LOGS_FILE, newLines.join("\n") + (newLines.length > 0 ? "\n" : ""), "utf-8");
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
