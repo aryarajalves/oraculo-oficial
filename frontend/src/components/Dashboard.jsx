@@ -281,7 +281,6 @@ export default function Dashboard({
                         {c.preset === 'escala' && (
                           <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', fontWeight: 'bold' }}>MOCK</span>
                         )}
-                        {c.cost > 0 && <span className="card-cost">${c.cost}</span>}
                       </div>
                       <div className="card-date">
                         {c.scheduledDate ? `📅 ${c.scheduledDate} ${c.scheduledTime || ''}` : new Date(c.createdAt || Date.now()).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
