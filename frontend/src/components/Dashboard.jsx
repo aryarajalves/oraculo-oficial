@@ -312,9 +312,9 @@ export default function Dashboard({
                                     a.click();
                                   }}>↓</button>
                                   <button className="slide-icon-btn slide-icon-btn-edit" title="Editar" onClick={(e) => {
-                                    e.stopPropagation();
-                                    onOpenEditModal(c.id, slide);
-                                  }}>✎</button>
+                                     e.stopPropagation();
+                                     onOpenEditModal(c.id, slide, c.slides);
+                                   }}>✎</button>
                                 </div>
                               </div>
                             );
@@ -363,6 +363,20 @@ export default function Dashboard({
                       >
                         🔎 Detalhes
                       </button>
+
+                      {c.slides && c.slides.length > 0 && (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          style={{ borderColor: '#a855f7', color: '#a855f7' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const firstSlide = typeof c.slides[0] === 'string' ? c.slides[0] : c.slides[0].filename;
+                            onOpenEditModal(c.id, firstSlide, c.slides);
+                          }}
+                        >
+                          ✏️ Editar
+                        </button>
+                      )}
 
                       <button
                         className="btn-instagram btn-sm"
