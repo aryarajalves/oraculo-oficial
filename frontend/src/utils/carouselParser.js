@@ -5,7 +5,7 @@
  * @param {string} text Raw markdown/text from the AI
  * @returns {object} Parsed carousel payload
  */
-export function parseCarouselText(text) {
+export function parseCarouselText(text, fallbackData = null) {
   const t = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const temaMatch = t.match(/TEMA:\s*(.+)/i);
   const pracaMatch = t.match(/PRA[ÇC]A:\s*(.+)/i);
@@ -13,8 +13,13 @@ export function parseCarouselText(text) {
   const revisorMatch = t.match(/TOTAL:\s*([\d]+\/15)/i);
   const captionMatch = t.match(/CAPTION[^:\n]*:\s*\n([\s\S]+?)(?=\nCTA TRIBAL|━)/i);
   const ctaMatch = t.match(/CTA TRIBAL:\s*"([^"\n]+)"/i);
-  const title = temaMatch ? temaMatch[1].trim().slice(0, 80) : 'Carrossel Fonte Oculta';
-  const caption = (captionMatch?.[1] || bigIdea?.[1] || '').trim().slice(0, 800);
+  
+  // Se houver fallbackData, usamos o título original do formulário. Caso contrário, tenta do Match, senão fallback final.
+  const title = temaMatch 
+    ? temaMatch[1].trim().slice(0, 80) 
+    : (fallbackData?.title || 'Carrossel Fonte Oculta');
+    
+  const caption = (captionMatch?.[1] || bigIdea?.[1] || '').trim();
 
   const slides = [];
   const lines = t.split('\n');
@@ -70,21 +75,28 @@ export function parseCarouselText(text) {
     }
     if (line === '') {
       if (field === 'prompt') field = null;
+      // Permitir quebras de linha dentro do título e corpo ao invés de resetar/pular
+      if (field === 'title') current.title += '\n';
+      if (field === 'body') current.body += '\n';
       continue;
     }
-    if (field === 'title') current.title += '\n' + line;
-    if (field === 'body') current.body += '\n' + line;
-    if (field === 'prompt') current.prompt += ' ' + line;
+    if (field === 'title') current.title += (current.title ? '\n' : '') + line;
+    if (field === 'body') current.body += (current.body ? '\n' : '') + line;
+    if (field === 'prompt') current.prompt += (current.prompt ? ' ' : '') + line;
   }
   flush();
 
   return {
     title,
-    theme: title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48),
-    format: pracaMatch?.[1]?.trim().slice(0, 20) || 'B',
-    caption,
-    notes: ctaMatch?.[1]?.trim() || '',
+    theme: temaMatch 
+      ? title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48)
+      : (fallbackData?.theme || title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48)),
+    format: pracaMatch?.[1]?.trim().slice(0, 20) || (fallbackData?.format || 'B'),
+    caption: caption || (fallbackData?.caption || ''),
+    notes: ctaMatch?.[1]?.trim() || (fallbackData?.notes || ''),
     revisor_score: revisorMatch?.[1] || '',
     slides,
+    totalSlides: slides.length || fallbackData?.totalSlides || 10,
+    imageQuality: fallbackData?.imageQuality || 'high',
   };
 }

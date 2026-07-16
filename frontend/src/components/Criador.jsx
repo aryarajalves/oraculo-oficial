@@ -61,7 +61,10 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
       const res = await fetch('/api/criador/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...chatHistory, { role: 'user', content: text }] }),
+        body: JSON.stringify({ 
+          messages: [...chatHistory, { role: 'user', content: text }],
+          totalSlides: activeBriefing?.totalSlides || 10
+        }),
       });
 
       if (!res.ok) {
