@@ -112,6 +112,9 @@ def fetch_image_for_slide(args_tuple):
     Roda em paralelo. Retorna (idx, img_bytes | None).
     """
     idx, s = args_tuple
+    layout = s.get("layout", "fullbleed")
+    if layout == "text_only":
+        return idx, None
     prompt = s.get("prompt", "")
     s_title = s.get("title", "")
     quality = s.get("imageQuality", None)
@@ -213,14 +216,22 @@ def main():
         body    = s.get("body", "")
         img_bytes = raw_images.get(idx)
 
-        if not img_bytes:
+        # Mapear layout do frontend para o modo do motor v3
+        mode = "image"
+        if layout == "card":
+            mode = "card"
+        elif layout == "text_only":
+            mode = "text"
+            img_bytes = None
+
+        if not img_bytes and mode != "text":
             out({"type": "slide", "num": idx, "total": total, "estado": estado,
                  "status": "erro", "msg": "Falha na geração de imagem"})
             continue
 
         preset    = s.get("preset", "manuscrito_sagrado")
         try:
-            final_img = compose(img_bytes, s_title, body, layout, preset)
+            final_img = compose(img_bytes, s_title, body, mode, preset)
         except Exception as e:
             out({"type": "slide", "num": idx, "total": total, "estado": estado,
                  "status": "erro", "msg": f"Composição falhou: {e}"})

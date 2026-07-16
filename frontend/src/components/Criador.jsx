@@ -598,6 +598,7 @@ function ChatFormMessage({ onSubmit, showToast, generating, onRequestIdeas }) {
   const [theme, setTheme] = useState('');
   const [format, setFormat] = useState('A');
   const [totalSlides, setTotalSlides] = useState('10');
+  const [noImageSlides, setNoImageSlides] = useState('0');
   const [imageQuality, setImageQuality] = useState('high');
   const [dir, setDir] = useState('');
   const [caption, setCaption] = useState('');
@@ -676,6 +677,18 @@ function ChatFormMessage({ onSubmit, showToast, generating, onRequestIdeas }) {
             max="20"
             value={totalSlides} 
             onChange={e => setTotalSlides(e.target.value)} 
+          />
+        </div>
+        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+          <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Slides Sem Imagem</label>
+          <input 
+            type="number"
+            className="form-input" 
+            style={{ background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
+            min="0"
+            max={totalSlides} 
+            value={noImageSlides} 
+            onChange={e => setNoImageSlides(e.target.value)} 
           />
         </div>
         <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
@@ -776,7 +789,7 @@ function ChatFormMessage({ onSubmit, showToast, generating, onRequestIdeas }) {
               if (showToast) showToast("⚠ Por favor, preencha o Título e o Tema antes de enviar.");
               return;
             }
-            onSubmit({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), imageQuality });
+            onSubmit({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), imageQuality, noImageSlidesCount: Number(noImageSlides) });
             setSubmitted(true);
           }}
         >

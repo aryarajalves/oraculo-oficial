@@ -238,3 +238,24 @@ Adicionar persistência para as colunas `image_provider` e `copy_model` na tabel
    docker compose -f docker/docker-compose-local.yml up -d --build --force-recreate
    ```
 
+---
+
+## [2026-07-16] Adição da Coluna no_image_slides_count nos Carrosséis
+
+### Motivação
+Adicionar persistência para a coluna `no_image_slides_count` na tabela `carousels` do PostgreSQL. Isso permite registrar e configurar a quantidade de slides finais com fundo preto e sem geração de imagens.
+
+### Alterações de Tabela
+- **`carousels`**
+  - Nova coluna: `no_image_slides_count` INTEGER DEFAULT 0
+
+### Scripts de Migração
+- **Script de Migração:** Integrado automaticamente no script de inicialização do banco de dados em `backend/dashboard/db.js` via:
+  - `ALTER TABLE carousels ADD COLUMN IF NOT EXISTS no_image_slides_count INTEGER DEFAULT 0;`
+
+### Instruções para Deploy
+1. Rebuildar e reiniciar os containers:
+   ```bash
+   docker compose -f docker/docker-compose-local.yml up -d --build --force-recreate
+   ```
+

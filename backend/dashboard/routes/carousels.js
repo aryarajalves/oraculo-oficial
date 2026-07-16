@@ -515,6 +515,8 @@ router.post('/api/criador/generate', async (req, res) => {
     outDir = `/app/backend/storage/carousels/${newId}-${slug}`;
   }
 
+  const noImageSlidesCount = payload.noImageSlidesCount !== undefined ? Number(payload.noImageSlidesCount) : (existingCarousel?.noImageSlidesCount || 0);
+
   const newCarousel = {
     id:          newId,
     title:       payload.title || existingCarousel?.title || 'Carrossel',
@@ -530,6 +532,7 @@ router.post('/api/criador/generate', async (req, res) => {
     notes:       payload.notes || existingCarousel?.notes || '',
     chatHistory: existingCarousel?.chatHistory || [],
     slides:      existingCarousel?.slides || [],
+    noImageSlidesCount: noImageSlidesCount,
   };
 
   if (existingCarousel) {
@@ -575,6 +578,12 @@ router.post('/api/criador/generate', async (req, res) => {
   broadcast({ type: 'log', msg: `⚙️ [Servidor] PASSO 2: Caminho do pipeline: ${PIPELINE} (Mock: ${process.env.USE_MOCK_GENERATOR === 'true'})` });
 
   const spawnPayload = { ...payload, slidesDir: newCarousel.slidesDir };
+  if (noImageSlidesCount > 0 && spawnPayload.slides && spawnPayload.slides.length > 0) {
+    const totalS = spawnPayload.slides.length;
+    for (let i = Math.max(0, totalS - noImageSlidesCount); i < totalS; i++) {
+      spawnPayload.slides[i].layout = "text_only";
+    }
+  }
   const child = spawn(PYTHON, ['-X', 'utf8', PIPELINE, '--data', JSON.stringify(spawnPayload)], {
     shell: false,
     cwd: path.join(__dirname, '..', '..'),
