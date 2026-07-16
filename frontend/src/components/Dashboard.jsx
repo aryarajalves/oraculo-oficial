@@ -615,7 +615,8 @@ export default function Dashboard({
                   <span style={{ fontWeight: '500', color: '#06b6d4' }}>
                     {(() => {
                       const provider = selectedDetailsCarousel.imageProvider;
-                      if (!provider || provider === 'gpt-image-2') return 'OpenAI DALL-E 3';
+                      if (!provider || provider === 'gpt-image-2') return 'OpenAI GPT Image 2';
+                      if (provider === 'dall-e-3') return 'OpenAI DALL-E 3';
                       if (provider === 'fal') return 'Flux Schnell (via Fal)';
                       if (provider === 'gemini') return 'Google Imagen 3';
                       if (provider === 'gpt-image-1-mini' || provider === 'dall-e-2') return 'OpenAI DALL-E 2';
@@ -628,7 +629,7 @@ export default function Dashboard({
                   <span style={{ fontWeight: '500', color: 'var(--gold, #C9A84C)' }}>
                     {(() => {
                       const lastAssistantMsg = (selectedDetailsCarousel.chatHistory || []).slice().reverse().find(m => m.role === 'assistant' && m.model);
-                      const model = lastAssistantMsg ? lastAssistantMsg.model : (selectedDetailsCarousel.copyModel || 'gpt-4o');
+                      const model = lastAssistantMsg ? lastAssistantMsg.model : (selectedDetailsCarousel.copyModel || 'N/A');
                       return model.toUpperCase();
                     })()}
                   </span>

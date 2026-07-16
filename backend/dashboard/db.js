@@ -192,6 +192,22 @@ export async function initDb() {
       `);
     }
 
+    // Migração: atualizar registros com valores padrão para os valores atuais do .env
+    const envImageProvider = process.env.ACTIVE_IMAGE_PROVIDER;
+    const envCopyModel     = process.env.COPY_GENERATION_MODEL;
+    if (envImageProvider && envImageProvider !== 'gpt-image-2') {
+      await query(
+        `UPDATE carousels SET image_provider = $1 WHERE image_provider = 'gpt-image-2'`,
+        [envImageProvider]
+      );
+    }
+    if (envCopyModel && envCopyModel !== 'gpt-4o') {
+      await query(
+        `UPDATE carousels SET copy_model = $1 WHERE copy_model = 'gpt-4o'`,
+        [envCopyModel]
+      );
+    }
+
     logger.info('[DB]', '✅ Tabelas validadas/criadas com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs, agent_prompts, branding, api_keys.');
   } catch (err) {
     logger.error('[DB]', '❌ Erro ao inicializar tabelas do banco de dados:', err);

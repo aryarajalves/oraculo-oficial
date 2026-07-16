@@ -533,6 +533,8 @@ router.post('/api/criador/generate', async (req, res) => {
     chatHistory: existingCarousel?.chatHistory || [],
     slides:      existingCarousel?.slides || [],
     noImageSlidesCount: noImageSlidesCount,
+    imageProvider: process.env.ACTIVE_IMAGE_PROVIDER || existingCarousel?.imageProvider || 'gpt-image-2',
+    copyModel:     process.env.COPY_GENERATION_MODEL || existingCarousel?.copyModel || 'gpt-4o',
   };
 
   if (existingCarousel) {
@@ -755,6 +757,8 @@ router.post('/api/criador/generate', async (req, res) => {
             b2BaseUrl:   b2.b2ImageUrl(newId, ''),
             slides:      slideUrls,
             cost:        totalCost,
+            imageProvider: process.env.ACTIVE_IMAGE_PROVIDER || allCarousels[currentIdx].imageProvider || 'gpt-image-2',
+            copyModel:     process.env.COPY_GENERATION_MODEL || allCarousels[currentIdx].copyModel || 'gpt-4o',
           };
           if (donePayload.revisor_score) allCarousels[currentIdx].revisorScore = donePayload.revisor_score;
           await writeDataAsync(allCarousels);
