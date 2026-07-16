@@ -195,7 +195,18 @@ router.get("/api/stats", async (req, res) => {
     statusCount[c.status] = (statusCount[c.status] || 0) + 1;
     const slides = getSlidesFromDir(getLocalSlidesDir(c), c.slidePrefix);
     totalSlides += slides.length;
-    if (c.cost) totalCost += Number(c.cost) || 0;
+    
+    let cost = c.cost;
+    if (cost === undefined || cost === 0) {
+      const imageProvider = c.imageProvider || process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
+      let costPerImage = 0.08;
+      if (imageProvider === 'fal') costPerImage = 0.003;
+      else if (imageProvider === 'gemini') costPerImage = 0.015;
+      else if (imageProvider === 'gpt-image-1-mini' || imageProvider === 'dall-e-2') costPerImage = 0.02;
+
+      cost = (slides.length || c.totalSlides || 10) * costPerImage;
+    }
+    totalCost += Number(cost) || 0;
   });
   res.json({
     totalCarousels: all.length,

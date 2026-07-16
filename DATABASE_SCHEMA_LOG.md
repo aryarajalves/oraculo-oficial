@@ -215,3 +215,26 @@ Adicionar persistência para o campo `image_quality` no banco de dados PostgreSQ
    docker compose -f docker/docker-compose-local.yml up -d --build --force-recreate
    ```
 
+---
+
+## [2026-07-16] Adição de Colunas de Provedor de Imagem e Modelo de IA nos Carrosséis
+
+### Motivação
+Adicionar persistência para as colunas `image_provider` e `copy_model` na tabela `carousels` do PostgreSQL. Isso permite registrar e exibir de forma permanente qual IA/provedor de imagem gerou os slides e qual LLM gerou o prompt/copy de cada carrossel.
+
+### Alterações de Tabela
+- **`carousels`**
+  - Nova coluna: `image_provider` VARCHAR(100) DEFAULT 'gpt-image-2'
+  - Nova coluna: `copy_model` VARCHAR(100) DEFAULT 'gpt-4o'
+
+### Scripts de Migração
+- **Script de Migração:** Integrado automaticamente no script de inicialização do banco de dados em `backend/dashboard/db.js` via:
+  - `ALTER TABLE carousels ADD COLUMN IF NOT EXISTS image_provider VARCHAR(100) DEFAULT 'gpt-image-2';`
+  - `ALTER TABLE carousels ADD COLUMN IF NOT EXISTS copy_model VARCHAR(100) DEFAULT 'gpt-4o';`
+
+### Instruções para Deploy
+1. Rebuildar e reiniciar os containers:
+   ```bash
+   docker compose -f docker/docker-compose-local.yml up -d --build --force-recreate
+   ```
+

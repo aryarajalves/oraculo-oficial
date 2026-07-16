@@ -608,6 +608,32 @@ export default function Dashboard({
                   </span>
                 </div>
               </div>
+
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>IA dos Slides (Imagens)</span>
+                  <span style={{ fontWeight: '500', color: '#06b6d4' }}>
+                    {(() => {
+                      const provider = selectedDetailsCarousel.imageProvider;
+                      if (!provider || provider === 'gpt-image-2') return 'OpenAI DALL-E 3';
+                      if (provider === 'fal') return 'Flux Schnell (via Fal)';
+                      if (provider === 'gemini') return 'Google Imagen 3';
+                      if (provider === 'gpt-image-1-mini' || provider === 'dall-e-2') return 'OpenAI DALL-E 2';
+                      return provider.toUpperCase();
+                    })()}
+                  </span>
+                </div>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>LLM do Briefing, Prompt & Copy</span>
+                  <span style={{ fontWeight: '500', color: 'var(--gold, #C9A84C)' }}>
+                    {(() => {
+                      const lastAssistantMsg = (selectedDetailsCarousel.chatHistory || []).slice().reverse().find(m => m.role === 'assistant' && m.model);
+                      const model = lastAssistantMsg ? lastAssistantMsg.model : (selectedDetailsCarousel.copyModel || 'gpt-4o');
+                      return model.toUpperCase();
+                    })()}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>

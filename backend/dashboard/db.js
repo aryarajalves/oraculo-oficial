@@ -71,6 +71,8 @@ export async function initDb() {
       total_slides INTEGER,
       image_quality VARCHAR(100) DEFAULT 'high',
       b2_base_url TEXT,
+      image_provider VARCHAR(100) DEFAULT 'gpt-image-2',
+      copy_model VARCHAR(100) DEFAULT 'gpt-4o',
       caption TEXT,
       notes TEXT,
       slides JSONB,
@@ -168,6 +170,8 @@ export async function initDb() {
     await query(createCarouselsTable);
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS image_quality VARCHAR(100) DEFAULT 'high'");
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS b2_base_url TEXT");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS image_provider VARCHAR(100) DEFAULT 'gpt-image-2'");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS copy_model VARCHAR(100) DEFAULT 'gpt-4o'");
     await query(createReelsHistoryTable);
     await query(createDashboardUsersTable);
     await query(createInvitationsTable);
