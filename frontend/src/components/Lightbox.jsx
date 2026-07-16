@@ -5,12 +5,25 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
   const [editMode, setEditMode] = useState(false);
   const [selectedZone, setSelectedZone] = useState(null);
   const [meta, setMeta] = useState({ title: '', body: '' });
+  const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
     setIndex(initialIndex);
     setEditMode(false);
     setSelectedZone(null);
+    setIsMaximized(false);
   }, [initialIndex, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && carouselId && slides[index]) {
@@ -86,16 +99,23 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
   };
 
   return (
-    <div className={`modal-overlay ${editMode ? 'lb-editing' : 'lb-editor-hidden'} open`}>
+    <div className={`modal-overlay ${editMode && !isMaximized ? 'lb-editing' : 'lb-editor-hidden'} open`}>
       <button className="modal-close" onClick={onClose}>✕</button>
 
-      <div className="lb-container">
+      <div className="lb-container" style={isMaximized ? { maxHeight: '95vh', width: 'auto', display: 'block' } : {}}>
         <div className="lb-slide-wrap">
           <img
             className="modal-img"
             src={`/api/carousels/${carouselId}/image/${currentSlide}?t=${Date.now()}&token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}`}
             alt="Slide"
-            style={{ border: '1px solid rgba(255, 255, 255, 0.25)' }}
+            style={isMaximized ? {
+              maxHeight: '85vh',
+              maxWidth: '95vw',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 255, 255, 0.25)'
+            } : {
+              border: '1px solid rgba(255, 255, 255, 0.25)'
+            }}
           />
 
           <div className="lb-zones">
@@ -114,7 +134,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
           </div>
         </div>
 
-        {editMode && (
+        {editMode && !isMaximized && (
           <div className="lb-editor">
             <div className="lb-editor-header">
               <div className="lb-editor-subtitle">Editando elemento</div>
@@ -161,8 +181,14 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
         <div className="lb-nav-center">
           <span className="modal-caption">{index + 1} / {slides.length}</span>
           <div className="lb-nav-actions">
+            <button className={`lb-action-btn ${isMaximized ? 'active' : ''}`} onClick={() => {
+              setIsMaximized(!isMaximized);
+              if (!isMaximized) setEditMode(false);
+            }}>
+              {isMaximized ? 'Minimizar' : '🔍 Maximizar'}
+            </button>
             <button className="lb-action-btn" onClick={handleDownload}>Baixar</button>
-            <button className={`lb-action-btn ${editMode ? 'active' : ''}`} onClick={() => setEditMode(!editMode)}>Editar</button>
+            <button className="lb-action-btn" onClick={() => { onClose(); onOpenEditModal(carouselId, currentSlide); }}>Editar</button>
             <button className="lb-action-btn lb-action-del" onClick={handleDelete}>Excluir</button>
           </div>
         </div>

@@ -262,8 +262,8 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
     const metaPath = imgPath.replace(/\.(jpg|jpeg|png)$/i, ".meta.json");
     fs.writeFileSync(metaPath, JSON.stringify({ title, body, layout }, null, 2));
 
-    // Se o MinIO/B2 estiver ativo, envia de volta para o bucket e remove do container
-    if (b2) {
+    // Se o MinIO/B2 estiver ativo e em produção, envia de volta para o bucket e remove do container
+    if (IS_PROD && b2) {
       try {
         await b2.uploadImageToB2(c.id, req.params.filename, imgPath);
         try { fs.unlinkSync(imgPath); } catch {}
