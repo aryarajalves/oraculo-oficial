@@ -241,9 +241,22 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
   const { title, body, layout = "fullbleed" } = req.body;
   if (!title || !body) return res.status(400).json({ error: "title e body são obrigatórios" });
   
-  // Obter o preset do carrossel e mapear para o v3
-  let preset = c.preset || "revelacao";
-  if (preset === "manuscrito_sagrado") {
+  const metaPath = imgPath.replace(/\.(jpg|jpeg|png)$/i, ".meta.json");
+  let preset = "sagrado";
+  if (fs.existsSync(metaPath)) {
+    try {
+      const slideMeta = JSON.parse(fs.readFileSync(metaPath, "utf-8"));
+      if (slideMeta.preset) {
+        preset = slideMeta.preset;
+      } else if (c.preset) {
+        preset = c.preset;
+      }
+    } catch {}
+  } else if (c.preset) {
+    preset = c.preset;
+  }
+
+  if (preset === "manuscrito_sagrado" || preset === "escala" || !preset) {
     preset = "sagrado";
   }
 
@@ -265,8 +278,7 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
     });
     
     logger.info('[Carousel]', "recompose:", stdout.trim());
-    const metaPath = imgPath.replace(/\.(jpg|jpeg|png)$/i, ".meta.json");
-    fs.writeFileSync(metaPath, JSON.stringify({ title, body, layout }, null, 2));
+    fs.writeFileSync(metaPath, JSON.stringify({ title, body, layout, preset }, null, 2));
 
     // Se o MinIO/B2 estiver ativo e em produção, envia de volta para o bucket e remove do container
     if (IS_PROD && b2) {

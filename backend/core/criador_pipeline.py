@@ -244,7 +244,8 @@ def main():
                 meta_data = {
                     "title": s_title,
                     "body": body,
-                    "layout": layout
+                    "layout": layout,
+                    "preset": preset
                 }
                 meta_file.write_text(json.dumps(meta_data, ensure_ascii=False, indent=2), encoding="utf-8")
             except Exception as ex_meta:
