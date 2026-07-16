@@ -208,6 +208,12 @@ export async function initDb() {
       );
     }
 
+    // Resetar carrosséis que ficaram presos em "generating" (processo morreu com restart do container)
+    const orphaned = await query(`UPDATE carousels SET status = 'rascunho' WHERE status = 'generating'`);
+    if (orphaned.rowCount > 0) {
+      logger.warn('[DB]', `⚠️ ${orphaned.rowCount} carrossel(is) órfão(s) em "generating" resetados para "rascunho".`);
+    }
+
     logger.info('[DB]', '✅ Tabelas validadas/criadas com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs, agent_prompts, branding, api_keys.');
   } catch (err) {
     logger.error('[DB]', '❌ Erro ao inicializar tabelas do banco de dados:', err);
