@@ -475,6 +475,28 @@ router.get('/api/criador/capabilities', (req, res) => {
   res.json({ canGenerateImages: true, isProd: IS_PROD });
 });
 
+// ── API: Retry carousel generation ──────────────────────────────────────────
+router.post('/api/carousels/:id/retry', async (req, res) => {
+  const { id } = req.params;
+  const all = await readDataAsync();
+  const carousel = all.find(c => c.id === id);
+
+  if (!carousel) {
+    return res.status(404).json({ error: 'Carrossel não encontrado' });
+  }
+  if (!carousel.lastPayload || !Array.isArray(carousel.lastPayload.slides) || carousel.lastPayload.slides.length === 0) {
+    return res.status(400).json({ error: 'Não há payload salvo para retentativa. Refaça o briefing pelo chat.' });
+  }
+
+  // Reutiliza o lastPayload com o id existente para sobrescrever o mesmo carrossel
+  const retryPayload = { ...carousel.lastPayload, id };
+  req.body = retryPayload;
+  logger.info('[Retry]', `Retentativa de geração para carrossel ${id}`);
+
+  // Encaminha internamente para a rota de generate (simula o body e chama o handler)
+  return res.redirect(307, '/api/criador/generate');
+});
+
 // ── API: Criador — Gerar carrossel completo ───────────────────────────────────
 router.post('/api/criador/generate', async (req, res) => {
   const payload = req.body;
@@ -536,6 +558,9 @@ router.post('/api/criador/generate', async (req, res) => {
     imageProvider: process.env.ACTIVE_IMAGE_PROVIDER || existingCarousel?.imageProvider || 'gpt-image-2',
     copyModel:     process.env.COPY_GENERATION_MODEL || existingCarousel?.copyModel || 'gpt-4o',
   };
+
+  // Salvar o payload para possibilitar retentativa futura
+  newCarousel.lastPayload = { ...payload, slidesDir: undefined };
 
   if (existingCarousel) {
     const idx = allCarousels.findIndex(c => c.id === newId);

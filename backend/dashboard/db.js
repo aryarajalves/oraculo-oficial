@@ -174,6 +174,7 @@ export async function initDb() {
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS image_provider VARCHAR(100) DEFAULT 'gpt-image-2'");
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS copy_model VARCHAR(100) DEFAULT 'gpt-4o'");
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS no_image_slides_count INTEGER DEFAULT 0");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS last_payload JSONB");
     await query(createReelsHistoryTable);
     await query(createDashboardUsersTable);
     await query(createInvitationsTable);

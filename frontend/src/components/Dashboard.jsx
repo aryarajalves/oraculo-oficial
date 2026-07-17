@@ -22,10 +22,34 @@ export default function Dashboard({
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [selectedDetailsCarousel, setSelectedDetailsCarousel] = useState(null);
   const [isCaptionMaximized, setIsCaptionMaximized] = useState(false);
+  const [retryingId, setRetryingId] = useState(null);
 
   // Trava scroll do body quando qualquer modal estiver aberto
   const anyModalOpen = !!selectedDetailsCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized;
   useScrollLock(anyModalOpen);
+
+  const handleRetryGeneration = async (carouselId) => {
+    if (retryingId) return;
+    setRetryingId(carouselId);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`/api/carousels/${carouselId}/retry`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || 'Erro ao iniciar retentativa', 'error');
+        setRetryingId(null);
+        return;
+      }
+      showToast('🔄 Retentativa iniciada! Acompanhe no chat do carrossel.', 'success');
+      setTimeout(() => { onLoadCarousels(); onLoadStats(); setRetryingId(null); }, 3000);
+    } catch (e) {
+      showToast('Erro de conexão ao tentar recriar', 'error');
+      setRetryingId(null);
+    }
+  };
 
   const handlePageSizeChange = (val) => {
     setPageSize(Number(val));
@@ -354,6 +378,18 @@ export default function Dashboard({
                           onClick={(e) => { e.stopPropagation(); onLoadChatHistory(c.chatHistory); }}
                         >
                           💬 Ver no Chat
+                        </button>
+                      )}
+
+                      {c.status === 'rascunho' && c.lastPayload && c.lastPayload.slides && c.lastPayload.slides.length > 0 && (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          style={{ borderColor: '#22c55e', color: '#22c55e', opacity: retryingId === c.id ? 0.6 : 1 }}
+                          disabled={!!retryingId}
+                          onClick={(e) => { e.stopPropagation(); handleRetryGeneration(c.id); }}
+                          title="Recriar carrossel usando o roteiro anterior"
+                        >
+                          {retryingId === c.id ? '⏳ Recriando...' : '🔄 Recriar'}
                         </button>
                       )}
 
