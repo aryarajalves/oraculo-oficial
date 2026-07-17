@@ -23,7 +23,7 @@ export function parseCarouselText(text, fallbackData = null) {
 
   const slides = [];
   const lines = t.split('\n');
-  const slideHeader = /^(?:\[S(\d+)\s*[—–\-]?\s*([^\]|]*?)(?:\s*\|\s*layout:\s*(\w+))?\s*\]|SLIDE\s*(\d+)\b)/i;
+  const slideHeader = /^(?:\[S(\d+)\s*[—–\-]?\s*([^\]|]*?)(?:\s*\|\s*layout:\s*([^\]\s|]+))?\s*\]|SLIDE\s*(\d+)\b)/i;
   let current = null;
   let field = null;
 
@@ -47,7 +47,9 @@ export function parseCarouselText(text, fallbackData = null) {
       flush();
       const num = (hm[1] || hm[4] || '').padStart(2, '0');
       const estado = hm[2] ? hm[2].trim().replace(/[^\w\s]/g, '').trim().toUpperCase() : `SLIDE ${num}`;
-      const layout = (hm[3] || 'fullbleed').trim();
+      let layout = (hm[3] || 'fullbleed').trim().toLowerCase();
+      // Remove acentos para compatibilidade com o backend (ex: "dramático" -> "dramatico")
+      layout = layout.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       current = {
         num,
         estado,
