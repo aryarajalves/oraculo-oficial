@@ -6,7 +6,7 @@ import sys, argparse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from core.util.compose_util_v3 import compose
+from core.util.compose_util import compose
 
 def main():
     p = argparse.ArgumentParser()
@@ -18,27 +18,19 @@ def main():
     p.add_argument("--output", required=True, help="Caminho de saida (.jpg)")
     args = p.parse_args()
 
-    # Mapear layouts do frontend para os modos suportados pelo motor v3
-    mode = "image"
-    if args.layout == "card":
-        mode = "card"
-    elif args.layout == "text_only":
-        mode = "text"
-
     # Detectar se é slide de capa (S1) a partir do nome do arquivo
     cover = False
     filename = Path(args.output).name.lower()
     if "slide-01" in filename or "slide-1." in filename:
         cover = True
 
-    img_bytes = Path(args.image).read_bytes() if mode in ("image", "card") else None
+    img_bytes = Path(args.image).read_bytes() if args.layout != "text_only" else None
     result = compose(
         img_bytes=img_bytes,
         title=args.title,
         body=args.body,
-        mode=mode,
-        preset_name=args.preset,
-        cover=cover
+        layout=args.layout,
+        preset_name=args.preset
     )
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
