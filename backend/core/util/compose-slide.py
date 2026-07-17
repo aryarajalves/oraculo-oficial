@@ -16,6 +16,11 @@ def main():
     p.add_argument("--layout", default="fullbleed", choices=["fullbleed", "card", "dramatico", "etereo", "text_only"])
     p.add_argument("--preset", default="revelacao", help="Nome do preset visual (cosmico, sagrado, revelacao)")
     p.add_argument("--output", required=True, help="Caminho de saida (.jpg)")
+    p.add_argument("--title_y", type=str, default=None)
+    p.add_argument("--body_y", type=str, default=None)
+    p.add_argument("--watermark_pos", default="top_left", choices=["top_left", "top_right", "bottom_left", "bottom_right", "hidden"])
+    p.add_argument("--watermark_x", type=str, default=None)
+    p.add_argument("--watermark_y", type=str, default=None)
     args = p.parse_args()
 
     # Detectar se é slide de capa (S1) a partir do nome do arquivo
@@ -24,13 +29,24 @@ def main():
     if "slide-01" in filename or "slide-1." in filename:
         cover = True
 
+    # Trata strings vazias/none do CLI
+    ty = int(args.title_y) if args.title_y is not None and args.title_y.strip() != "" else None
+    by = int(args.body_y) if args.body_y is not None and args.body_y.strip() != "" else None
+    wx = int(args.watermark_x) if args.watermark_x is not None and args.watermark_x.strip() != "" else None
+    wy = int(args.watermark_y) if args.watermark_y is not None and args.watermark_y.strip() != "" else None
+
     img_bytes = Path(args.image).read_bytes() if args.layout != "text_only" else None
     result = compose(
         img_bytes=img_bytes,
         title=args.title,
         body=args.body,
         layout=args.layout,
-        preset_name=args.preset
+        preset_name=args.preset,
+        title_y=ty,
+        body_y=by,
+        watermark_pos=args.watermark_pos,
+        watermark_x=wx,
+        watermark_y=wy
     )
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)

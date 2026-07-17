@@ -238,7 +238,17 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
   // Buscar a imagem limpa do Raw Cache se disponível
   const baseImgPath = fs.existsSync(rawPath) ? rawPath : imgPath;
 
-  const { title, body, layout = "fullbleed" } = req.body;
+  const { 
+    title, 
+    body, 
+    layout = "fullbleed",
+    title_y,
+    body_y,
+    watermark_pos = "top_left",
+    watermark_x,
+    watermark_y
+  } = req.body;
+  
   if (!title || !body) return res.status(400).json({ error: "title e body são obrigatórios" });
   
   const metaPath = imgPath.replace(/\.(jpg|jpeg|png)$/i, ".meta.json");
@@ -261,11 +271,29 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
   }
 
   try {
-    const { stdout } = await execFileAsync(PYTHON, [
+    const pythonArgs = [
       COMPOSE_SCRIPT,
       "--image", baseImgPath, "--title", title, "--body", body,
       "--layout", layout, "--preset", preset, "--output", imgPath
-    ], {
+    ];
+
+    if (title_y !== undefined && title_y !== null && String(title_y).trim() !== "") {
+      pythonArgs.push("--title_y", String(title_y));
+    }
+    if (body_y !== undefined && body_y !== null && String(body_y).trim() !== "") {
+      pythonArgs.push("--body_y", String(body_y));
+    }
+    if (watermark_pos) {
+      pythonArgs.push("--watermark_pos", watermark_pos);
+    }
+    if (watermark_x !== undefined && watermark_x !== null && String(watermark_x).trim() !== "") {
+      pythonArgs.push("--watermark_x", String(watermark_x));
+    }
+    if (watermark_y !== undefined && watermark_y !== null && String(watermark_y).trim() !== "") {
+      pythonArgs.push("--watermark_y", String(watermark_y));
+    }
+
+    const { stdout } = await execFileAsync(PYTHON, pythonArgs, {
       timeout: 60000,
       cwd: path.join(__dirname, '..', '..'),
       env: {
@@ -278,7 +306,17 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
     });
     
     logger.info('[Carousel]', "recompose:", stdout.trim());
-    fs.writeFileSync(metaPath, JSON.stringify({ title, body, layout, preset }, null, 2));
+    fs.writeFileSync(metaPath, JSON.stringify({ 
+      title, 
+      body, 
+      layout, 
+      preset,
+      title_y,
+      body_y,
+      watermark_pos,
+      watermark_x,
+      watermark_y
+    }, null, 2));
 
     // Se o MinIO/B2 estiver ativo e em produção, envia de volta para o bucket e remove do container
     if (IS_PROD && b2) {

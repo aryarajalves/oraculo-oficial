@@ -443,10 +443,29 @@ def add_film_grain(img, intensity=18):
 
 # ── WATERMARKS ────────────────────────────────────────────────────────────────
 
-def _watermarks(draw, color):
+def _watermarks(draw, color, pos="top_left", x=None, y=None):
+    if pos == "hidden":
+        return
     mark = "@afonteoculta"
     fm   = load_font(F_MARK, 28)
-    draw.text((MARGIN_L, 48), mark, font=fm, fill=color)
+    
+    # Coordenadas padrão baseadas na posição
+    default_x = MARGIN_L
+    default_y = 48
+    
+    if pos == "top_right":
+        default_x = W - MARGIN_R - 180
+        default_y = 48
+    elif pos == "bottom_left":
+        default_x = MARGIN_L
+        default_y = H - 80
+    elif pos == "bottom_right":
+        default_x = W - MARGIN_R - 180
+        default_y = H - 80
+        
+    final_x = int(x) if x is not None and str(x).strip() != "" else default_x
+    final_y = int(y) if y is not None and str(y).strip() != "" else default_y
+    draw.text((final_x, final_y), mark, font=fm, fill=color)
 
 
 # ── DARK COSMIC BG (para text_only) ──────────────────────────────────────────
@@ -479,7 +498,7 @@ def make_cosmic_bg(preset: dict, img_bytes=None):
 
 # ── LAYOUTS ───────────────────────────────────────────────────────────────────
 
-def compose_fullbleed(img_bytes, title, body, preset: dict):
+def compose_fullbleed(img_bytes, title, body, preset: dict, title_y=None, body_y=None, watermark_pos="top_left", watermark_x=None, watermark_y=None):
     """Layout fullbleed: imagem full + gradiente + texto LEFT embaixo."""
     p   = preset
     bg  = Image.open(BytesIO(img_bytes)).convert("RGBA").resize((W, H), Image.LANCZOS)
@@ -491,7 +510,7 @@ def compose_fullbleed(img_bytes, title, body, preset: dict):
         bg = add_film_grain(bg)
 
     draw = ImageDraw.Draw(bg)
-    _watermarks(draw, p["watermark_color"])
+    _watermarks(draw, p["watermark_color"], pos=watermark_pos, x=watermark_x, y=watermark_y)
 
     t_start = min(p["title_px"], 80)
     t_min   = p["title_min_px"]
@@ -522,18 +541,21 @@ def compose_fullbleed(img_bytes, title, body, preset: dict):
         t_sz -= 2
         th, bh = calc_heights(t_sz, b_sz)
 
-    y_raw = H - th - bh - gap - BOTTOM_PAD
-    y     = max(y_raw, Y_MIN)
+    if title_y is not None and str(title_y).strip() != "":
+        y = int(title_y)
+    else:
+        y_raw = H - th - bh - gap - BOTTOM_PAD
+        y     = max(y_raw, Y_MIN)
 
-    y = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
-                     ls=1.18, align="left")
-    y += gap
-    render_markup_block(draw, body, b_sz, MARGIN_L, y, p,
+    rendered_title_y_end = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
+                                        ls=1.18, align="left")
+    final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else (rendered_title_y_end + gap)
+    render_markup_block(draw, body, b_sz, MARGIN_L, final_body_y, p,
                         ls=1.55, align="left")
     return bg.convert("RGB")
 
 
-def compose_dramatico(img_bytes, title, body, preset: dict):
+def compose_dramatico(img_bytes, title, body, preset: dict, title_y=None, body_y=None, watermark_pos="top_left", watermark_x=None, watermark_y=None):
     """
     Variação 1 — DRAMÁTICO
     Imagem full + grain + gradiente extra-longo + texto ESQUERDA + fontes grandes.
@@ -549,7 +571,7 @@ def compose_dramatico(img_bytes, title, body, preset: dict):
         bg = add_film_grain(bg, intensity=16)
 
     draw = ImageDraw.Draw(bg)
-    _watermarks(draw, p["watermark_color"])
+    _watermarks(draw, p["watermark_color"], pos=watermark_pos, x=watermark_x, y=watermark_y)
 
     t_sz = fit_title_size(draw, title, p["title_px"], p["title_min_px"], align="left")
     b_sz = p["body_px"]
@@ -580,18 +602,21 @@ def compose_dramatico(img_bytes, title, body, preset: dict):
         th, bh = calc_heights_d(t_sz, b_sz)
 
     # ── Bloco nunca começa antes de 66% (zona escura do gradiente) ──────────
-    y_raw = H - th - bh - gap - BOTTOM_PAD
-    y     = max(y_raw, Y_MIN)
+    if title_y is not None and str(title_y).strip() != "":
+        y = int(title_y)
+    else:
+        y_raw = H - th - bh - gap - BOTTOM_PAD
+        y     = max(y_raw, Y_MIN)
 
-    y = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
-                     ls=1.18, align="left")
-    y += gap
-    render_markup_block(draw, body, b_sz, MARGIN_L, y, p,
+    rendered_title_y_end = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
+                                        ls=1.18, align="left")
+    final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else (rendered_title_y_end + gap)
+    render_markup_block(draw, body, b_sz, MARGIN_L, final_body_y, p,
                         ls=1.58, align="left")
     return bg.convert("RGB")
 
 
-def compose_etereo(img_bytes, title, body, preset: dict):
+def compose_etereo(img_bytes, title, body, preset: dict, title_y=None, body_y=None, watermark_pos="top_left", watermark_x=None, watermark_y=None):
     """
     Variação 2 — ETÉREO LUMINOSO
     Imagem quente + gradiente muito suave + texto ESQUERDA + itálico no body.
@@ -605,7 +630,7 @@ def compose_etereo(img_bytes, title, body, preset: dict):
         bg = add_vignette(bg, strength=0.45)
 
     draw = ImageDraw.Draw(bg)
-    _watermarks(draw, p["watermark_color"])
+    _watermarks(draw, p["watermark_color"], pos=watermark_pos, x=watermark_x, y=watermark_y)
 
     t_sz = fit_title_size(draw, title, p["title_px"], p["title_min_px"], align="left")
     b_sz = p["body_px"]
@@ -619,17 +644,20 @@ def compose_etereo(img_bytes, title, body, preset: dict):
     th    = int(n_t * lh_t)
     bh    = int(n_b * lh_b)
     gap   = 28
-    y     = H - th - bh - gap - 90
+    if title_y is not None and str(title_y).strip() != "":
+        y = int(title_y)
+    else:
+        y = H - th - bh - gap - 90
 
-    y = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
-                     ls=1.20, align="left")
-    y += gap
-    render_markup_block(draw, body, b_sz, MARGIN_L, y, p,
+    rendered_title_y_end = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
+                                        ls=1.20, align="left")
+    final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else (rendered_title_y_end + gap)
+    render_markup_block(draw, body, b_sz, MARGIN_L, final_body_y, p,
                         ls=1.60, align="left")
     return bg.convert("RGB")
 
 
-def compose_text_only(img_bytes, title, body, preset: dict):
+def compose_text_only(img_bytes, title, body, preset: dict, title_y=None, body_y=None, watermark_pos="top_left", watermark_x=None, watermark_y=None):
     """
     Layout TEXTO PESADO — quando há muito texto, sem imagem real.
     Fundo escuro cósmico (img_bytes vira textura suave se fornecido).
@@ -642,7 +670,7 @@ def compose_text_only(img_bytes, title, body, preset: dict):
         bg = add_vignette(bg, strength=0.35)
 
     draw = ImageDraw.Draw(bg)
-    _watermarks(draw, p["watermark_color"])
+    _watermarks(draw, p["watermark_color"], pos=watermark_pos, x=watermark_x, y=watermark_y)
 
     # Barra vermelha vertical à esquerda (detalhe de design da referência)
     bar_x = MARGIN_L
@@ -658,7 +686,7 @@ def compose_text_only(img_bytes, title, body, preset: dict):
 
     t_sz = fit_title_size(draw, title, t_sz, t_min, align="left")
 
-    PAD_TOP   = int(H * 0.34)   # título começa abaixo da barra vermelha
+    PAD_TOP   = int(title_y) if title_y is not None and str(title_y).strip() != "" else int(H * 0.34)
     PAD_BOT   = 80
     avail_h   = H - PAD_TOP - PAD_BOT
     x0        = MARGIN_L
@@ -669,6 +697,9 @@ def compose_text_only(img_bytes, title, body, preset: dict):
         y = render_title(draw, title, t_sz, x0, y, p["title_color"],
                          ls=1.18, align="left")
         y += line_px_height(draw, t_sz) * 0.9   # espaço após título
+
+    if body_y is not None and str(body_y).strip() != "":
+        y = float(body_y)
 
     # Body: cada \n\n vira parágrafo com espaço extra
     paragraphs = body.split("\n\n")
@@ -685,7 +716,7 @@ def compose_text_only(img_bytes, title, body, preset: dict):
     return bg.convert("RGB")
 
 
-def compose_card(img_bytes, title, body, preset: dict):
+def compose_card(img_bytes, title, body, preset: dict, title_y=None, body_y=None, watermark_pos="top_left", watermark_x=None, watermark_y=None):
     """Layout card: imagem arredondada no topo + texto embaixo."""
     p      = preset
     canvas = Image.new("RGBA", (W, H), p["card_bg"])
@@ -693,7 +724,7 @@ def compose_card(img_bytes, title, body, preset: dict):
         canvas = add_vignette(canvas, strength=0.25)
 
     draw = ImageDraw.Draw(canvas)
-    _watermarks(draw, p["watermark_color"])
+    _watermarks(draw, p["watermark_color"], pos=watermark_pos, x=watermark_x, y=watermark_y)
 
     cw, ch, cx, cy = 940, 556, (W - 940) // 2, 126
     card = Image.open(BytesIO(img_bytes)).convert("RGBA").resize((cw, ch), Image.LANCZOS)
@@ -725,22 +756,23 @@ def compose_card(img_bytes, title, body, preset: dict):
         lh_b  = line_px_height(draw, b_sz) * 1.55
         bh    = int(n_b * lh_b)
 
-    y = float(ty)
-    y = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
-                     ls=1.18, align="left")
-    y += gap
-    render_markup_block(draw, body, b_sz, MARGIN_L, y, p,
+    y = float(title_y) if title_y is not None and str(title_y).strip() != "" else float(ty)
+    rendered_title_y_end = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
+                                        ls=1.18, align="left")
+    final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else (rendered_title_y_end + gap)
+    render_markup_block(draw, body, b_sz, MARGIN_L, final_body_y, p,
                         ls=1.55, align="left")
     return canvas.convert("RGB")
 
 
 # ── PUBLIC API ────────────────────────────────────────────────────────────────
 
-def compose(img_bytes, title, body, layout="fullbleed", preset_name=DEFAULT_PRESET):
+def compose(img_bytes, title, body, layout="fullbleed", preset_name=DEFAULT_PRESET,
+            title_y=None, body_y=None, watermark_pos="top_left", watermark_x=None, watermark_y=None):
     """
     layout:
       'fullbleed'   — clássico centralizado (todos os presets)
-      'dramatico'   — esquerda + grain + grande (preset dramatico)
+      'dramatico'   — esquerda + grain + gradiente longo + texto ESQUERDA grande
       'etereo'      — esquerda + suave + itálico (preset etereo_luminoso)
       'text_only'   — texto pesado sem imagem real (qualquer preset)
       'card'        — card arredondado + texto
@@ -752,12 +784,12 @@ def compose(img_bytes, title, body, layout="fullbleed", preset_name=DEFAULT_PRES
     p = get_preset(preset_name)
 
     if layout == "dramatico":
-        return compose_dramatico(img_bytes, title, body, p)
+        return compose_dramatico(img_bytes, title, body, p, title_y, body_y, watermark_pos, watermark_x, watermark_y)
     if layout == "etereo":
-        return compose_etereo(img_bytes, title, body, p)
+        return compose_etereo(img_bytes, title, body, p, title_y, body_y, watermark_pos, watermark_x, watermark_y)
     if layout == "text_only":
-        return compose_text_only(img_bytes, title, body, p)
+        return compose_text_only(img_bytes, title, body, p, title_y, body_y, watermark_pos, watermark_x, watermark_y)
     if layout == "card":
-        return compose_card(img_bytes, title, body, p)
+        return compose_card(img_bytes, title, body, p, title_y, body_y, watermark_pos, watermark_x, watermark_y)
 
-    return compose_fullbleed(img_bytes, title, body, p)
+    return compose_fullbleed(img_bytes, title, body, p, title_y, body_y, watermark_pos, watermark_x, watermark_y)
