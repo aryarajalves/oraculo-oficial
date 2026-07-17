@@ -575,7 +575,7 @@ router.post('/api/agent/chat', async (req, res) => {
       body: JSON.stringify({
         model: 'gpt-4o',
         messages: [{ role: 'system', content: system }, ...messages],
-        max_tokens: 700,
+        max_tokens: 4000,
         temperature: 0.85,
       }),
     });

@@ -655,7 +655,8 @@ export default function Dashboard({
                       if (provider === 'dall-e-3') return 'OpenAI DALL-E 3';
                       if (provider === 'fal') return 'Flux Schnell (via Fal)';
                       if (provider === 'gemini') return 'Google Imagen 3';
-                      if (provider === 'gpt-image-1-mini' || provider === 'dall-e-2') return 'OpenAI DALL-E 2';
+                      if (provider === 'gpt-image-1-mini') return 'GPT Image 1 Mini';
+                      if (provider === 'dall-e-2') return 'OpenAI DALL-E 2';
                       return provider.toUpperCase();
                     })()}
                   </span>
