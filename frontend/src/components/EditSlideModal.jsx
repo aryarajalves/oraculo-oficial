@@ -104,8 +104,8 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
 
   return (
     <div className="edit-modal open" id="edit-modal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.85)', zIndex: 1000 }}>
-      <div className="edit-box" style={{ maxWidth: '1100px', width: '95%', background: 'var(--surface, #18181b)', border: '1px solid var(--border, #27272a)', borderRadius: '12px', overflow: 'hidden' }}>
-        <div className="edit-header" style={{ padding: '18px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="edit-box" style={{ maxWidth: '1100px', width: '95%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: 'var(--surface, #18181b)', border: '1px solid var(--border, #27272a)', borderRadius: '12px', overflow: 'hidden' }}>
+        <div className="edit-header" style={{ padding: '18px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div>
             <div className="form-title" style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#fff' }}>EDITAR SLIDE</div>
             <div className="edit-filename" style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-3)' }}>{filename}</div>
@@ -147,10 +147,10 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
           <button className="modal-close" onClick={onClose} style={{ position: 'static', background: 'none', border: 'none', color: 'var(--text-3)', fontSize: '18px', cursor: 'pointer' }}>✕</button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', padding: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '24px', padding: '24px', overflow: 'hidden', flex: 1 }}>
           
           {/* Coluna Esquerda: Editor */}
-          <div style={{ maxHeight: '600px', overflowY: 'auto', paddingRight: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: '8px' }}>
             <div className="edit-tabs" style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: 0, marginBottom: '20px' }}>
               <button className={`edit-tab ${activeTab === 'text' ? 'active' : ''}`} onClick={() => setActiveTab('text')}>Texto & Layout</button>
               <button className={`edit-tab ${activeTab === 'image' ? 'active' : ''}`} onClick={() => setActiveTab('image')}>Recriar Imagem</button>
