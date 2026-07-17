@@ -221,10 +221,10 @@ def main():
         if layout == "card":
             mode = "card"
         elif layout == "text_only":
-            mode = "text"
+            mode = "text_only"
             img_bytes = None
 
-        if not img_bytes and mode != "text":
+        if not img_bytes and mode != "text_only":
             out({"type": "slide", "num": idx, "total": total, "estado": estado,
                  "status": "erro", "msg": "Falha na geração de imagem"})
             continue
