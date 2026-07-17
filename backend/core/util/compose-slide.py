@@ -21,6 +21,8 @@ def main():
     p.add_argument("--watermark_pos", default="top_left", choices=["top_left", "top_right", "bottom_left", "bottom_right", "hidden"])
     p.add_argument("--watermark_x", type=str, default=None)
     p.add_argument("--watermark_y", type=str, default=None)
+    p.add_argument("--title_px", type=str, default=None)
+    p.add_argument("--body_px", type=str, default=None)
     args = p.parse_args()
 
     # Detectar se é slide de capa (S1) a partir do nome do arquivo
@@ -34,6 +36,8 @@ def main():
     by = int(args.body_y) if args.body_y is not None and args.body_y.strip() != "" else None
     wx = int(args.watermark_x) if args.watermark_x is not None and args.watermark_x.strip() != "" else None
     wy = int(args.watermark_y) if args.watermark_y is not None and args.watermark_y.strip() != "" else None
+    t_px = int(args.title_px) if args.title_px is not None and args.title_px.strip() != "" else None
+    b_px = int(args.body_px) if args.body_px is not None and args.body_px.strip() != "" else None
 
     img_bytes = Path(args.image).read_bytes() if args.layout != "text_only" else None
     result = compose(
@@ -46,7 +50,9 @@ def main():
         body_y=by,
         watermark_pos=args.watermark_pos,
         watermark_x=wx,
-        watermark_y=wy
+        watermark_y=wy,
+        title_px=t_px,
+        body_px=b_px
     )
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)

@@ -1,6 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { customFetch } from '../utils/customFetch';
 
+const PRESET_DEFAULTS = {
+  manuscrito_sagrado: { title: 76, body: 40 },
+  sagrado: { title: 76, body: 40 },
+  cinematografico: { title: 76, body: 40 },
+  cinematografico_crimson: { title: 84, body: 38 },
+  esoterico_minimalista: { title: 72, body: 38 },
+  dramatico: { title: 84, body: 40 },
+  etereo_luminoso: { title: 76, body: 40 }
+};
+
 export default function EditSlideModal({ isOpen, onClose, carouselId, filename, onChangeFilename, slides = [], showToast }) {
   const [activeTab, setActiveTab] = useState('text');
   const [slideMeta, setSlideMeta] = useState({ 
@@ -12,7 +22,10 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
     body_y: '',
     watermark_pos: 'top_left',
     watermark_x: '',
-    watermark_y: ''
+    watermark_y: '',
+    title_px: '',
+    body_px: '',
+    preset: 'sagrado'
   });
   const [saving, setSaving] = useState(false);
   const [cacheBuster, setCacheBuster] = useState(Date.now());
@@ -48,7 +61,10 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
           body_y: data.body_y !== undefined && data.body_y !== null ? data.body_y : '',
           watermark_pos: data.watermark_pos || 'top_left',
           watermark_x: data.watermark_x !== undefined && data.watermark_x !== null ? data.watermark_x : '',
-          watermark_y: data.watermark_y !== undefined && data.watermark_y !== null ? data.watermark_y : ''
+          watermark_y: data.watermark_y !== undefined && data.watermark_y !== null ? data.watermark_y : '',
+          title_px: data.title_px !== undefined && data.title_px !== null ? data.title_px : '',
+          body_px: data.body_px !== undefined && data.body_px !== null ? data.body_px : '',
+          preset: data.preset || 'sagrado'
         });
       }
     } catch (e) {
@@ -99,6 +115,26 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
       setSaving(false);
     }
   };
+
+  const currentPreset = slideMeta.preset || 'sagrado';
+  const defaultSizes = PRESET_DEFAULTS[currentPreset] || PRESET_DEFAULTS.sagrado;
+  
+  let defaultTitleY = 900;
+  let defaultBodyY = 980;
+  
+  if (slideMeta.layout === 'dramatico') {
+    defaultTitleY = 890;
+    defaultBodyY = 970;
+  } else if (slideMeta.layout === 'etereo') {
+    defaultTitleY = 950;
+    defaultBodyY = 1030;
+  } else if (slideMeta.layout === 'text_only') {
+    defaultTitleY = 460;
+    defaultBodyY = 600;
+  } else if (slideMeta.layout === 'card') {
+    defaultTitleY = 720;
+    defaultBodyY = 800;
+  }
 
   if (!isOpen) return null;
 
@@ -172,7 +208,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                     <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Posição Vertical do Título (Y)</label>
                     <input 
                       type="number" 
-                      placeholder="Padrão (Automático)" 
+                      placeholder={`${defaultTitleY} (Padrão)`} 
                       className="form-input" 
                       style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
                       value={slideMeta.title_y} 
@@ -183,11 +219,36 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                     <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Posição Vertical do Corpo (Y)</label>
                     <input 
                       type="number" 
-                      placeholder="Padrão (Automático)" 
+                      placeholder={`${defaultBodyY} (Padrão)`} 
                       className="form-input" 
                       style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
                       value={slideMeta.body_y} 
                       onChange={e => setSlideMeta(prev => ({ ...prev, body_y: e.target.value }))} 
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+                  <div className="form-group">
+                    <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Tamanho do Título (px)</label>
+                    <input 
+                      type="number" 
+                      placeholder={`${defaultSizes.title}px (Padrão)`} 
+                      className="form-input" 
+                      style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
+                      value={slideMeta.title_px} 
+                      onChange={e => setSlideMeta(prev => ({ ...prev, title_px: e.target.value }))} 
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Tamanho do Corpo (px)</label>
+                    <input 
+                      type="number" 
+                      placeholder={`${defaultSizes.body}px (Padrão)`} 
+                      className="form-input" 
+                      style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
+                      value={slideMeta.body_px} 
+                      onChange={e => setSlideMeta(prev => ({ ...prev, body_px: e.target.value }))} 
                     />
                   </div>
                 </div>

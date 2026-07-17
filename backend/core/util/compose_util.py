@@ -768,7 +768,8 @@ def compose_card(img_bytes, title, body, preset: dict, title_y=None, body_y=None
 # ── PUBLIC API ────────────────────────────────────────────────────────────────
 
 def compose(img_bytes, title, body, layout="fullbleed", preset_name=DEFAULT_PRESET,
-            title_y=None, body_y=None, watermark_pos="top_left", watermark_x=None, watermark_y=None):
+            title_y=None, body_y=None, watermark_pos="top_left", watermark_x=None, watermark_y=None,
+            title_px=None, body_px=None):
     """
     layout:
       'fullbleed'   — clássico centralizado (todos os presets)
@@ -781,7 +782,12 @@ def compose(img_bytes, title, body, layout="fullbleed", preset_name=DEFAULT_PRES
       'manuscrito_sagrado' | 'cinematografico' | 'cinematografico_crimson'
       'esoterico_minimalista' | 'dramatico' | 'etereo_luminoso'
     """
-    p = get_preset(preset_name)
+    p = get_preset(preset_name).copy()
+    
+    if title_px is not None and str(title_px).strip() != "":
+        p["title_px"] = int(title_px)
+    if body_px is not None and str(body_px).strip() != "":
+        p["body_px"] = int(body_px)
 
     if layout == "dramatico":
         return compose_dramatico(img_bytes, title, body, p, title_y, body_y, watermark_pos, watermark_x, watermark_y)

@@ -246,7 +246,9 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
     body_y,
     watermark_pos = "top_left",
     watermark_x,
-    watermark_y
+    watermark_y,
+    title_px,
+    body_px
   } = req.body;
   
   if (!title || !body) return res.status(400).json({ error: "title e body são obrigatórios" });
@@ -292,6 +294,12 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
     if (watermark_y !== undefined && watermark_y !== null && String(watermark_y).trim() !== "") {
       pythonArgs.push("--watermark_y", String(watermark_y));
     }
+    if (title_px !== undefined && title_px !== null && String(title_px).trim() !== "") {
+      pythonArgs.push("--title_px", String(title_px));
+    }
+    if (body_px !== undefined && body_px !== null && String(body_px).trim() !== "") {
+      pythonArgs.push("--body_px", String(body_px));
+    }
 
     const { stdout } = await execFileAsync(PYTHON, pythonArgs, {
       timeout: 60000,
@@ -315,7 +323,9 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
       body_y,
       watermark_pos,
       watermark_x,
-      watermark_y
+      watermark_y,
+      title_px,
+      body_px
     }, null, 2));
 
     // Se o MinIO/B2 estiver ativo e em produção, envia de volta para o bucket e remove do container
