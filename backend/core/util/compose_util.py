@@ -517,7 +517,7 @@ def compose_fullbleed(img_bytes, title, body, preset: dict, title_y=None, body_y
     b_sz    = p["body_px"]
     gap     = 22
 
-    t_sz = fit_title_size(draw, title, t_start, t_min, align="left")
+    t_sz = fit_title_size(draw, title, t_start, t_min, align="center")
 
     def calc_heights(ts, bs):
         lht = line_px_height(draw, ts) * 1.18
@@ -550,10 +550,10 @@ def compose_fullbleed(img_bytes, title, body, preset: dict, title_y=None, body_y
         y     = max(y_raw, Y_MIN)
 
     rendered_title_y_end = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
-                                        ls=1.18, align="left")
+                                        ls=1.18, align="center")
     final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else (rendered_title_y_end + gap)
     render_markup_block(draw, body, b_sz, MARGIN_L, final_body_y, p,
-                        ls=1.55, align="left")
+                        ls=1.55, align="center")
     return bg.convert("RGB")
 
 
@@ -742,7 +742,7 @@ def compose_card(img_bytes, title, body, preset: dict, title_y=None, body_y=None
     ty   = cy + ch + 36
     custom_y = int(title_y) if (title_y is not None and str(title_y).strip() != "") else None
     avail = H - (custom_y if custom_y is not None else ty) - 52
-    t_sz  = fit_title_size(draw, title, p["title_px"], p["title_min_px"], align="left")
+    t_sz  = fit_title_size(draw, title, p["title_px"], p["title_min_px"], align="center")
     b_sz  = p["body_px"]
 
     lh_t  = line_px_height(draw, t_sz) * 1.18
@@ -763,10 +763,10 @@ def compose_card(img_bytes, title, body, preset: dict, title_y=None, body_y=None
 
     y = float(title_y) if title_y is not None and str(title_y).strip() != "" else float(ty)
     rendered_title_y_end = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
-                                        ls=1.18, align="left")
+                                        ls=1.18, align="center")
     final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else (rendered_title_y_end + gap)
     render_markup_block(draw, body, b_sz, MARGIN_L, final_body_y, p,
-                        ls=1.55, align="left")
+                        ls=1.55, align="center")
     return canvas.convert("RGB")
 
 
