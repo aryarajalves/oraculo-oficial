@@ -532,7 +532,9 @@ def compose_fullbleed(img_bytes, title, body, preset: dict, title_y=None, body_y
 
     BOTTOM_PAD  = 80
     Y_MIN       = int(H * 0.62)
-    MAX_TEXT_H  = H - Y_MIN - BOTTOM_PAD
+    custom_y    = int(title_y) if (title_y is not None and str(title_y).strip() != "") else None
+    effective_y_min = custom_y if (custom_y is not None and custom_y < Y_MIN) else Y_MIN
+    MAX_TEXT_H  = H - effective_y_min - BOTTOM_PAD
 
     while (th + bh + gap) > MAX_TEXT_H and b_sz > p["body_min_px"]:
         b_sz -= 1
@@ -592,7 +594,9 @@ def compose_dramatico(img_bytes, title, body, preset: dict, title_y=None, body_y
     # MAX_TEXT_H derivado da geometria real — garante que texto NUNCA ultrapassa H − 96px
     BOTTOM_PAD  = 96
     Y_MIN       = int(H * 0.66)           # 891px
-    MAX_TEXT_H  = H - Y_MIN - BOTTOM_PAD  # 363px — zona real disponível
+    custom_y    = int(title_y) if (title_y is not None and str(title_y).strip() != "") else None
+    effective_y_min = custom_y if (custom_y is not None and custom_y < Y_MIN) else Y_MIN
+    MAX_TEXT_H  = H - effective_y_min - BOTTOM_PAD  # zona real disponível
 
     while (th + bh + gap) > MAX_TEXT_H and b_sz > p["body_min_px"]:
         b_sz -= 1
@@ -736,7 +740,8 @@ def compose_card(img_bytes, title, body, preset: dict, title_y=None, body_y=None
     canvas.paste(card, (cx, cy), card)
 
     ty   = cy + ch + 36
-    avail = H - ty - 52
+    custom_y = int(title_y) if (title_y is not None and str(title_y).strip() != "") else None
+    avail = H - (custom_y if custom_y is not None else ty) - 52
     t_sz  = fit_title_size(draw, title, p["title_px"], p["title_min_px"], align="left")
     b_sz  = p["body_px"]
 
