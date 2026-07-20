@@ -35,9 +35,23 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
     body_px: '',
     preset: 'sagrado'
   });
-  const [saving, setSaving] = useState(false);
+   const [saving, setSaving] = useState(false);
   const [cacheBuster, setCacheBuster] = useState(Date.now());
+  const [previewImgUrl, setPreviewImgUrl] = useState('');
   const previewRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && carouselId && filename) {
+      const rawFname = filename.replace(/^slide-/, 'raw-');
+      const token = encodeURIComponent(localStorage.getItem('fo_token') || '');
+      setPreviewImgUrl(`/api/carousels/${carouselId}/image/${rawFname}?token=${token}&t=${cacheBuster}`);
+    }
+  }, [isOpen, carouselId, filename, cacheBuster]);
+
+  const handleImageError = () => {
+    const token = encodeURIComponent(localStorage.getItem('fo_token') || '');
+    setPreviewImgUrl(`/api/carousels/${carouselId}/image/${filename}?token=${token}&t=${cacheBuster}`);
+  };
 
   const handleDragStart = (e, element) => {
     e.preventDefault();
@@ -336,7 +350,8 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
             {carouselId && filename ? (
               <div ref={previewRef} style={{ position: 'relative', width: '336px', height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '4px', border: '1px solid #27272a', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
                 <img 
-                  src={`/api/carousels/${carouselId}/image/${filename}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&t=${cacheBuster}`} 
+                  src={previewImgUrl} 
+                  onError={handleImageError}
                   alt="Preview" 
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                 />
