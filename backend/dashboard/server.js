@@ -85,15 +85,15 @@ app.use('/auth', rateLimiter(10, 60000));
 // Lightbox dispara várias requisições legítimas em sequência rápida e não deve
 // competir com o limite das operações de escrita (criar, publicar, excluir).
 const carouselsMediaLimiter = rateLimiter(300, 60000, '/api/carousels:media');
-const carouselsGeneralLimiter = rateLimiter(30, 60000, '/api/carousels:general');
+const carouselsGeneralLimiter = rateLimiter(150, 60000, '/api/carousels:general');
 app.use('/api/carousels', (req, res, next) => {
   const isMediaRoute = /\/(image|download)\/|\/meta$/.test(req.path);
   return isMediaRoute
     ? carouselsMediaLimiter(req, res, next)
     : carouselsGeneralLimiter(req, res, next);
 });
-app.use('/api/services', rateLimiter(30, 60000));
-app.use('/api/backups', rateLimiter(30, 60000));
+app.use('/api/services', rateLimiter(100, 60000));
+app.use('/api/backups', rateLimiter(60, 60000));
 
 // 3. Outras rotas gerais do dashboard (ex: users, etc): 60 requisições por minuto
 app.use('/api/users', rateLimiter(60, 60000));
