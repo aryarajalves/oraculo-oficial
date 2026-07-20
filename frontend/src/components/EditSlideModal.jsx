@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { customFetch } from '../utils/customFetch';
 
 const PRESET_DEFAULTS = {
@@ -29,6 +29,47 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
   });
   const [saving, setSaving] = useState(false);
   const [cacheBuster, setCacheBuster] = useState(Date.now());
+  const previewRef = useRef(null);
+
+  const handleDragStart = (e, element) => {
+    e.preventDefault();
+    if (!previewRef.current) return;
+    const rect = previewRef.current.getBoundingClientRect();
+    const scale = 1080 / 336; // scale from 336px preview to 1080px actual width
+
+    const handleMouseMove = (moveEvent) => {
+      const relativeY = moveEvent.clientY - rect.top;
+      const relativeX = moveEvent.clientX - rect.left;
+      
+      const clampedY = Math.max(0, Math.min(420, relativeY));
+      const clampedX = Math.max(0, Math.min(336, relativeX));
+      
+      const realY = Math.round(clampedY * scale);
+      const realX = Math.round(clampedX * scale);
+
+      setSlideMeta(prev => {
+        const next = { ...prev };
+        if (element === 'title') {
+          next.title_y = realY;
+        } else if (element === 'body') {
+          next.body_y = realY;
+        } else if (element === 'watermark') {
+          next.watermark_pos = 'custom';
+          next.watermark_x = realX;
+          next.watermark_y = realY;
+        }
+        return next;
+      });
+    };
+
+    const handleMouseUp = () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
 
   useEffect(() => {
     if (isOpen && carouselId && filename) {
@@ -205,31 +246,6 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                   <div className="form-group">
-                    <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Posição Vertical do Título (Y)</label>
-                    <input 
-                      type="number" 
-                      placeholder={`${defaultTitleY} (Padrão)`} 
-                      className="form-input" 
-                      style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
-                      value={slideMeta.title_y} 
-                      onChange={e => setSlideMeta(prev => ({ ...prev, title_y: e.target.value }))} 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Posição Vertical do Corpo (Y)</label>
-                    <input 
-                      type="number" 
-                      placeholder={`${defaultBodyY} (Padrão)`} 
-                      className="form-input" 
-                      style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
-                      value={slideMeta.body_y} 
-                      onChange={e => setSlideMeta(prev => ({ ...prev, body_y: e.target.value }))} 
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                  <div className="form-group">
                     <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Tamanho do Título (px)</label>
                     <input 
                       type="number" 
@@ -253,49 +269,16 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                   </div>
                 </div>
 
-                <div className="form-group" style={{ marginBottom: '16px' }}>
-                  <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Posição da Marca d'água</label>
-                  <select 
-                    className="form-select" 
-                    style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
-                    value={slideMeta.watermark_pos} 
-                    onChange={e => setSlideMeta(prev => ({ ...prev, watermark_pos: e.target.value }))}
-                  >
-                    <option value="top_left">Superior Esquerdo (Padrão)</option>
-                    <option value="top_right">Superior Direito</option>
-                    <option value="bottom_left">Inferior Esquerdo</option>
-                    <option value="bottom_right">Inferior Direito</option>
-                    <option value="custom">Coordenadas Customizadas (X/Y)</option>
-                    <option value="hidden">Ocultar Marca d'água</option>
-                  </select>
+                <div className="form-group" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input 
+                    type="checkbox" 
+                    id="hide-watermark" 
+                    checked={slideMeta.watermark_pos === 'hidden'} 
+                    onChange={e => setSlideMeta(prev => ({ ...prev, watermark_pos: e.target.checked ? 'hidden' : 'custom' }))}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <label htmlFor="hide-watermark" style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)', cursor: 'pointer', margin: 0 }}>Ocultar Marca d'água</label>
                 </div>
-
-                {slideMeta.watermark_pos === 'custom' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-                    <div className="form-group">
-                      <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Coordenada X da Marca d'água</label>
-                      <input 
-                        type="number" 
-                        placeholder="Ex: 84" 
-                        className="form-input" 
-                        style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
-                        value={slideMeta.watermark_x} 
-                        onChange={e => setSlideMeta(prev => ({ ...prev, watermark_x: e.target.value }))} 
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Coordenada Y da Marca d'água</label>
-                      <input 
-                        type="number" 
-                        placeholder="Ex: 48" 
-                        className="form-input" 
-                        style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
-                        value={slideMeta.watermark_y} 
-                        onChange={e => setSlideMeta(prev => ({ ...prev, watermark_y: e.target.value }))} 
-                      />
-                    </div>
-                  </div>
-                )}
 
                 <div className="form-group" style={{ marginBottom: '20px' }}>
                   <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Layout do Slide</label>
@@ -307,7 +290,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                     <option value="text_only">Apenas Texto (Text-Only)</option>
                   </select>
                   <p style={{ color: 'var(--text-3)', fontSize: '11px', marginTop: '8px', lineHeight: '1.4' }}>
-                    * Modifique a posição do texto e marca d'água preenchendo as coordenadas acima. Um simulador da área do texto será sobreposto na visualização real-time à direita.
+                    * Arraste o Título, Corpo ou Marca d'água diretamente na visualização real-time à direita para alterar suas posições.
                   </p>
                 </div>
                 <div className="form-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }}>
@@ -338,7 +321,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
             <div style={{ position: 'absolute', top: '12px', left: '12px', fontSize: '11px', fontWeight: 'bold', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '0.05em', zIndex: 10 }}>👁️ RENDERIZAÇÃO REAL-TIME</div>
             
             {carouselId && filename ? (
-              <div style={{ position: 'relative', width: '336px', height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '4px', border: '1px solid #27272a', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
+              <div ref={previewRef} style={{ position: 'relative', width: '336px', height: '420px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', borderRadius: '4px', border: '1px solid #27272a', boxShadow: '0 8px 30px rgba(0,0,0,0.5)' }}>
                 <img 
                   src={`/api/carousels/${carouselId}/image/${filename}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&t=${cacheBuster}`} 
                   alt="Preview" 
@@ -394,69 +377,87 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                   return (
                     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
                       {/* Guia do Título */}
-                      <div style={{
-                        position: 'absolute',
-                        top: `${tY * scale}px`,
-                        left: `${84 * scale}px`,
-                        width: `${(1080 - 168) * scale}px`,
-                        height: '24px',
-                        border: '1.5px dashed #f97316',
-                        backgroundColor: 'rgba(249, 115, 22, 0.25)',
-                        color: '#ffedd5',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-                        fontSize: '9px',
-                        fontWeight: 'bold',
-                        padding: '2px 4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        borderRadius: '2px',
-                        zIndex: 2
-                      }}>
+                      <div 
+                        onMouseDown={e => handleDragStart(e, 'title')}
+                        style={{
+                          position: 'absolute',
+                          top: `${tY * scale}px`,
+                          left: `${84 * scale}px`,
+                          width: `${(1080 - 168) * scale}px`,
+                          height: '24px',
+                          border: '1.5px dashed #f97316',
+                          backgroundColor: 'rgba(249, 115, 22, 0.25)',
+                          color: '#ffedd5',
+                          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                          fontSize: '9px',
+                          fontWeight: 'bold',
+                          padding: '2px 4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          borderRadius: '2px',
+                          zIndex: 2,
+                          pointerEvents: 'auto',
+                          cursor: 'ns-resize',
+                          userSelect: 'none'
+                        }}
+                      >
                         TÍTULO (Y: {tY})
                       </div>
                       
                       {/* Guia do Corpo */}
-                      <div style={{
-                        position: 'absolute',
-                        top: `${bY * scale}px`,
-                        left: `${84 * scale}px`,
-                        width: `${(1080 - 168) * scale}px`,
-                        height: '36px',
-                        border: '1.5px dashed #06b6d4',
-                        backgroundColor: 'rgba(6, 182, 212, 0.25)',
-                        color: '#ecfeff',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-                        fontSize: '9px',
-                        fontWeight: 'bold',
-                        padding: '2px 4px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        borderRadius: '2px',
-                        zIndex: 2
-                      }}>
+                      <div 
+                        onMouseDown={e => handleDragStart(e, 'body')}
+                        style={{
+                          position: 'absolute',
+                          top: `${bY * scale}px`,
+                          left: `${84 * scale}px`,
+                          width: `${(1080 - 168) * scale}px`,
+                          height: '36px',
+                          border: '1.5px dashed #06b6d4',
+                          backgroundColor: 'rgba(6, 182, 212, 0.25)',
+                          color: '#ecfeff',
+                          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                          fontSize: '9px',
+                          fontWeight: 'bold',
+                          padding: '2px 4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          borderRadius: '2px',
+                          zIndex: 2,
+                          pointerEvents: 'auto',
+                          cursor: 'ns-resize',
+                          userSelect: 'none'
+                        }}
+                      >
                         CORPO (Y: {bY})
                       </div>
                       
                       {/* Guia do Watermark */}
                       {showWatermark && (
-                        <div style={{
-                          position: 'absolute',
-                          top: `${wmY * scale}px`,
-                          left: `${wmX * scale}px`,
-                          width: `${180 * scale}px`,
-                          height: `${38 * scale}px`,
-                          border: '1.5px dashed #eab308',
-                          backgroundColor: 'rgba(234, 179, 8, 0.25)',
-                          color: '#fef9c3',
-                          textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-                          fontSize: '8px',
-                          fontWeight: 'bold',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderRadius: '2px',
-                          zIndex: 2
-                        }}>
+                        <div 
+                          onMouseDown={e => handleDragStart(e, 'watermark')}
+                          style={{
+                            position: 'absolute',
+                            top: `${wmY * scale}px`,
+                            left: `${wmX * scale}px`,
+                            width: `${180 * scale}px`,
+                            height: `${38 * scale}px`,
+                            border: '1.5px dashed #eab308',
+                            backgroundColor: 'rgba(234, 179, 8, 0.25)',
+                            color: '#fef9c3',
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                            fontSize: '8px',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '2px',
+                            zIndex: 2,
+                            pointerEvents: 'auto',
+                            cursor: 'move',
+                            userSelect: 'none'
+                          }}
+                        >
                           @afonteoculta
                         </div>
                       )}
