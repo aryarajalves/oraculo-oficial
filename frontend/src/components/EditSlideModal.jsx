@@ -8,7 +8,15 @@ const PRESET_DEFAULTS = {
   cinematografico_crimson: { title: 84, body: 38 },
   esoterico_minimalista: { title: 72, body: 38 },
   dramatico: { title: 84, body: 40 },
-  etereo_luminoso: { title: 76, body: 40 }
+  etereo_luminoso: { title: 76, body: 40 },
+  revelacao: { title: 76, body: 40 },
+  cosmico: { title: 76, body: 40 }
+};
+
+const parseFontSize = (val, fallback) => {
+  if (val === undefined || val === null || String(val).trim() === '') return fallback;
+  const parsed = parseInt(String(val).replace(/px/gi, ''), 10);
+  return isNaN(parsed) || parsed <= 0 ? fallback : parsed;
 };
 
 export default function EditSlideModal({ isOpen, onClose, carouselId, filename, onChangeFilename, slides = [], showToast }) {
@@ -358,6 +366,9 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                   const tY = slideMeta.title_y !== '' && slideMeta.title_y !== undefined && slideMeta.title_y !== null ? Number(slideMeta.title_y) : defaultTitleY;
                   const bY = slideMeta.body_y !== '' && slideMeta.body_y !== undefined && slideMeta.body_y !== null ? Number(slideMeta.body_y) : defaultBodyY;
                   
+                  const titleSize = parseFontSize(slideMeta.title_px, defaultSizes.title);
+                  const bodySize = parseFontSize(slideMeta.body_px, defaultSizes.body);
+                  
                   // Watermark Position Simulator
                   let wmX = 84;
                   let wmY = 48;
@@ -395,7 +406,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                           backgroundColor: 'rgba(249, 115, 22, 0.15)',
                           color: '#fff',
                           textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
-                          fontSize: `${(slideMeta.title_px !== '' && slideMeta.title_px !== undefined && slideMeta.title_px !== null ? Number(slideMeta.title_px) : defaultSizes.title) * scale}px`,
+                          fontSize: `${titleSize * scale}px`,
                           fontWeight: 'bold',
                           padding: '4px 8px',
                           display: 'flex',
@@ -445,7 +456,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                           backgroundColor: 'rgba(6, 182, 212, 0.15)',
                           color: '#fff',
                           textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
-                          fontSize: `${(slideMeta.body_px !== '' && slideMeta.body_px !== undefined && slideMeta.body_px !== null ? Number(slideMeta.body_px) : defaultSizes.body) * scale}px`,
+                          fontSize: `${bodySize * scale}px`,
                           fontWeight: 'normal',
                           padding: '4px 8px',
                           display: 'flex',
