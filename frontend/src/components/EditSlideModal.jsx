@@ -227,7 +227,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
   if (!isOpen) return null;
 
   return (
-    <div className="edit-modal open" id="edit-modal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.85)', zIndex: 1000 }}>
+    <div className="edit-modal open" id="edit-modal" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.85)', zIndex: 1000, cursor: draggingElement ? 'grabbing' : 'default' }}>
       <div className="edit-box" style={{ maxWidth: '1100px', width: '95%', maxHeight: '92vh', display: 'flex', flexDirection: 'column', background: 'var(--surface, #18181b)', border: '1px solid var(--border, #27272a)', borderRadius: '12px', overflow: 'hidden' }}>
         <div className="edit-header" style={{ padding: '18px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
           <div>
@@ -446,6 +446,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                           backgroundColor: 'rgba(249, 115, 22, 0.15)',
                           color: '#fff',
                           textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
+                          fontFamily: "'Oswald', sans-serif",
                           fontSize: `${titleSize * scale}px`,
                           fontWeight: 'bold',
                           padding: '4px 8px',
@@ -457,7 +458,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                           borderRadius: '4px',
                           zIndex: 2,
                           pointerEvents: 'auto',
-                          cursor: 'ns-resize',
+                          cursor: draggingElement === 'title' ? 'grabbing' : 'grab',
                           userSelect: 'none',
                           boxSizing: 'border-box',
                           whiteSpace: 'pre-wrap'
@@ -496,6 +497,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                           backgroundColor: 'rgba(6, 182, 212, 0.15)',
                           color: '#fff',
                           textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
+                          fontFamily: "'Inter', sans-serif",
                           fontSize: `${bodySize * scale}px`,
                           fontWeight: 'normal',
                           padding: '4px 8px',
@@ -507,7 +509,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                           borderRadius: '4px',
                           zIndex: 2,
                           pointerEvents: 'auto',
-                          cursor: 'ns-resize',
+                          cursor: draggingElement === 'body' ? 'grabbing' : 'grab',
                           userSelect: 'none',
                           boxSizing: 'border-box',
                           whiteSpace: 'pre-wrap'
