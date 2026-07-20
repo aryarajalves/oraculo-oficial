@@ -80,7 +80,7 @@ router.get("/api/carousels/:id", async (req, res) => {
 // ── API: Create carousel ─────────────────────────────────────────────────────
 router.post("/api/carousels", async (req, res) => {
   logger.info('[CarouselsAPI]', `CRIAR NOVO CARROSSEL (POST): ${JSON.stringify(req.body)}`);
-  const all = await readData();
+  const all = await readDataAsync();
   let nextIdNum = all.length + 1;
   let newId = `carrossel-${String(nextIdNum).padStart(2, "0")}`;
   while (all.some(x => x.id === newId)) {
@@ -104,7 +104,7 @@ router.post("/api/carousels", async (req, res) => {
     chatHistory: req.body.chatHistory || [],
   };
   all.push(newCarousel);
-  await writeData(all);
+  await writeDataAsync(all);
 
   // Create folder if requested
   if (req.body.createFolder && req.body.slidesDir) {
@@ -118,11 +118,11 @@ router.post("/api/carousels", async (req, res) => {
 // ── API: Update carousel status/fields ──────────────────────────────────────
 router.put("/api/carousels/:id", async (req, res) => {
   logger.info('[CarouselsAPI]', `ATUALIZAR CARROSSEL (PUT ${req.params.id}): ${JSON.stringify(req.body)}`);
-  const all = await readData();
+  const all = await readDataAsync();
   const idx = all.findIndex(x => x.id === req.params.id);
   if (idx === -1) return res.status(404).json({ error: "Não encontrado" });
   all[idx] = { ...all[idx], ...req.body, id: all[idx].id };
-  await writeData(all);
+  await writeDataAsync(all);
   logger.info('[CarouselsAPI]', `ATUALIZADO COM SUCESSO: ${req.params.id} (${all[idx].title})`);
   res.json(all[idx]);
 });
@@ -134,7 +134,7 @@ router.post("/api/carousels/bulk-delete", async (req, res) => {
     return res.status(400).json({ error: "Lista de ids inválida" });
   }
 
-  let all = await readData();
+  let all = await readDataAsync();
   let deletedCount = 0;
 
   for (const id of ids) {
@@ -154,13 +154,13 @@ router.post("/api/carousels/bulk-delete", async (req, res) => {
     }
   }
 
-  await writeData(all);
+  await writeDataAsync(all);
   res.json({ ok: true, deletedCount, message: `${deletedCount} carrosséis apagados com sucesso` });
 });
 
 // ── API: Serve slide images ──────────────────────────────────────────────────
 router.get("/api/carousels/:id/image/:filename", async (req, res) => {
-  const all = await readData();
+  const all = await readDataAsync();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).send("Carrossel não encontrado");
 
@@ -188,7 +188,7 @@ router.get("/api/carousels/:id/download/:filename", async (req, res) => {
     const url = b2.b2ImageUrl(req.params.id, req.params.filename);
     return res.redirect(302, url);
   }
-  const all = await readData();
+  const all = await readDataAsync();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).send("Não encontrado");
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
@@ -199,7 +199,7 @@ router.get("/api/carousels/:id/download/:filename", async (req, res) => {
 
 // ── API: Read slide meta ─────────────────────────────────────────────────────
 router.get("/api/carousels/:id/slide/:filename/meta", async (req, res) => {
-  const all = await readData();
+  const all = await readDataAsync();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Não encontrado" });
   const metaPath = path.join(getLocalSlidesDir(c), req.params.filename.replace(/\.(jpg|jpeg|png)$/i, ".meta.json"));
@@ -213,7 +213,7 @@ router.get("/api/carousels/:id/slide/:filename/meta", async (req, res) => {
 
 // ── API: Recompose slide ─────────────────────────────────────────────────────
 router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => {
-  const all = await readData();
+  const all = await readDataAsync();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Não encontrado" });
   
@@ -348,7 +348,7 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
 
 // ── API: Excluir carrossel inteiro ─────────────────────────────────────────────
 router.delete("/api/carousels/:id", async (req, res) => {
-  let all = await readData();
+  let all = await readDataAsync();
   const index = all.findIndex(x => x.id === req.params.id);
   if (index === -1) return res.status(404).json({ error: "Não encontrado" });
   
@@ -364,13 +364,13 @@ router.delete("/api/carousels/:id", async (req, res) => {
   }
 
   all.splice(index, 1);
-  await writeData(all);
+  await writeDataAsync(all);
   res.json({ ok: true, message: "Carrossel apagado com sucesso" });
 });
 
 // ── API: Excluir slide individual ─────────────────────────────────────────────
 router.delete("/api/carousels/:id/slide/:filename", async (req, res) => {
-  const all = await readData();
+  const all = await readDataAsync();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
   
@@ -389,7 +389,7 @@ router.delete("/api/carousels/:id/slide/:filename", async (req, res) => {
 
 // ── API: Regenerate image ────────────────────────────────────────────────────
 router.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
-  const all = await readData();
+  const all = await readDataAsync();
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Não encontrado" });
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
@@ -421,7 +421,7 @@ router.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
 
 // ── API: Download ZIP ────────────────────────────────────────────────────────
 router.get("/api/carousels/:id/download-zip", async (req, res) => {
-  const all = await readData();
+  const all = await readDataAsync();
   const c   = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
 
@@ -453,7 +453,7 @@ router.get("/api/carousels/:id/download-zip", async (req, res) => {
 
 // ── API: Download ZIP — TODOS ────────────────────────────────────────────────
 router.get("/api/download-all", async (req, res) => {
-  const all  = await readData();
+  const all  = await readDataAsync();
   const payload = all.map(c => {
     const slides = getSlidesFromDir(getLocalSlidesDir(c), c.slidePrefix);
     return { ...c, slides: slides.map(s => s.filename) };
@@ -487,7 +487,7 @@ router.get("/api/download-all", async (req, res) => {
 
 // ── API: Publicar no Instagram ───────────────────────────────────────────────
 router.post("/api/carousels/:id/publish-instagram", async (req, res) => {
-  const all = await readData();
+  const all = await readDataAsync();
   const c   = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
 
@@ -510,7 +510,7 @@ router.post("/api/carousels/:id/publish-instagram", async (req, res) => {
     logger.info('[Carousel]', "publish-instagram:", stdout.trim());
     if (stderr) logger.error('[Carousel]', "publish-instagram stderr:", stderr.trim());
 
-    const updated = (await readData()).find(x => x.id === req.params.id);
+    const updated = (await readDataAsync()).find(x => x.id === req.params.id);
     res.json({ ok: true, log: stdout, carousel: updated });
   } catch (e) {
     logger.error('[Carousel]', "publish-instagram error:", e.message);

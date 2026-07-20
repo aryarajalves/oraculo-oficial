@@ -6,6 +6,7 @@ import { promisify } from "util";
 import { fileURLToPath } from "url";
 import { 
   readData, 
+  readDataAsync,
   readReelsHistory, 
   writeReelsHistory, 
   getSlidesFromDir, 
@@ -85,7 +86,7 @@ router.post("/api/oraculo/update", async (req, res) => {
   try {
     const { stdout, stderr } = await execFileAsync("python", args, { timeout: 60000 });
     logger.info('[Services]', "oraculo:", stdout.trim());
-    const all = await readData();
+    const all = await readDataAsync();
     res.json({ ok: true, log: stdout, carousels: all });
   } catch (e) {
     logger.error('[Services]', "oraculo error:", e.message);
@@ -94,7 +95,7 @@ router.post("/api/oraculo/update", async (req, res) => {
 });
 
 router.get("/api/oraculo", async (req, res) => {
-  const all = await readData();
+  const all = await readDataAsync();
   const withMetrics = all
     .filter(c => c.metrics)
     .map(c => ({
@@ -181,13 +182,13 @@ router.post("/api/haucacau/gerar", (req, res) => {
 
 // ── API: HauCacau — Listar carrosséis ────────────────────────────────────────
 router.get("/api/haucacau/carousels", async (req, res) => {
-  const all = await readData();
+  const all = await readDataAsync();
   res.json(all.filter(c => c.projeto === "haucacau"));
 });
 
 // ── API: Stats ───────────────────────────────────────────────────────────────
 router.get("/api/stats", async (req, res) => {
-  const all = await readData();
+  const all = await readDataAsync();
   const statusCount = {};
   let totalSlides = 0;
   let totalCost = 0;

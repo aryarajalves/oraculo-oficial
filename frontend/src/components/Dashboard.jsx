@@ -157,9 +157,12 @@ export default function Dashboard({
         setDeleteTargetId(null);
         onLoadCarousels();
         if (onLoadStats) onLoadStats();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || err.detail || 'Erro ao excluir carrossel.');
       }
     } catch (e) {
-      showToast('Erro ao excluir carrossel.');
+      showToast('Erro de conexão ao excluir carrossel.');
     }
   };
 
@@ -177,9 +180,12 @@ export default function Dashboard({
         setIsBulkDeleteModalOpen(false);
         onLoadCarousels();
         if (onLoadStats) onLoadStats();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || err.detail || 'Erro ao excluir carrosséis.');
       }
     } catch (e) {
-      showToast('Erro ao excluir carrosséis em lote.');
+      showToast('Erro de conexão ao excluir carrosséis.');
     }
   };
 
