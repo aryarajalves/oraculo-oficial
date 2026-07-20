@@ -38,6 +38,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
    const [saving, setSaving] = useState(false);
   const [cacheBuster, setCacheBuster] = useState(Date.now());
   const [previewImgUrl, setPreviewImgUrl] = useState('');
+  const [draggingElement, setDraggingElement] = useState(null);
   const previewRef = useRef(null);
 
   useEffect(() => {
@@ -53,21 +54,64 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
     setPreviewImgUrl(`/api/carousels/${carouselId}/image/${filename}?token=${token}&t=${cacheBuster}`);
   };
 
+  const currentPreset = slideMeta.preset || 'sagrado';
+  const defaultSizes = PRESET_DEFAULTS[currentPreset] || PRESET_DEFAULTS.sagrado;
+  
+  let defaultTitleY = 900;
+  let defaultBodyY = 980;
+  
+  if (slideMeta.layout === 'dramatico') {
+    defaultTitleY = 890;
+    defaultBodyY = 970;
+  } else if (slideMeta.layout === 'etereo') {
+    defaultTitleY = 950;
+    defaultBodyY = 1030;
+  } else if (slideMeta.layout === 'text_only') {
+    defaultTitleY = 460;
+    defaultBodyY = 600;
+  } else if (slideMeta.layout === 'card') {
+    defaultTitleY = 720;
+    defaultBodyY = 800;
+  }
+
   const handleDragStart = (e, element) => {
     e.preventDefault();
     if (!previewRef.current) return;
+    setDraggingElement(element);
+    
     const rect = previewRef.current.getBoundingClientRect();
     const scale = 1080 / 336; // scale from 336px preview to 1080px actual width
+    
+    // Obter a coordenada real Y inicial do elemento para calcular o offset do clique
+    const currentRealY = element === 'title' 
+      ? (slideMeta.title_y !== '' && slideMeta.title_y !== undefined && slideMeta.title_y !== null ? Number(slideMeta.title_y) : defaultTitleY)
+      : (slideMeta.body_y !== '' && slideMeta.body_y !== undefined && slideMeta.body_y !== null ? Number(slideMeta.body_y) : defaultBodyY);
+    const currentPreviewY = currentRealY / scale;
+
+    // Calcular o offset vertical do clique em relação ao topo da caixa tracejada
+    const clickYInPreview = e.clientY - rect.top;
+    const offsetY = clickYInPreview - currentPreviewY;
+
+    // Obter altura do elemento em pixels reais para limitar o fundo (1350px) e impedir que fique invisível
+    const elementHeight = e.currentTarget.offsetHeight || 0;
+    const elementRealHeight = Math.round(elementHeight * scale);
+    const maxRealY = Math.max(0, 1350 - elementRealHeight);
 
     const handleMouseMove = (moveEvent) => {
-      const relativeY = moveEvent.clientY - rect.top;
+      // Subtrair o offsetY do clique para que a caixa se mova suavemente sem pular
+      const relativeY = (moveEvent.clientY - rect.top) - offsetY;
       const relativeX = moveEvent.clientX - rect.left;
       
       const clampedY = Math.max(0, Math.min(420, relativeY));
       const clampedX = Math.max(0, Math.min(336, relativeX));
       
-      const realY = Math.round(clampedY * scale);
+      let realY = Math.round(clampedY * scale);
       const realX = Math.round(clampedX * scale);
+
+      // Limitar o posicionamento vertical para o bloco não passar da borda inferior
+      if (element === 'title' || element === 'body') {
+        realY = Math.min(maxRealY, realY);
+      }
 
       setSlideMeta(prev => {
         const next = { ...prev };
@@ -85,6 +129,7 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
     };
 
     const handleMouseUp = () => {
+      setDraggingElement(null);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
@@ -178,26 +223,6 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
       setSaving(false);
     }
   };
-
-  const currentPreset = slideMeta.preset || 'sagrado';
-  const defaultSizes = PRESET_DEFAULTS[currentPreset] || PRESET_DEFAULTS.sagrado;
-  
-  let defaultTitleY = 900;
-  let defaultBodyY = 980;
-  
-  if (slideMeta.layout === 'dramatico') {
-    defaultTitleY = 890;
-    defaultBodyY = 970;
-  } else if (slideMeta.layout === 'etereo') {
-    defaultTitleY = 950;
-    defaultBodyY = 1030;
-  } else if (slideMeta.layout === 'text_only') {
-    defaultTitleY = 460;
-    defaultBodyY = 600;
-  } else if (slideMeta.layout === 'card') {
-    defaultTitleY = 720;
-    defaultBodyY = 800;
-  }
 
   if (!isOpen) return null;
 
