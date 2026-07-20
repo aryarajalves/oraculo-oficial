@@ -68,6 +68,7 @@ export default function App() {
   // Toast
   const [toastMessage, setToastMessage] = useState('');
   const [toastShow, setToastShow] = useState(false);
+  const [imageVersion, setImageVersion] = useState(Date.now());
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
   // Histórico de Geração
@@ -164,6 +165,7 @@ export default function App() {
       const data = await res.json();
       if (res.ok) {
         setAllCarousels(data);
+        setImageVersion(Date.now());
       }
     } catch (e) {
       showToast('Erro ao carregar carrosséis.');
@@ -394,6 +396,7 @@ export default function App() {
                 filterStatus={filterStatus}
                 setFilterStatus={setFilterStatus}
                 currentUser={currentUser}
+                imageVersion={imageVersion}
                 onOpenLightbox={(id, slides, idx) => {
                   setLightboxCarouselId(id);
                   setLightboxSlides(slides);
@@ -424,6 +427,7 @@ export default function App() {
                 allCarousels={allCarousels}
                 onLoadCarousels={loadCarousels}
                 showToast={showToast}
+                imageVersion={imageVersion}
               />
             )}
 

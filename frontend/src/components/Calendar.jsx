@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Calendar({ allCarousels, onLoadCarousels, showToast }) {
+export default function Calendar({ allCarousels, onLoadCarousels, showToast, imageVersion }) {
   const [currentCalDate, setCurrentCalDate] = useState(new Date());
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [selectedCarouselId, setSelectedCarouselId] = useState('');
@@ -133,7 +133,7 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast }) {
                       }}
                     >
                       {c.slides && c.slides.length > 0 ? (
-                        <img src={`/api/carousels/${c.id}/image/${c.slides[0]}`} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} alt="" />
+                        <img src={`/api/carousels/${c.id}/image/${c.slides[0]}?v=${imageVersion}`} style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} alt="" />
                       ) : (
                         <div style={{ width: '40px', height: '40px', background: 'var(--border)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px' }}>Sem Img</div>
                       )}

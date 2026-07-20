@@ -12,7 +12,8 @@ export default function Dashboard({
   onLoadStats,
   showToast,
   onOpenHistoryModal,
-  onLoadChatHistory
+  onLoadChatHistory,
+  imageVersion
 }) {
   const [pageSize, setPageSize] = useState(20);
   const [currentPage, setCurrentPage] = useState(1);
@@ -299,7 +300,7 @@ export default function Dashboard({
 
                   <div className="card-header" onClick={() => toggleExpand(c.id)}>
                     {c.slides && c.slides.length > 0 ? (
-                      <img src={`/api/carousels/${c.id}/image/${c.slides[0]}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}`} className="card-thumb" alt="" />
+                      <img src={`/api/carousels/${c.id}/image/${c.slides[0]}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&v=${imageVersion}`} className="card-thumb" alt="" />
                     ) : (
                       <div className="card-thumb-placeholder">{c.status === 'generating' ? '⏳' : '🎨'}</div>
                     )}
@@ -327,7 +328,7 @@ export default function Dashboard({
                             return (
                               <div className="slide-thumb-wrap" key={idx}>
                                 <img
-                                  src={`/api/carousels/${c.id}/image/${slide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}`}
+                                  src={`/api/carousels/${c.id}/image/${slide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&v=${imageVersion}`}
                                   className="slide-thumb"
                                   alt=""
                                 />
@@ -337,7 +338,7 @@ export default function Dashboard({
                                   <button className="slide-icon-btn slide-icon-btn-dl" title="Baixar" onClick={(e) => {
                                     e.stopPropagation();
                                     const a = document.createElement('a');
-                                    a.href = `/api/carousels/${c.id}/image/${slide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}`;
+                                    a.href = `/api/carousels/${c.id}/image/${slide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&v=${imageVersion}`;
                                     a.download = slide;
                                     a.click();
                                   }}>↓</button>
