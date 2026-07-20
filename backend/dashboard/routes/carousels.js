@@ -328,12 +328,14 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
       body_px
     }, null, 2));
 
-    // Se o MinIO/B2 estiver ativo e em produção, envia de volta para o bucket e remove do container
-    if (IS_PROD && b2) {
+    // Se o MinIO/B2 estiver ativo, envia de volta para o bucket
+    if (b2) {
       try {
         await b2.uploadImageToB2(c.id, req.params.filename, imgPath);
-        try { fs.unlinkSync(imgPath); } catch {}
-        try { fs.unlinkSync(rawPath); } catch {}
+        if (IS_PROD) {
+          try { fs.unlinkSync(imgPath); } catch {}
+          try { fs.unlinkSync(rawPath); } catch {}
+        }
       } catch (uploadErr) {
         logger.error('[Carousel recompose upload]', `Erro ao reenviar slide atualizado para o B2: ${uploadErr.message}`);
       }
