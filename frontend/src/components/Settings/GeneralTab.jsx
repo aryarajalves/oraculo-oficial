@@ -48,7 +48,6 @@ export default function GeneralTab({
   };
 
   const filteredGroups = Object.entries(groups).filter(([groupName]) => {
-    if (activeCategory === 'todas') return true;
     if (categoryMapping[activeCategory]) {
       return groupName === categoryMapping[activeCategory];
     }
@@ -99,18 +98,10 @@ export default function GeneralTab({
         >
           🔌 Integrações
         </button>
-        <button
-          type="button"
-          className={`btn btn-sm ${activeCategory === 'todas' ? 'btn-gold' : 'btn-outline'}`}
-          onClick={() => setActiveCategory('todas')}
-          style={{ borderRadius: '20px', fontSize: '11px', padding: '6px 14px', letterSpacing: '0.3px' }}
-        >
-          🌐 Todas as Chaves
-        </button>
       </div>
 
       {/* Conteúdo da Aba: Provedores & Modelos */}
-      {(activeCategory === 'provedores' || activeCategory === 'todas') && (
+      {activeCategory === 'provedores' && (
         <>
           <div className="settings-group">
             <div className="settings-group-title">

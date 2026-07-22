@@ -92,11 +92,11 @@ async function runTests() {
     integracoes: 'Integrações'
   };
   const mockGroups = ['Geração de Imagem', 'Áudio', 'Publicação', 'Integrações'];
-  const filterGroup = (cat) => mockGroups.filter(g => cat === 'todas' || g === categoryMapping[cat]);
+  const filterGroup = (cat) => mockGroups.filter(g => g === categoryMapping[cat]);
 
   assert.strictEqual(filterGroup('imagem')[0], 'Geração de Imagem', 'Aba imagem deve filtrar apenas grupo de Imagem');
   assert.strictEqual(filterGroup('audio')[0], 'Áudio', 'Aba audio deve filtrar apenas grupo de Áudio');
-  assert.strictEqual(filterGroup('todas').length, 4, 'Aba todas deve retornar todos os grupos');
+  assert.strictEqual(filterGroup('integracoes')[0], 'Integrações', 'Aba integracoes deve filtrar apenas grupo de Integrações');
   console.log('✅ Teste 6: Organização das sub-abas de Configurações aprovada.');
 
   console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE E AJUSTES FORAM APROVADOS!');
