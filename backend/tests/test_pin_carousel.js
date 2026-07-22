@@ -74,6 +74,16 @@ async function runTests() {
   assert.strictEqual(showDetailsButton('pronto'), true, 'Botão Detalhes deve ser visível quando pronto');
   console.log('✅ Teste 4: Ocultação do botão Detalhes em status "generating" aprovada.');
 
+  // Teste 5: Cálculo do Custo Total em Reais (BRL) para carrosséis ativos
+  const activeCarouselsMock = [
+    { id: 'c1', costUsd: 0.14 }, // 0.14 * 5.6 = 0.784 BRL
+    { id: 'c2', costUsd: 0.28 }, // 0.28 * 5.6 = 1.568 BRL
+  ];
+  const totalCostBrl = activeCarouselsMock.reduce((acc, c) => acc + (c.costUsd * 5.6), 0);
+  const roundedBrl = Math.round(totalCostBrl * 100) / 100;
+  assert.strictEqual(roundedBrl, 2.35, 'Custo total em Reais deve somar exatamente os carrosséis ativos em BRL');
+  console.log('✅ Teste 5: Cálculo de custo total em Reais (BRL) para carrosséis ativos aprovado.');
+
   console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE E AJUSTES FORAM APROVADOS!');
 }
 

@@ -10,7 +10,9 @@ import {
   readReelsHistory, 
   writeReelsHistory, 
   getSlidesFromDir, 
-  getLocalSlidesDir 
+  getLocalSlidesDir,
+  getSlidesForCarousel,
+  getCarouselCostDetails
 } from "../helpers.js";
 import { buildAgentPrompts } from "../agentPrompts.js";
 import { CLIENT } from "../state.js";
@@ -191,35 +193,32 @@ router.get("/api/stats", async (req, res) => {
   const all = await readDataAsync();
   const statusCount = {};
   let totalSlides = 0;
-  let totalCost = 0;
+  let totalCostBrl = 0;
+
   all.forEach(c => {
     statusCount[c.status] = (statusCount[c.status] || 0) + 1;
-    const slides = getSlidesFromDir(getLocalSlidesDir(c), c.slidePrefix);
+    const slides = getSlidesForCarousel(c);
     totalSlides += slides.length;
     
-    let cost = c.cost;
-    if (cost === undefined || cost === 0) {
-      const imageProvider = c.imageProvider || process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
-      let costPerImage = 0.08;
-      if (imageProvider === 'fal') costPerImage = 0.003;
-      else if (imageProvider === 'gemini') costPerImage = 0.015;
-      else if (imageProvider === 'gpt-image-1-mini' || imageProvider === 'dall-e-2') costPerImage = 0.02;
-
-      cost = (slides.length || c.totalSlides || 10) * costPerImage;
-    }
-    totalCost += Number(cost) || 0;
+    const costDetails = getCarouselCostDetails(c);
+    const costUsd = Number(costDetails.cost) || 0;
+    const costBrl = costUsd * 5.6; // Converter USD -> BRL (taxa 5.6)
+    totalCostBrl += costBrl;
   });
+
+  const roundedCostBrl = Math.round(totalCostBrl * 100) / 100;
+
   res.json({
     totalCarousels: all.length,
     totalSlides,
     byStatus: statusCount,
-    totalCost: Math.round(totalCost * 10000) / 10000,
+    totalCostBrl: roundedCostBrl,
     lastUpdated: new Date().toISOString(),
     total: all.length,
     slides: totalSlides,
     aprovados: (statusCount['aprovado'] || 0) + (statusCount['pronto'] || 0),
     publicados: statusCount['publicado'] || 0,
-    cost: Math.round(totalCost * 10000) / 10000,
+    cost: roundedCostBrl,
   });
 });
 

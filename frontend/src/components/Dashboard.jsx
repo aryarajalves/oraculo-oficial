@@ -249,7 +249,7 @@ export default function Dashboard({
           <div className="stat-label">Publicados</div>
         </div>
         <div className="stat-card" style={{ '--accent': 'var(--green)' }}>
-          <div className="stat-num" style={{ fontSize: stats?.cost && stats.cost > 0 ? '28px' : undefined }}>R$ {stats?.cost ? (Number(stats.cost) * 5.6).toFixed(2) : '0,00'}</div>
+          <div className="stat-num" style={{ fontSize: stats?.cost && stats.cost > 0 ? '28px' : undefined }}>R$ {stats?.cost !== undefined && stats?.cost !== null ? Number(stats.cost).toFixed(2) : '0,00'}</div>
           <div className="stat-label">Custo total (BRL)</div>
         </div>
       </div>
