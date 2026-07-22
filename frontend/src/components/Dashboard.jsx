@@ -639,15 +639,42 @@ export default function Dashboard({
 
               <div style={{ display: 'flex', gap: '16px' }}>
                 <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Custo / Slide (USD)</span>
-                  <span style={{ fontWeight: '500' }}>
-                    ${Number(selectedDetailsCarousel.totalSlides > 0 ? (selectedDetailsCarousel.cost || 0) / selectedDetailsCarousel.totalSlides : 0).toFixed(4)}
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Slides Gerados (API x Grátis)</span>
+                  <span style={{ fontWeight: '500', color: '#e4e4e7' }}>
+                    {selectedDetailsCarousel.costDetails ? (
+                      <>
+                        <span style={{ color: '#f43f5e' }}>{selectedDetailsCarousel.costDetails.paidSlides} pagos (API)</span>
+                        {' · '}
+                        <span style={{ color: '#22c55e' }}>{selectedDetailsCarousel.costDetails.freeSlides} grátis (text_only)</span>
+                      </>
+                    ) : (
+                      `${selectedDetailsCarousel.totalSlides || 10} slides`
+                    )}
                   </span>
                 </div>
                 <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Custo / Slide (BRL)</span>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Economia com Text-Only</span>
+                  <span style={{ fontWeight: '600', color: '#22c55e' }}>
+                    {selectedDetailsCarousel.costDetails && selectedDetailsCarousel.costDetails.savedCost > 0 ? (
+                      `R$ ${Number(selectedDetailsCarousel.costDetails.savedCost * 5.60).toFixed(2)} ($${Number(selectedDetailsCarousel.costDetails.savedCost).toFixed(2)})`
+                    ) : (
+                      'R$ 0,00'
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Custo / Slide Pago (USD)</span>
                   <span style={{ fontWeight: '500' }}>
-                    R$ {Number(selectedDetailsCarousel.totalSlides > 0 ? ((selectedDetailsCarousel.cost || 0) * 5.60) / selectedDetailsCarousel.totalSlides : 0).toFixed(2)}
+                    ${Number(selectedDetailsCarousel.costDetails ? selectedDetailsCarousel.costDetails.costPerImage : (selectedDetailsCarousel.totalSlides > 0 ? (selectedDetailsCarousel.cost || 0) / selectedDetailsCarousel.totalSlides : 0)).toFixed(4)}
+                  </span>
+                </div>
+                <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
+                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Custo / Slide Pago (BRL)</span>
+                  <span style={{ fontWeight: '500' }}>
+                    R$ {Number((selectedDetailsCarousel.costDetails ? selectedDetailsCarousel.costDetails.costPerImage : (selectedDetailsCarousel.totalSlides > 0 ? (selectedDetailsCarousel.cost || 0) / selectedDetailsCarousel.totalSlides : 0)) * 5.60).toFixed(2)}
                   </span>
                 </div>
               </div>

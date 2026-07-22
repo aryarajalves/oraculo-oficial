@@ -13,7 +13,8 @@ import {
   writeDataAsync, 
   getLocalSlidesDir, 
   getSlidesForCarousel, 
-  getSlidesFromDir 
+  getSlidesFromDir,
+  getCarouselCostDetails
 } from "../helpers.js";
 import { buildAgentPrompts } from "../agentPrompts.js";
 import { 
@@ -41,17 +42,8 @@ router.get("/api/carousels", async (req, res) => {
   const all = await readDataAsync();
   const carousels = all.map(c => {
     const slides = getSlidesForCarousel(c);
-    let cost = c.cost;
-    if (cost === undefined || cost === 0) {
-      const imageProvider = process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
-      let costPerImage = 0.08;
-      if (imageProvider === 'fal') costPerImage = 0.003;
-      else if (imageProvider === 'gemini') costPerImage = 0.015;
-      else if (imageProvider === 'gpt-image-1-mini' || imageProvider === 'dall-e-2') costPerImage = 0.02;
-
-      cost = (slides.length || c.totalSlides || 10) * costPerImage;
-    }
-    return { ...c, slidesFound: slides.length, slides, cost };
+    const costDetails = getCarouselCostDetails(c);
+    return { ...c, slidesFound: slides.length, slides, cost: costDetails.cost, costDetails };
   });
   res.json(carousels);
 });
@@ -62,19 +54,9 @@ router.get("/api/carousels/:id", async (req, res) => {
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
   const slides = getSlidesForCarousel(c);
-  
-  let cost = c.cost;
-  if (cost === undefined || cost === 0) {
-    const imageProvider = process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
-    let costPerImage = 0.08;
-    if (imageProvider === 'fal') costPerImage = 0.003;
-    else if (imageProvider === 'gemini') costPerImage = 0.015;
-    else if (imageProvider === 'gpt-image-1-mini' || imageProvider === 'dall-e-2') costPerImage = 0.02;
+  const costDetails = getCarouselCostDetails(c);
 
-    cost = (slides.length || c.totalSlides || 10) * costPerImage;
-  }
-
-  res.json({ ...c, slides, cost });
+  res.json({ ...c, slides, cost: costDetails.cost, costDetails });
 });
 
 // ── API: Create carousel ─────────────────────────────────────────────────────

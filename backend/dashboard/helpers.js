@@ -203,6 +203,59 @@ export function getSlidesForCarousel(c) {
   return getSlidesFromDir(getLocalSlidesDir(c), c.slidePrefix).map(s => s.filename);
 }
 
+export function getCarouselCostDetails(c) {
+  const slides = getSlidesForCarousel(c);
+  const slidesDir = getLocalSlidesDir(c);
+  const imageProvider = c.imageProvider || process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
+
+  let costPerImage = 0.08;
+  if (imageProvider === 'fal') costPerImage = 0.003;
+  else if (imageProvider === 'gemini') costPerImage = 0.015;
+  else if (imageProvider === 'gpt-image-1-mini' || imageProvider === 'dall-e-2') costPerImage = 0.02;
+
+  let paidSlides = 0;
+  let freeSlides = 0;
+
+  if (slidesDir && fs.existsSync(slidesDir)) {
+    for (let i = 1; i <= (slides.length || c.totalSlides || 10); i++) {
+      const numStr = String(i).padStart(2, '0');
+      const rawExists = fs.existsSync(path.join(slidesDir, `raw-${numStr}.jpg`)) ||
+                        fs.existsSync(path.join(slidesDir, `raw-${i}.jpg`));
+      
+      let isTextOnly = false;
+      const metaPath = path.join(slidesDir, `slide-${numStr}.meta.json`);
+      if (fs.existsSync(metaPath)) {
+        try {
+          const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+          if (meta.layout === 'text_only') isTextOnly = true;
+        } catch (e) {}
+      }
+
+      if (rawExists && !isTextOnly) {
+        paidSlides++;
+      } else if (isTextOnly || (!rawExists && slides.length > 0)) {
+        freeSlides++;
+      } else {
+        paidSlides++;
+      }
+    }
+  } else {
+    paidSlides = slides.length || c.totalSlides || 10;
+  }
+
+  const cost = paidSlides * costPerImage;
+  const savedCost = freeSlides * costPerImage;
+
+  return {
+    cost,
+    costPerImage,
+    paidSlides,
+    freeSlides,
+    totalSlidesCount: slides.length || c.totalSlides || 10,
+    savedCost
+  };
+}
+
 export async function readReelsHistory() {
   try {
     const res = await query("SELECT * FROM reels_history ORDER BY id DESC");
