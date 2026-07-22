@@ -292,8 +292,10 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                           color: 'var(--gold)' 
                         }}
                         onClick={() => {
-                          onOpenLightbox(carouselId, slides, currentIndex);
                           onClose();
+                          setTimeout(() => {
+                            onOpenLightbox(carouselId, slides, currentIndex);
+                          }, 0);
                         }}
                       >
                         Visualizar 👁️
