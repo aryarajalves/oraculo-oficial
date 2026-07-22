@@ -91,6 +91,13 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
 
+  const handleOpenLightbox = (id, slides, idx) => {
+    setLightboxCarouselId(id);
+    setLightboxSlides(slides);
+    setLightboxIndex(idx);
+    setLightboxOpen(true);
+  };
+
   useEffect(() => {
     const initApp = async () => {
       try {
@@ -325,6 +332,9 @@ export default function App() {
     return clean;
   };
 
+  const activeEditCarousel = allCarousels.find(x => x.id === editCarouselId);
+  const editSlides = activeEditCarousel ? activeEditCarousel.slides : [];
+
   return (
     <div className="app-shell">
       {initialLoading && (
@@ -397,12 +407,7 @@ export default function App() {
                 setFilterStatus={setFilterStatus}
                 currentUser={currentUser}
                 imageVersion={imageVersion}
-                onOpenLightbox={(id, slides, idx) => {
-                  setLightboxCarouselId(id);
-                  setLightboxSlides(slides);
-                  setLightboxIndex(idx);
-                  setLightboxOpen(true);
-                }}
+                onOpenLightbox={handleOpenLightbox}
                 onOpenEditModal={(id, filename) => {
                   setEditCarouselId(id);
                   setEditFilename(filename);
@@ -504,18 +509,16 @@ export default function App() {
         onClose={() => { setEditModalOpen(false); loadCarousels(); }}
         carouselId={editCarouselId}
         filename={editFilename}
+        onChangeFilename={(newFilename) => setEditFilename(newFilename)}
+        slides={editSlides}
         showToast={showToast}
+        onOpenLightbox={handleOpenLightbox}
       />
 
       <LiveGenPanel
         liveSession={liveSession}
         setLiveSession={setLiveSession}
-        onOpenLightbox={(id, slides, idx) => {
-          setLightboxCarouselId(id);
-          setLightboxSlides(slides);
-          setLightboxIndex(idx);
-          setLightboxOpen(true);
-        }}
+        onOpenLightbox={handleOpenLightbox}
       />
 
       <GenerationHistoryModal

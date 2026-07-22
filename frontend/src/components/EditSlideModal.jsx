@@ -19,7 +19,7 @@ const parseFontSize = (val, fallback) => {
   return isNaN(parsed) || parsed <= 0 ? fallback : parsed;
 };
 
-export default function EditSlideModal({ isOpen, onClose, carouselId, filename, onChangeFilename, slides = [], showToast }) {
+export default function EditSlideModal({ isOpen, onClose, carouselId, filename, onChangeFilename, slides = [], showToast, onOpenLightbox }) {
   const [activeTab, setActiveTab] = useState('text');
   const [slideMeta, setSlideMeta] = useState({ 
     title: '', 
@@ -263,6 +263,28 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                     >
                       Avançar →
                     </button>
+                    {onOpenLightbox && (
+                      <button 
+                        className="btn btn-outline btn-sm"
+                        style={{ 
+                          marginLeft: '12px', 
+                          padding: '2px 10px', 
+                          fontSize: '12px', 
+                          minWidth: 'auto', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '4px', 
+                          borderColor: 'var(--gold)', 
+                          color: 'var(--gold)' 
+                        }}
+                        onClick={() => {
+                          onOpenLightbox(carouselId, slides, currentIndex);
+                          onClose();
+                        }}
+                      >
+                        Visualizar 👁️
+                      </button>
+                    )}
                   </>
                 );
               })()}
