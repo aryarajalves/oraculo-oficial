@@ -52,11 +52,14 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
   useEffect(() => {
     if (isOpen) {
       document.body.classList.add('modal-open');
+      document.documentElement.classList.add('modal-open');
     } else {
       document.body.classList.remove('modal-open');
+      document.documentElement.classList.remove('modal-open');
     }
     return () => {
       document.body.classList.remove('modal-open');
+      document.documentElement.classList.remove('modal-open');
     };
   }, [isOpen]);
 
