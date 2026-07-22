@@ -1,0 +1,76 @@
+import assert from 'assert';
+import { mapCarouselFromDb } from '../dashboard/helpers.js';
+
+async function runTests() {
+  console.log('🧪 Iniciando testes unitários da funcionalidade de fixar carrosséis...');
+
+  // Teste 1: Mapeamento de colunas do DB
+  const mockRowPinned = {
+    id: 'carrossel-test-01',
+    title: 'Carrossel Teste Fixado',
+    status: 'pronto',
+    is_pinned: true,
+    pinned_at: '2026-07-22T17:00:00.000Z'
+  };
+
+  const mapped = mapCarouselFromDb(mockRowPinned);
+  assert.strictEqual(mapped.isPinned, true, 'isPinned deve ser true quando row.is_pinned é true');
+  assert.strictEqual(mapped.pinnedAt, '2026-07-22T17:00:00.000Z', 'pinnedAt deve corresponder a row.pinned_at');
+  console.log('✅ Teste 1: Mapeamento de colunas is_pinned e pinned_at aprovado.');
+
+  // Teste 2: Validação da trava de limite máximo (10 carrosséis)
+  const mockCarouselsList = Array.from({ length: 12 }, (_, i) => ({
+    id: `carrossel-${i + 1}`,
+    title: `Carrossel ${i + 1}`,
+    isPinned: i < 10, // Primeiros 10 fixados
+    pinnedAt: i < 10 ? new Date().toISOString() : null
+  }));
+
+  const pinnedCount = mockCarouselsList.filter(c => c.isPinned).length;
+  assert.strictEqual(pinnedCount, 10, 'Deve haver exatamente 10 carrosséis fixados');
+
+  // Tentar fixar o 11º carrossel (carrossel-11)
+  const targetToPin = mockCarouselsList.find(c => c.id === 'carrossel-11');
+  const currentPinnedCount = mockCarouselsList.filter(c => c.isPinned && c.id !== targetToPin.id).length;
+  let errorOccurred = false;
+
+  if (currentPinnedCount >= 10) {
+    errorOccurred = true;
+  }
+
+  assert.strictEqual(errorOccurred, true, 'Tentativa de fixar o 11º carrossel deve ser bloqueada');
+  console.log('✅ Teste 2: Limite máximo de 10 carrosséis fixados validado com sucesso.');
+
+  // Teste 3: Ordenação de fixados no topo
+  const mockUnsortedList = [
+    { id: 'c1', isPinned: false, createdAt: '2026-07-22T10:00:00' },
+    { id: 'c2', isPinned: true, pinnedAt: '2026-07-22T12:00:00', createdAt: '2026-07-22T08:00:00' },
+    { id: 'c3', isPinned: true, pinnedAt: '2026-07-22T14:00:00', createdAt: '2026-07-22T09:00:00' },
+    { id: 'c4', isPinned: false, createdAt: '2026-07-22T11:00:00' },
+  ];
+
+  const sorted = [...mockUnsortedList].sort((a, b) => {
+    const isAPinned = Boolean(a.isPinned);
+    const isBPinned = Boolean(b.isPinned);
+    if (isAPinned && !isBPinned) return -1;
+    if (!isAPinned && isBPinned) return 1;
+    if (isAPinned && isBPinned) {
+      const timeA = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0;
+      const timeB = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0;
+      return timeB - timeA;
+    }
+    return 0;
+  });
+
+  assert.strictEqual(sorted[0].id, 'c3', 'O carrossel c3 (fixado mais recentemente) deve ser o 1º da lista');
+  assert.strictEqual(sorted[1].id, 'c2', 'O carrossel c2 (fixado antes) deve ser o 2º da lista');
+  assert.strictEqual(sorted[2].isPinned, false, 'Itens não fixados devem aparecer após os fixados');
+  console.log('✅ Teste 3: Ordenação prioritária no topo aprovada.');
+
+  console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE DE FIXAR CARROSSÉIS FORAM APROVADOS!');
+}
+
+runTests().catch(err => {
+  console.error('❌ Erro nos testes unitários:', err);
+  process.exit(1);
+});

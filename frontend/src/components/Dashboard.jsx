@@ -57,6 +57,29 @@ export default function Dashboard({
     setCurrentPage(1);
   };
 
+  const handleTogglePin = async (carouselId, currentPinState) => {
+    try {
+      const token = localStorage.getItem('auth_token') || localStorage.getItem('fo_token');
+      const res = await fetch(`/api/carousels/${carouselId}/pin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ isPinned: !currentPinState })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showToast(!currentPinState ? '📌 Carrossel fixado no topo!' : 'Carrossel desfixado do topo.');
+        if (onLoadCarousels) onLoadCarousels();
+      } else {
+        showToast(data.error || 'Erro ao alternar fixação do carrossel.', 'error');
+      }
+    } catch (e) {
+      showToast('Erro de conexão ao fixar carrossel.', 'error');
+    }
+  };
+
   // Filter & Pagination
   const filtered = allCarousels.filter(c => {
     if (filterStatus === 'all') return true;
@@ -66,9 +89,22 @@ export default function Dashboard({
     return c.status === filterStatus;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    const isAPinned = Boolean(a.isPinned);
+    const isBPinned = Boolean(b.isPinned);
+    if (isAPinned && !isBPinned) return -1;
+    if (!isAPinned && isBPinned) return 1;
+    if (isAPinned && isBPinned) {
+      const timeA = a.pinnedAt ? new Date(a.pinnedAt).getTime() : 0;
+      const timeB = b.pinnedAt ? new Date(b.pinnedAt).getTime() : 0;
+      return timeB - timeA;
+    }
+    return 0;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(sortedFiltered.length / pageSize));
   const pageStartIndex = (currentPage - 1) * pageSize;
-  const paginated = filtered.slice(pageStartIndex, pageStartIndex + pageSize);
+  const paginated = sortedFiltered.slice(pageStartIndex, pageStartIndex + pageSize);
 
   // Reseta seleção ao mudar o filtro
   useEffect(() => {
@@ -298,6 +334,36 @@ export default function Dashboard({
                     />
                   </div>
 
+                  {/* Botão de Fixar no Topo */}
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTogglePin(c.id, c.isPinned);
+                    }}
+                    title={c.isPinned ? "Desfixar do topo" : "Fixar no topo (máx 10)"}
+                    style={{ 
+                      position: 'absolute', 
+                      top: '12px', 
+                      right: '12px', 
+                      zIndex: 20, 
+                      background: c.isPinned ? 'rgba(234, 179, 8, 0.25)' : 'rgba(0, 0, 0, 0.75)', 
+                      color: c.isPinned ? '#facc15' : '#9ca3af',
+                      border: c.isPinned ? '1px solid rgba(250, 204, 21, 0.6)' : '1px solid rgba(255, 255, 255, 0.15)',
+                      borderRadius: '6px', 
+                      padding: '4px 8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                  >
+                    📌 {c.isPinned && <span>FIXADO</span>}
+                  </button>
+
                   <div className="card-header" onClick={() => toggleExpand(c.id)}>
                     {c.slides && c.slides.length > 0 ? (
                       <img src={`/api/carousels/${c.id}/image/${c.slides[0]}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&v=${imageVersion}`} className="card-thumb" alt="" />
@@ -307,6 +373,11 @@ export default function Dashboard({
                     <div className="card-meta">
                       <div className="card-title">{c.title}</div>
                       <div className="card-badges">
+                        {c.isPinned && (
+                          <span className="badge" style={{ background: 'rgba(234, 179, 8, 0.2)', color: '#facc15', border: '1px solid rgba(250, 204, 21, 0.4)', fontWeight: 'bold' }}>
+                            📌 FIXADO
+                          </span>
+                        )}
                         <span className="badge badge-format">F: {c.format}</span>
                         <span className={`badge badge-${c.status}`}>{c.status === 'generating' ? 'gerando' : c.status}</span>
                         {c.preset === 'escala' && (

@@ -94,4 +94,6 @@ Para manter o projeto saudável e manutenível por agentes de IA e humanos:
 * **Limite do Frontend (React/JSX):** Nenhum arquivo de componente deve ultrapassar **500 linhas** de código.
 * **Limite do Backend (Python):** Nenhum script Python deve ultrapassar **1.000 linhas**.
 * **Integridade Visual:** Toda mudança nas telas de frontend deve ser verificada por prints visuais.
+* **Fixar Carrosséis no Topo:** Opção de fixar até 10 carrosséis prioritários com destaque visual e ordenação prioritária.
+* **Gestão de Equipes e Convites:** Envio de convites temporários e permissões granulares de acesso.
 * **Conventional Commits:** Todas as mensagens de commits devem seguir o padrão (ex: `feat: ...`, `fix: ...`, `style: ...`, `chore: ...`) e ser redigidas em **Português do Brasil**.

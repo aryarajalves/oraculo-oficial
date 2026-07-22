@@ -109,6 +109,49 @@ router.put("/api/carousels/:id", async (req, res) => {
   res.json(all[idx]);
 });
 
+// ── API: Pin / Unpin carousel (Max 10 pinned) ──────────────────────────────
+router.post("/api/carousels/:id/pin", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const all = await readDataAsync();
+    const carousel = all.find(x => x.id === id);
+
+    if (!carousel) {
+      return res.status(404).json({ error: "Carrossel não encontrado" });
+    }
+
+    let shouldPin;
+    if (typeof req.body.isPinned !== 'undefined') {
+      shouldPin = Boolean(req.body.isPinned);
+    } else if (typeof req.body.is_pinned !== 'undefined') {
+      shouldPin = Boolean(req.body.is_pinned);
+    } else {
+      shouldPin = !carousel.isPinned;
+    }
+
+    if (shouldPin) {
+      const currentPinnedCount = all.filter(c => c.isPinned && c.id !== id).length;
+      if (currentPinnedCount >= 10) {
+        return res.status(400).json({ 
+          error: "Limite de 10 carrosséis fixados atingido. Desfixe um carrossel antes de fixar outro." 
+        });
+      }
+      carousel.isPinned = true;
+      carousel.pinnedAt = new Date().toISOString();
+    } else {
+      carousel.isPinned = false;
+      carousel.pinnedAt = null;
+    }
+
+    await writeDataAsync(all);
+    logger.info('[CarouselsAPI]', `Carrossel ${id} ${shouldPin ? 'FIXADO' : 'DESFIXADO'}`);
+    res.json({ ok: true, isPinned: carousel.isPinned, pinnedAt: carousel.pinnedAt, carousel });
+  } catch (err) {
+    logger.error('[CarouselsAPI]', 'Erro ao alternar pino do carrossel:', err);
+    res.status(500).json({ error: "Erro interno do servidor ao fixar carrossel" });
+  }
+});
+
 // ── API: Bulk Delete carousels ────────────────────────────────────────────────
 router.post("/api/carousels/bulk-delete", async (req, res) => {
   const { ids } = req.body;

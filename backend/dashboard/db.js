@@ -77,7 +77,9 @@ export async function initDb() {
       caption TEXT,
       notes TEXT,
       slides JSONB,
-      chat_history JSONB
+      chat_history JSONB,
+      is_pinned BOOLEAN DEFAULT FALSE,
+      pinned_at TIMESTAMP DEFAULT NULL
     );
   `;
 
@@ -175,6 +177,8 @@ export async function initDb() {
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS copy_model VARCHAR(100) DEFAULT 'gpt-4o'");
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS no_image_slides_count INTEGER DEFAULT 0");
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS last_payload JSONB");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS pinned_at TIMESTAMP DEFAULT NULL");
     await query(createReelsHistoryTable);
     await query(createDashboardUsersTable);
     await query(createInvitationsTable);

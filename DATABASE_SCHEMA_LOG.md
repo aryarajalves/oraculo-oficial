@@ -259,3 +259,27 @@ Adicionar persistência para a coluna `no_image_slides_count` na tabela `carouse
    docker compose -f docker/docker-compose-local.yml up -d --build --force-recreate
    ```
 
+---
+
+## [2026-07-22] Adição de Colunas de Fixar Carrosséis (is_pinned e pinned_at)
+
+### Motivação
+Permitir que o usuário posicione carrosséis prioritários no topo do Dashboard, com limite de até 10 carrosséis fixados simultaneamente.
+
+### Alterações de Tabela
+- **`carousels`**
+  - Nova coluna: `is_pinned` BOOLEAN DEFAULT FALSE
+  - Nova coluna: `pinned_at` TIMESTAMP DEFAULT NULL
+
+### Scripts de Migração
+- **Script de Migração:** Integrado automaticamente no script de inicialização do banco de dados em `backend/dashboard/db.js` via:
+  - `ALTER TABLE carousels ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE;`
+  - `ALTER TABLE carousels ADD COLUMN IF NOT EXISTS pinned_at TIMESTAMP DEFAULT NULL;`
+
+### Instruções para Deploy
+1. Rebuildar e reiniciar os containers:
+   ```bash
+   docker compose -f docker/docker-compose-local.yml up -d --build --force-recreate
+   ```
+
+

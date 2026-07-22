@@ -49,6 +49,8 @@ export function mapCarouselFromDb(row) {
     copyModel: row.copy_model || 'gpt-4o',
     noImageSlidesCount: row.no_image_slides_count || 0,
     lastPayload: row.last_payload || null,
+    isPinned: row.is_pinned || false,
+    pinnedAt: row.pinned_at || null,
     slides: typeof row.slides === 'string' ? JSON.parse(row.slides) : (row.slides || []),
     chatHistory: typeof row.chat_history === 'string' ? JSON.parse(row.chat_history) : (row.chat_history || [])
   };
@@ -56,7 +58,7 @@ export function mapCarouselFromDb(row) {
 
 export async function readData() {
   try {
-    const res = await query("SELECT * FROM carousels ORDER BY created_at ASC");
+    const res = await query("SELECT * FROM carousels ORDER BY is_pinned DESC, pinned_at DESC, created_at DESC");
     return res.rows.map(mapCarouselFromDb);
   } catch (err) {
     logger.error('[Helpers]',"Erro ao ler carrosséis do banco:", err);
@@ -78,8 +80,8 @@ export async function writeData(data) {
       const upsertQuery = `
         INSERT INTO carousels (
           id, title, theme, praca, format, preset, status, created_at,
-          slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history, image_quality, b2_base_url, image_provider, copy_model, no_image_slides_count, last_payload
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
+          slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history, image_quality, b2_base_url, image_provider, copy_model, no_image_slides_count, last_payload, is_pinned, pinned_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
           theme = EXCLUDED.theme,
@@ -100,7 +102,9 @@ export async function writeData(data) {
           image_provider = EXCLUDED.image_provider,
           copy_model = EXCLUDED.copy_model,
           no_image_slides_count = EXCLUDED.no_image_slides_count,
-          last_payload = EXCLUDED.last_payload
+          last_payload = EXCLUDED.last_payload,
+          is_pinned = EXCLUDED.is_pinned,
+          pinned_at = EXCLUDED.pinned_at
       `;
       const params = [
         c.id,
@@ -123,7 +127,9 @@ export async function writeData(data) {
         c.imageProvider || 'gpt-image-2',
         c.copyModel || 'gpt-4o',
         c.noImageSlidesCount || 0,
-        c.lastPayload ? JSON.stringify(c.lastPayload) : null
+        c.lastPayload ? JSON.stringify(c.lastPayload) : null,
+        c.isPinned || false,
+        c.pinnedAt || null
       ];
       await query(upsertQuery, params);
     }
