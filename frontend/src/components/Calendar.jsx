@@ -55,11 +55,9 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
     }
   };
 
-  // Days slots
+  // Days slots — usa grid-column-start no primeiro dia para evitar células vazias
   const days = [];
-  for (let i = 0; i < firstDay.getDay(); i++) {
-    days.push(<div className="cal-day empty" key={`empty-${i}`}></div>);
-  }
+  const startCol = firstDay.getDay(); // 0=Dom ... 6=Sáb
 
   for (let i = 1; i <= lastDay.getDate(); i++) {
     const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
@@ -67,7 +65,11 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
     const isToday = new Date().toISOString().split('T')[0] === dayStr;
 
     days.push(
-      <div className={`cal-day ${isToday ? 'today' : ''}`} key={i}>
+      <div
+        className={`cal-day ${isToday ? 'today' : ''}`}
+        key={i}
+        style={i === 1 && startCol > 0 ? { gridColumnStart: startCol + 1 } : undefined}
+      >
         <div className="cal-day-num">{i}</div>
         <div className="cal-events">
           {scheduled.map(c => (

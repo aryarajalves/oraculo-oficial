@@ -61,7 +61,7 @@
   grid-template-columns: repeat(7, 1fr);
   gap: 6px;
   padding: 0 16px 16px;
-  align-items: start;
+  grid-auto-rows: minmax(100px, auto);
 }
 
 .cal-day {
@@ -81,12 +81,8 @@
 }
 .cal-day.today .cal-day-num { color: var(--gold); }
 .cal-day.empty {
-  background: rgba(255,255,255,0.01);
+  background: transparent;
   border-color: transparent;
-  min-height: 0 !important;
-  height: 0 !important;
-  padding: 0 !important;
-  overflow: hidden;
 }
 
 .cal-day-num {
