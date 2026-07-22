@@ -76,14 +76,10 @@ app.use(cors({
 app.use(requireAuth);
 
 // ── Rate Limiting por segmento de rota ──────────────────────────────────────────
-// 1. Auth/Login: 10 requisições por minuto
-app.use('/auth', rateLimiter(10, 60000));
+// 1. Auth/Login: mínimo de 100 requisições por minuto
+app.use('/auth', rateLimiter(100, 60000));
 
-// 2. Geração e Backups (carousels, services, backups): 30 requisições por minuto
-// Exceção: visualizar imagem/thumbnail/meta/download de slide usa um limite bem
-// mais alto e um "balde" (contador) separado — navegar/maximizar slides no
-// Lightbox dispara várias requisições legítimas em sequência rápida e não deve
-// competir com o limite das operações de escrita (criar, publicar, excluir).
+// 2. Geração e Backups (carousels, services, backups): mínimo de 100/150/300 requisições por minuto
 const carouselsMediaLimiter = rateLimiter(300, 60000, '/api/carousels:media');
 const carouselsGeneralLimiter = rateLimiter(150, 60000, '/api/carousels:general');
 app.use('/api/carousels', (req, res, next) => {
@@ -93,21 +89,21 @@ app.use('/api/carousels', (req, res, next) => {
     : carouselsGeneralLimiter(req, res, next);
 });
 app.use('/api/services', rateLimiter(100, 60000));
-app.use('/api/backups', rateLimiter(60, 60000));
+app.use('/api/backups', rateLimiter(100, 60000));
 
-// 3. Outras rotas gerais do dashboard (ex: users, etc): 60 requisições por minuto
-app.use('/api/users', rateLimiter(60, 60000));
+// 3. Outras rotas gerais do dashboard (ex: users, etc): 100 requisições por minuto
+app.use('/api/users', rateLimiter(100, 60000));
 
-// 4. Oráculo e Radar: sync é pesado (8-10min), limitar agressivamente
-app.use('/api/oraculo', rateLimiter(10, 60000));
-app.use('/api/radar', rateLimiter(10, 60000));
+// 4. Oráculo e Radar: mínimo de 100 requisições por minuto
+app.use('/api/oraculo', rateLimiter(100, 60000));
+app.use('/api/radar', rateLimiter(100, 60000));
 
-// 5. Criador (geração de IA — custa dinheiro): 5 req/min por IP
-app.use('/api/criador', rateLimiter(20, 60000));
+// 5. Criador (geração de IA): 100 requisições por minuto
+app.use('/api/criador', rateLimiter(100, 60000));
 
-// 6. Outros endpoints de API sem rate limit anterior
-app.use('/api/escala', rateLimiter(20, 60000));
-app.use('/api/events', rateLimiter(30, 60000));
+// 6. Outros endpoints de API sem rate limit anterior: mínimo de 100 requisições por minuto
+app.use('/api/escala', rateLimiter(100, 60000));
+app.use('/api/events', rateLimiter(100, 60000));
 
 // ── Register Routers ─────────────────────────────────────────────────────────
 app.use(authRouter);
