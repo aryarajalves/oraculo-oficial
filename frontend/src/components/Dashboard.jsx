@@ -471,12 +471,14 @@ export default function Dashboard({
                         </button>
                       )}
 
-                      <button
-                        className="btn btn-outline btn-sm"
-                        onClick={(e) => { e.stopPropagation(); setSelectedDetailsCarousel(c); }}
-                      >
-                        🔎 Detalhes
-                      </button>
+                      {c.status !== 'generating' && (
+                        <button
+                          className="btn btn-outline btn-sm"
+                          onClick={(e) => { e.stopPropagation(); setSelectedDetailsCarousel(c); }}
+                        >
+                          🔎 Detalhes
+                        </button>
+                      )}
 
                       {c.slides && c.slides.length > 0 && (
                         <button

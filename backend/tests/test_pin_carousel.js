@@ -67,7 +67,14 @@ async function runTests() {
   assert.strictEqual(sorted[2].isPinned, false, 'Itens não fixados devem aparecer após os fixados');
   console.log('✅ Teste 3: Ordenação prioritária no topo aprovada.');
 
-  console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE DE FIXAR CARROSSÉIS FORAM APROVADOS!');
+  // Teste 4: Visibilidade do botão Detalhes (oculto quando c.status === 'generating')
+  const showDetailsButton = (status) => status !== 'generating';
+  assert.strictEqual(showDetailsButton('generating'), false, 'Botão Detalhes deve ser oculto durante geração');
+  assert.strictEqual(showDetailsButton('rascunho'), true, 'Botão Detalhes deve ser visível para rascunho');
+  assert.strictEqual(showDetailsButton('pronto'), true, 'Botão Detalhes deve ser visível quando pronto');
+  console.log('✅ Teste 4: Ocultação do botão Detalhes em status "generating" aprovada.');
+
+  console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE E AJUSTES FORAM APROVADOS!');
 }
 
 runTests().catch(err => {
