@@ -74,3 +74,8 @@ body {
 .main-view { display: none; }
 .main-view.active { display: block; }
 
+/* Disable scroll when modal is open */
+body.modal-open {
+  overflow: hidden !important;
+}
+

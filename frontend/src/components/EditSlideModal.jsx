@@ -49,6 +49,17 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
     }
   }, [isOpen, carouselId, filename, cacheBuster]);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.classList.add('modal-open');
+    } else {
+      document.body.classList.remove('modal-open');
+    }
+    return () => {
+      document.body.classList.remove('modal-open');
+    };
+  }, [isOpen]);
+
   const handleImageError = () => {
     const token = encodeURIComponent(localStorage.getItem('fo_token') || '');
     setPreviewImgUrl(`/api/carousels/${carouselId}/image/${filename}?token=${token}&t=${cacheBuster}`);
