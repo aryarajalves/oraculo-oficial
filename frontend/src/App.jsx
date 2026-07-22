@@ -128,6 +128,16 @@ export default function App() {
     };
   }, []);
 
+  // Polling para carrosseis em geração — caso a conexão SSE caia (ex: container reiniciado)
+  useEffect(() => {
+    const hasGenerating = allCarousels.some(c => c.status === 'generating');
+    if (!hasGenerating) return;
+    const interval = setInterval(() => {
+      loadCarousels();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [allCarousels]);
+
   const loadCurrentUser = async () => {
     try {
       const res = await customFetch('/api/me');
@@ -289,6 +299,7 @@ export default function App() {
       });
       if (res.ok) {
         showToast('✦ Pipeline de geração iniciado!');
+        loadCarousels();
         setActiveTab('carrosseis');
       }
     } catch (e) {
