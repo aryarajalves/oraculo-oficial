@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function GeneralTab({
   settingsData,
@@ -7,6 +7,8 @@ export default function GeneralTab({
   setSettingsData,
   showToast
 }) {
+  const [activeCategory, setActiveCategory] = useState('provedores');
+
   const toggleVisibility = (key) => {
     const input = document.getElementById(`key-${key}`);
     if (input) {
@@ -38,83 +40,156 @@ export default function GeneralTab({
     });
   }
 
+  const categoryMapping = {
+    imagem: 'Geração de Imagem',
+    audio: 'Áudio',
+    publicacao: 'Publicação',
+    integracoes: 'Integrações'
+  };
+
+  const filteredGroups = Object.entries(groups).filter(([groupName]) => {
+    if (activeCategory === 'todas') return true;
+    if (categoryMapping[activeCategory]) {
+      return groupName === categoryMapping[activeCategory];
+    }
+    return false;
+  });
+
   return (
     <div className="section">
-      <div className="settings-group">
-        <div className="settings-group-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          Provedor de Geração de Imagens
-        </div>
-        <div className="settings-group-sub">Escolha qual API será usada para gerar as imagens dos slides</div>
-        <div className="provider-selector">
-          <div
-            className={`provider-card ${provider === 'gpt-image-2' ? 'active' : ''} ${!openaiSet ? 'disabled-card' : ''}`}
-            onClick={() => openaiSet && selectProvider('gpt-image-2')}
-            style={{ opacity: openaiSet ? 1 : 0.4, cursor: openaiSet ? 'pointer' : 'not-allowed', pointerEvents: openaiSet ? 'auto' : 'none' }}
-          >
-            <div className="provider-icon">🤖</div>
-            <div className="provider-name">GPT Image 2</div>
-            <div className="provider-desc">OpenAI · DALL-E 3 · ~$0.08/img</div>
-          </div>
-          <div
-            className={`provider-card ${provider === 'gpt-image-1-mini' ? 'active' : ''} ${!openaiSet ? 'disabled-card' : ''}`}
-            onClick={() => openaiSet && selectProvider('gpt-image-1-mini')}
-            style={{ opacity: openaiSet ? 1 : 0.4, cursor: openaiSet ? 'pointer' : 'not-allowed', pointerEvents: openaiSet ? 'auto' : 'none' }}
-          >
-            <div className="provider-icon">🖼️</div>
-            <div className="provider-name">GPT Image 1 Mini</div>
-            <div className="provider-desc">OpenAI · Econômico · ~$0.02/img</div>
-          </div>
-          <div
-            className={`provider-card ${provider === 'fal' ? 'active' : ''} ${!falSet ? 'disabled-card' : ''}`}
-            onClick={() => falSet && selectProvider('fal')}
-            style={{ opacity: falSet ? 1 : 0.4, cursor: falSet ? 'pointer' : 'not-allowed', pointerEvents: falSet ? 'auto' : 'none' }}
-          >
-            <div className="provider-icon">⚡</div>
-            <div className="provider-name">Fal.ai</div>
-            <div className="provider-desc">Flux / SDXL · Rápido · ~$0.003/img</div>
-          </div>
-          <div
-            className={`provider-card ${provider === 'gemini' ? 'active' : ''} ${!geminiSet ? 'disabled-card' : ''}`}
-            onClick={() => geminiSet && selectProvider('gemini')}
-            style={{ opacity: geminiSet ? 1 : 0.4, cursor: geminiSet ? 'pointer' : 'not-allowed', pointerEvents: geminiSet ? 'auto' : 'none' }}
-          >
-            <div className="provider-icon">✦</div>
-            <div className="provider-name">Gemini Imagen</div>
-            <div className="provider-desc">Google · Experimental · Pré-pago</div>
-          </div>
-        </div>
+      {/* Navegação por Sub-abas de Categorias */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px', background: 'rgba(0,0,0,0.2)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+        <button
+          type="button"
+          className={`btn btn-sm ${activeCategory === 'provedores' ? 'btn-gold' : 'btn-outline'}`}
+          onClick={() => setActiveCategory('provedores')}
+          style={{ borderRadius: '20px', fontSize: '11px', padding: '6px 14px', letterSpacing: '0.3px' }}
+        >
+          ⚡ Provedores & Modelos
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${activeCategory === 'imagem' ? 'btn-gold' : 'btn-outline'}`}
+          onClick={() => setActiveCategory('imagem')}
+          style={{ borderRadius: '20px', fontSize: '11px', padding: '6px 14px', letterSpacing: '0.3px' }}
+        >
+          🖼️ Chaves de Imagem & IA
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${activeCategory === 'audio' ? 'btn-gold' : 'btn-outline'}`}
+          onClick={() => setActiveCategory('audio')}
+          style={{ borderRadius: '20px', fontSize: '11px', padding: '6px 14px', letterSpacing: '0.3px' }}
+        >
+          🎙️ Áudio
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${activeCategory === 'publicacao' ? 'btn-gold' : 'btn-outline'}`}
+          onClick={() => setActiveCategory('publicacao')}
+          style={{ borderRadius: '20px', fontSize: '11px', padding: '6px 14px', letterSpacing: '0.3px' }}
+        >
+          ✈️ Publicação & Social
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${activeCategory === 'integracoes' ? 'btn-gold' : 'btn-outline'}`}
+          onClick={() => setActiveCategory('integracoes')}
+          style={{ borderRadius: '20px', fontSize: '11px', padding: '6px 14px', letterSpacing: '0.3px' }}
+        >
+          🔌 Integrações
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm ${activeCategory === 'todas' ? 'btn-gold' : 'btn-outline'}`}
+          onClick={() => setActiveCategory('todas')}
+          style={{ borderRadius: '20px', fontSize: '11px', padding: '6px 14px', letterSpacing: '0.3px' }}
+        >
+          🌐 Todas as Chaves
+        </button>
       </div>
 
-      <div className="settings-group" style={{ marginTop: '24px' }}>
-        <div className="settings-group-title">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          Modelo de Escrita da Copy
-        </div>
-        <div className="settings-group-sub">Escolha qual modelo de inteligência artificial será usado para escrever a copy dos carrosséis</div>
-        <div style={{ marginTop: '12px' }}>
-          <select
-            className="key-input"
-            value={settingsData?.activeCopyModel || 'gpt-4o'}
-            onChange={(e) => {
-              const val = e.target.value;
-              setPendingUpdates(prev => ({ ...prev, COPY_GENERATION_MODEL: val }));
-              setSettingsData(prev => ({ ...prev, activeCopyModel: val }));
-            }}
-            style={{ width: '100%', maxWidth: '400px', background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', padding: '10px 14px', borderRadius: '6px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
-          >
-            <option value="gpt-4o">GPT-4o (Recomendado - Completo e Criativo)</option>
-            <option value="gpt-4o-mini">GPT-4o-mini (Rápido e Econômico)</option>
-            <option value="o1-mini">o1-mini (Raciocínio Lógico Avançado)</option>
-            <option value="o1-preview">o1-preview (Complexo)</option>
-            <option value="gpt-5">GPT-5 (Completo - Próxima Geração)</option>
-            <option value="gpt-5-mini">GPT-5-mini (Veloz e Inteligente)</option>
-            <option value="gpt-5.4">GPT-5.4 (Legado/Personalizado)</option>
-          </select>
-        </div>
-      </div>
+      {/* Conteúdo da Aba: Provedores & Modelos */}
+      {(activeCategory === 'provedores' || activeCategory === 'todas') && (
+        <>
+          <div className="settings-group">
+            <div className="settings-group-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Provedor de Geração de Imagens
+            </div>
+            <div className="settings-group-sub">Escolha qual API será usada para gerar as imagens dos slides</div>
+            <div className="provider-selector">
+              <div
+                className={`provider-card ${provider === 'gpt-image-2' ? 'active' : ''} ${!openaiSet ? 'disabled-card' : ''}`}
+                onClick={() => openaiSet && selectProvider('gpt-image-2')}
+                style={{ opacity: openaiSet ? 1 : 0.4, cursor: openaiSet ? 'pointer' : 'not-allowed', pointerEvents: openaiSet ? 'auto' : 'none' }}
+              >
+                <div className="provider-icon">🤖</div>
+                <div className="provider-name">GPT Image 2</div>
+                <div className="provider-desc">OpenAI · DALL-E 3 · ~$0.08/img</div>
+              </div>
+              <div
+                className={`provider-card ${provider === 'gpt-image-1-mini' ? 'active' : ''} ${!openaiSet ? 'disabled-card' : ''}`}
+                onClick={() => openaiSet && selectProvider('gpt-image-1-mini')}
+                style={{ opacity: openaiSet ? 1 : 0.4, cursor: openaiSet ? 'pointer' : 'not-allowed', pointerEvents: openaiSet ? 'auto' : 'none' }}
+              >
+                <div className="provider-icon">🖼️</div>
+                <div className="provider-name">GPT Image 1 Mini</div>
+                <div className="provider-desc">OpenAI · Econômico · ~$0.02/img</div>
+              </div>
+              <div
+                className={`provider-card ${provider === 'fal' ? 'active' : ''} ${!falSet ? 'disabled-card' : ''}`}
+                onClick={() => falSet && selectProvider('fal')}
+                style={{ opacity: falSet ? 1 : 0.4, cursor: falSet ? 'pointer' : 'not-allowed', pointerEvents: falSet ? 'auto' : 'none' }}
+              >
+                <div className="provider-icon">⚡</div>
+                <div className="provider-name">Fal.ai</div>
+                <div className="provider-desc">Flux / SDXL · Rápido · ~$0.003/img</div>
+              </div>
+              <div
+                className={`provider-card ${provider === 'gemini' ? 'active' : ''} ${!geminiSet ? 'disabled-card' : ''}`}
+                onClick={() => geminiSet && selectProvider('gemini')}
+                style={{ opacity: geminiSet ? 1 : 0.4, cursor: geminiSet ? 'pointer' : 'not-allowed', pointerEvents: geminiSet ? 'auto' : 'none' }}
+              >
+                <div className="provider-icon">✦</div>
+                <div className="provider-name">Gemini Imagen</div>
+                <div className="provider-desc">Google · Experimental · Pré-pago</div>
+              </div>
+            </div>
+          </div>
 
-      {Object.entries(groups).map(([groupName, keys]) => (
+          <div className="settings-group" style={{ marginTop: '24px', marginBottom: '24px' }}>
+            <div className="settings-group-title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              Modelo de Escrita da Copy
+            </div>
+            <div className="settings-group-sub">Escolha qual modelo de inteligência artificial será usado para escrever a copy dos carrosséis</div>
+            <div style={{ marginTop: '12px' }}>
+              <select
+                className="key-input"
+                value={settingsData?.activeCopyModel || 'gpt-4o'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPendingUpdates(prev => ({ ...prev, COPY_GENERATION_MODEL: val }));
+                  setSettingsData(prev => ({ ...prev, activeCopyModel: val }));
+                }}
+                style={{ width: '100%', maxWidth: '400px', background: 'var(--bg)', color: 'var(--text)', border: '1px solid var(--border)', padding: '10px 14px', borderRadius: '6px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}
+              >
+                <option value="gpt-4o">GPT-4o (Recomendado - Completo e Criativo)</option>
+                <option value="gpt-4o-mini">GPT-4o-mini (Rápido e Econômico)</option>
+                <option value="o1-mini">o1-mini (Raciocínio Lógico Avançado)</option>
+                <option value="o1-preview">o1-preview (Complexo)</option>
+                <option value="gpt-5">GPT-5 (Completo - Próxima Geração)</option>
+                <option value="gpt-5-mini">GPT-5-mini (Veloz e Inteligente)</option>
+                <option value="gpt-5.4">GPT-5.4 (Legado/Personalizado)</option>
+              </select>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Conteúdo das Categorias de Chaves */}
+      {filteredGroups.map(([groupName, keys]) => (
         <div className="key-group" key={groupName}>
           <div className="key-group-title">{groupName}</div>
           {keys.filter(k => k.key !== 'ACTIVE_IMAGE_PROVIDER' && k.key !== 'COPY_GENERATION_MODEL').map(k => (

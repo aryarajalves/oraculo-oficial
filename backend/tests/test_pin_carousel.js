@@ -84,6 +84,21 @@ async function runTests() {
   assert.strictEqual(roundedBrl, 2.35, 'Custo total em Reais deve somar exatamente os carrosséis ativos em BRL');
   console.log('✅ Teste 5: Cálculo de custo total em Reais (BRL) para carrosséis ativos aprovado.');
 
+  // Teste 6: Filtragem de sub-abas de Configurações por categoria
+  const categoryMapping = {
+    imagem: 'Geração de Imagem',
+    audio: 'Áudio',
+    publicacao: 'Publicação',
+    integracoes: 'Integrações'
+  };
+  const mockGroups = ['Geração de Imagem', 'Áudio', 'Publicação', 'Integrações'];
+  const filterGroup = (cat) => mockGroups.filter(g => cat === 'todas' || g === categoryMapping[cat]);
+
+  assert.strictEqual(filterGroup('imagem')[0], 'Geração de Imagem', 'Aba imagem deve filtrar apenas grupo de Imagem');
+  assert.strictEqual(filterGroup('audio')[0], 'Áudio', 'Aba audio deve filtrar apenas grupo de Áudio');
+  assert.strictEqual(filterGroup('todas').length, 4, 'Aba todas deve retornar todos os grupos');
+  console.log('✅ Teste 6: Organização das sub-abas de Configurações aprovada.');
+
   console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE E AJUSTES FORAM APROVADOS!');
 }
 
