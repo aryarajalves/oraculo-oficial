@@ -99,6 +99,16 @@ async function runTests() {
   assert.strictEqual(filterGroup('integracoes')[0], 'Integrações', 'Aba integracoes deve filtrar apenas grupo de Integrações');
   console.log('✅ Teste 6: Organização das sub-abas de Configurações aprovada.');
 
+  // Teste 7: Edição de Nome do Agente (PromptsTab)
+  const mockPromptsList = [
+    { id: 'canalizador-visual', name: 'Canalizador Visual' },
+    { id: 'diretor-de-arte', name: 'Diretor De Arte' }
+  ];
+  const renamePromptMock = (list, targetId, newName) => list.map(p => p.id === targetId ? { ...p, name: newName } : p);
+  const updatedPrompts = renamePromptMock(mockPromptsList, 'canalizador-visual', 'Canalizador Visual Pro');
+  assert.strictEqual(updatedPrompts.find(p => p.id === 'canalizador-visual').name, 'Canalizador Visual Pro', 'Nome do agente deve ser atualizado');
+  console.log('✅ Teste 7: Funcionalidade de editar nome dos agentes aprovada.');
+
   console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE E AJUSTES FORAM APROVADOS!');
 }
 

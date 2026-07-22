@@ -130,18 +130,20 @@ export default function Settings({ showToast, onLoadBranding }) {
     }
   };
 
-  const handleRenamePrompt = async () => {
-    if (!tempName.trim()) return;
+  const handleRenamePrompt = async (targetId, newName) => {
+    const idToRename = targetId || selectedPromptId;
+    const nameToSave = (newName !== undefined ? newName : tempName).trim();
+    if (!idToRename || !nameToSave) return;
     try {
       const res = await fetch('/api/settings/prompts/rename', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: selectedPromptId, name: tempName.trim() })
+        body: JSON.stringify({ id: idToRename, name: nameToSave })
       });
       const data = await res.json();
       if (data.ok) {
         showToast('✓ Nome do agente atualizado!');
-        setPrompts(prev => prev.map(p => p.id === selectedPromptId ? { ...p, name: tempName.trim() } : p));
+        setPrompts(prev => prev.map(p => p.id === idToRename ? { ...p, name: nameToSave } : p));
         setIsRenaming(false);
       } else {
         showToast('Erro ao renomear: ' + data.error);
