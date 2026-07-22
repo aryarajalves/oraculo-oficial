@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 export default function PromptsTab({
   prompts,
@@ -20,6 +20,15 @@ export default function PromptsTab({
 }) {
   const [editingListId, setEditingListId] = useState(null);
   const [listTempName, setListTempName] = useState('');
+
+  const textareaRef = useRef(null);
+  const gutterRef = useRef(null);
+
+  const handleScroll = () => {
+    if (gutterRef.current && textareaRef.current) {
+      gutterRef.current.scrollTop = textareaRef.current.scrollTop;
+    }
+  };
 
   const categorizePrompt = (id) => {
     const textCopyIds = ['oraculo-v2', 'oraculo-haucacau', 'gancho-viral', 'humanizer', 'cta-desbloqueio-neural'];
@@ -48,9 +57,12 @@ export default function PromptsTab({
     setEditingListId(null);
   };
 
+  const lineCount = promptContent ? promptContent.split('\n').length : 1;
+  const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
+
   return (
     <div className="prompts-settings-container" style={{ display: 'flex', gap: '20px', height: 'calc(100vh - 240px)', minHeight: '450px' }}>
-      {/* Painel da Esquerda: Lista de Agentes com Opção de Editar Nome */}
+      {/* Painel da Esquerda: Lista de Agentes */}
       <div className="prompts-list-panel" style={{ width: '280px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto' }}>
         {Object.entries(groupedPrompts).map(([categoryName, items]) => (
           <div key={categoryName} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -167,7 +179,7 @@ export default function PromptsTab({
         ))}
       </div>
 
-      {/* Painel da Direita: Editor do Prompt */}
+      {/* Painel da Direita: Editor do Prompt com Numeração de Linhas */}
       <div className="prompt-editor-panel" style={editorStyles}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -225,7 +237,7 @@ export default function PromptsTab({
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>
-              Arquivo: agents/{selectedPromptId}.md
+              Arquivo: agents/{selectedPromptId}.md · {lineCount} linha(s)
             </div>
             <button
               onClick={() => setIsMaximized(!isMaximized)}
@@ -262,25 +274,67 @@ export default function PromptsTab({
             )}
           </div>
         </div>
-        <textarea
-          value={promptContent}
-          onChange={(e) => setPromptContent(e.target.value)}
+
+        {/* Editor de Texto com Numerador de Linhas */}
+        <div
+          className="code-editor-container"
           style={{
             flex: 1,
+            display: 'flex',
             background: '#09090b',
-            color: '#e4e4e7',
             border: '1px solid var(--border)',
             borderRadius: '6px',
-            padding: '14px',
-            fontSize: '13px',
-            fontFamily: 'monospace',
-            lineHeight: '1.6',
-            resize: 'none',
-            outline: 'none',
+            overflow: 'hidden',
             boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
           }}
-          placeholder="Selecione um prompt ou aguarde o carregamento..."
-        />
+        >
+          {/* Gutter / Coluna de Linhas */}
+          <div
+            ref={gutterRef}
+            style={{
+              padding: '14px 10px 14px 12px',
+              background: 'rgba(0, 0, 0, 0.4)',
+              borderRight: '1px solid var(--border)',
+              color: 'var(--text-3)',
+              fontFamily: 'monospace',
+              fontSize: '13px',
+              lineHeight: '1.6',
+              textAlign: 'right',
+              userSelect: 'none',
+              overflowY: 'hidden',
+              minWidth: '45px',
+              boxSizing: 'border-box'
+            }}
+          >
+            {lineNumbers.map(num => (
+              <div key={num} style={{ opacity: 0.5 }}>{num}</div>
+            ))}
+          </div>
+
+          {/* Área de Texto */}
+          <textarea
+            ref={textareaRef}
+            value={promptContent}
+            onChange={(e) => setPromptContent(e.target.value)}
+            onScroll={handleScroll}
+            style={{
+              flex: 1,
+              background: 'transparent',
+              color: '#e4e4e7',
+              border: 'none',
+              padding: '14px',
+              fontSize: '13px',
+              fontFamily: 'monospace',
+              lineHeight: '1.6',
+              resize: 'none',
+              outline: 'none',
+              overflowY: 'auto',
+              whiteSpace: 'pre',
+              overflowX: 'auto'
+            }}
+            placeholder="Selecione um prompt ou aguarde o carregamento..."
+          />
+        </div>
       </div>
     </div>
   );

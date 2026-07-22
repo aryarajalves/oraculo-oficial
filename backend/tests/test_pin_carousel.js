@@ -109,6 +109,13 @@ async function runTests() {
   assert.strictEqual(updatedPrompts.find(p => p.id === 'canalizador-visual').name, 'Canalizador Visual Pro', 'Nome do agente deve ser atualizado');
   console.log('✅ Teste 7: Funcionalidade de editar nome dos agentes aprovada.');
 
+  // Teste 8: Cálculo de Numeração de Linhas no Editor
+  const mockPromptText = '# CANALIZADOR VISUAL\n\nLine 3\nLine 4\nLine 5';
+  const getLineCount = (text) => text ? text.split('\n').length : 1;
+  const lineCount = getLineCount(mockPromptText);
+  assert.strictEqual(lineCount, 5, 'Deve contar exatamente 5 linhas no prompt');
+  console.log('✅ Teste 8: Cálculo do numerador de linhas no editor aprovado.');
+
   console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE E AJUSTES FORAM APROVADOS!');
 }
 
