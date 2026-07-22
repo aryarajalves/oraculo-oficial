@@ -668,7 +668,7 @@ export default function Dashboard({
                 <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
                   <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>Custo / Slide Pago (USD)</span>
                   <span style={{ fontWeight: '500' }}>
-                    ${Number(selectedDetailsCarousel.costDetails ? selectedDetailsCarousel.costDetails.costPerImage : (selectedDetailsCarousel.totalSlides > 0 ? (selectedDetailsCarousel.cost || 0) / selectedDetailsCarousel.totalSlides : 0)).toFixed(4)}
+                    ${Number(selectedDetailsCarousel.costDetails ? selectedDetailsCarousel.costDetails.costPerImage : (selectedDetailsCarousel.totalSlides > 0 ? (selectedDetailsCarousel.cost || 0) / selectedDetailsCarousel.totalSlides : 0)).toFixed(2)}
                   </span>
                 </div>
                 <div style={{ flex: 1, borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
