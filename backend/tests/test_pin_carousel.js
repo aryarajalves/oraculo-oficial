@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { mapCarouselFromDb } from '../dashboard/helpers.js';
+import { mapCarouselFromDb, getCarouselCostDetails } from '../dashboard/helpers.js';
 
 async function runTests() {
   console.log('🧪 Iniciando testes unitários da funcionalidade de fixar carrosséis...');
@@ -140,6 +140,19 @@ async function runTests() {
   assert.strictEqual(getPromptFallback(metaWithPrompt), 'Custom Prompt', 'Deve utilizar o prompt customizado salvo');
   assert.strictEqual(getPromptFallback(metaWithoutPrompt).includes('O Impostor Não Some'), true, 'Deve utilizar o fallback dinâmico baseado no título');
   console.log('✅ Teste 11: Carregamento e fallback de prompt visual preenchido aprovados.');
+
+  // Teste 12: Cálculo de Custo Zero para Rascunhos/Falhas sem Imagens Geradas
+  const mockDraftCarousel = {
+    id: 'carrossel-draft-99',
+    title: 'Rascunho Sem Imagens',
+    status: 'rascunho',
+    slidesDir: 'C:/invalid_non_existent_folder_path_12345',
+    slides: []
+  };
+  const costDetailsDraft = getCarouselCostDetails(mockDraftCarousel);
+  assert.strictEqual(costDetailsDraft.paidSlides, 0, 'Rascunho sem imagens não deve possuir slides pagos');
+  assert.strictEqual(costDetailsDraft.cost, 0, 'Custo de rascunho sem imagens deve ser exatamente 0 USD');
+  console.log('✅ Teste 12: Regra de custo zero para rascunhos e falhas sem imagens aprovada com sucesso.');
 
   console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE E AJUSTES FORAM APROVADOS!');
 }

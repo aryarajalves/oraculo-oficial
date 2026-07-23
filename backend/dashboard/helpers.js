@@ -222,32 +222,55 @@ export function getCarouselCostDetails(c) {
   let paidSlides = 0;
   let freeSlides = 0;
 
-  if (slidesDir && fs.existsSync(slidesDir)) {
-    for (let i = 1; i <= (slides.length || c.totalSlides || 10); i++) {
-      const numStr = String(i).padStart(2, '0');
-      const rawExists = fs.existsSync(path.join(slidesDir, `raw-${numStr}.jpg`)) ||
-                        fs.existsSync(path.join(slidesDir, `raw-${i}.jpg`));
-      
+  if (slides.length > 0) {
+    // Para carrosséis que possuem slides gerados/cadastrados
+    for (let i = 0; i < slides.length; i++) {
+      const numStr = String(i + 1).padStart(2, '0');
       let isTextOnly = false;
-      const metaPath = path.join(slidesDir, `slide-${numStr}.meta.json`);
-      if (fs.existsSync(metaPath)) {
-        try {
-          const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
-          if (meta.layout === 'text_only') isTextOnly = true;
-        } catch (e) {}
+      if (slidesDir && fs.existsSync(slidesDir)) {
+        const metaPath = path.join(slidesDir, `slide-${numStr}.meta.json`);
+        if (fs.existsSync(metaPath)) {
+          try {
+            const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+            if (meta.layout === 'text_only') isTextOnly = true;
+          } catch (e) {}
+        }
       }
 
-      if (rawExists && !isTextOnly) {
-        paidSlides++;
-      } else if (isTextOnly || (!rawExists && slides.length > 0)) {
+      if (isTextOnly) {
         freeSlides++;
       } else {
         paidSlides++;
       }
     }
-  } else {
-    paidSlides = slides.length || c.totalSlides || 10;
+  } else if (slidesDir && fs.existsSync(slidesDir)) {
+    // Se a pasta existe, verifica se há arquivos de imagem reais gerados no disco
+    try {
+      const files = fs.readdirSync(slidesDir);
+      const rawFiles = files.filter(f => /^raw-.*\.jpg$/i.test(f));
+      const slideFiles = files.filter(f => /^slide-.*\.jpg$/i.test(f));
+      const totalCount = Math.max(rawFiles.length, slideFiles.length);
+
+      for (let i = 1; i <= totalCount; i++) {
+        const numStr = String(i).padStart(2, '0');
+        const metaPath = path.join(slidesDir, `slide-${numStr}.meta.json`);
+        let isTextOnly = false;
+        if (fs.existsSync(metaPath)) {
+          try {
+            const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+            if (meta.layout === 'text_only') isTextOnly = true;
+          } catch (e) {}
+        }
+
+        if (isTextOnly) {
+          freeSlides++;
+        } else {
+          paidSlides++;
+        }
+      }
+    } catch (e) {}
   }
+  // Se slides.length === 0 e nenhum arquivo existir, paidSlides e freeSlides permanecem 0!
 
   const cost = paidSlides * costPerImage;
   const savedCost = freeSlides * costPerImage;
@@ -257,7 +280,7 @@ export function getCarouselCostDetails(c) {
     costPerImage,
     paidSlides,
     freeSlides,
-    totalSlidesCount: slides.length || c.totalSlides || 10,
+    totalSlidesCount: slides.length || (paidSlides + freeSlides),
     savedCost
   };
 }
