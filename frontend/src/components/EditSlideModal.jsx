@@ -313,9 +313,13 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
           
           {/* Coluna Esquerda: Editor */}
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', paddingRight: '8px' }}>
-            <div className="edit-tabs" style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: 0, marginBottom: '20px' }}>
-              <button className={`edit-tab ${activeTab === 'text' ? 'active' : ''}`} onClick={() => setActiveTab('text')}>Texto & Layout</button>
-              <button className={`edit-tab ${activeTab === 'image' ? 'active' : ''}`} onClick={() => setActiveTab('image')}>Recriar Imagem</button>
+            <div className="edit-tabs">
+              <button className={`edit-tab ${activeTab === 'text' ? 'active' : ''}`} onClick={() => setActiveTab('text')}>
+                <span>📝</span> Texto & Layout
+              </button>
+              <button className={`edit-tab ${activeTab === 'image' ? 'active' : ''}`} onClick={() => setActiveTab('image')}>
+                <span>🎨</span> Recriar Imagem
+              </button>
             </div>
 
             {activeTab === 'text' ? (

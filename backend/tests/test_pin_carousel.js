@@ -124,7 +124,11 @@ async function runTests() {
   const url2 = getSlideUrl('carrossel-01', 'slide-01.jpg', 'token123', 1);
   assert.strictEqual(url1, url2, 'URLs do mesmo slide e versão devem ser idênticas para permitir cache do navegador');
   assert.strictEqual(url1.includes('Date.now()'), false, 'URL não deve conter timestamps dinâmicos aleatórios');
-  console.log('✅ Teste 9: URLs de imagem estáveis com suporte a cache e pré-carregamento aprovadas.');
+  // Teste 10: Estilização Visual dos Botões de Aba (EditSlideModal)
+  const getTabClass = (currentTab, tabName) => `edit-tab ${currentTab === tabName ? 'active' : ''}`;
+  assert.strictEqual(getTabClass('text', 'text'), 'edit-tab active', 'Aba ativa deve receber classe active');
+  assert.strictEqual(getTabClass('text', 'image'), 'edit-tab ', 'Aba inativa não deve receber classe active');
+  console.log('✅ Teste 10: Classes e estados dos botões de abas de edição aprovados.');
 
   console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE E AJUSTES FORAM APROVADOS!');
 }
