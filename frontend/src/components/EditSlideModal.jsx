@@ -174,10 +174,14 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
       const res = await customFetch(`/api/carousels/${carouselId}/slide/${filename}/meta`);
       if (res.ok) {
         const data = await res.json();
+        const defaultPrompt = data.prompt || (data.title
+          ? `Cinematic dark esoteric illustration, dramatic volumetric light, deep emotional atmosphere. Abstract visual metaphor for: ${data.title}`
+          : `Cinematic dark esoteric illustration, dramatic volumetric light, deep emotional atmosphere.`);
+
         setSlideMeta({
           title: data.title || '',
           body: data.body || '',
-          prompt: data.prompt || '',
+          prompt: defaultPrompt,
           layout: data.layout || 'fullbleed',
           title_y: data.title_y !== undefined && data.title_y !== null ? data.title_y : '',
           body_y: data.body_y !== undefined && data.body_y !== null ? data.body_y : '',

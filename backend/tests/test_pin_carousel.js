@@ -128,7 +128,18 @@ async function runTests() {
   const getTabClass = (currentTab, tabName) => `edit-tab ${currentTab === tabName ? 'active' : ''}`;
   assert.strictEqual(getTabClass('text', 'text'), 'edit-tab active', 'Aba ativa deve receber classe active');
   assert.strictEqual(getTabClass('text', 'image'), 'edit-tab ', 'Aba inativa não deve receber classe active');
-  console.log('✅ Teste 10: Classes e estados dos botões de abas de edição aprovados.');
+  // Teste 11: Carregamento e Fallback do Prompt Visual do Slide
+  const getPromptFallback = (meta) =>
+    meta.prompt || (meta.title
+      ? `Cinematic dark esoteric illustration, dramatic volumetric light, deep emotional atmosphere. Abstract visual metaphor for: ${meta.title}`
+      : `Cinematic dark esoteric illustration, dramatic volumetric light, deep emotional atmosphere.`);
+  
+  const metaWithPrompt = { title: 'Test', prompt: 'Custom Prompt' };
+  const metaWithoutPrompt = { title: 'O Impostor Não Some' };
+  
+  assert.strictEqual(getPromptFallback(metaWithPrompt), 'Custom Prompt', 'Deve utilizar o prompt customizado salvo');
+  assert.strictEqual(getPromptFallback(metaWithoutPrompt).includes('O Impostor Não Some'), true, 'Deve utilizar o fallback dinâmico baseado no título');
+  console.log('✅ Teste 11: Carregamento e fallback de prompt visual preenchido aprovados.');
 
   console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE E AJUSTES FORAM APROVADOS!');
 }

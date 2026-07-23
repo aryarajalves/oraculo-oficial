@@ -442,6 +442,21 @@ router.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
       }
     });
     logger.info('[Carousel]', "regen:", stdout.trim());
+    
+    // Salvar/atualizar o prompt e metadados no arquivo .meta.json
+    const metaPath = imgPath.replace(/\.(jpg|jpeg|png)$/i, ".meta.json");
+    let currentMeta = {};
+    if (fs.existsSync(metaPath)) {
+      try { currentMeta = JSON.parse(fs.readFileSync(metaPath, "utf-8")); } catch {}
+    }
+    fs.writeFileSync(metaPath, JSON.stringify({
+      ...currentMeta,
+      prompt,
+      title,
+      body,
+      layout
+    }, null, 2));
+
     res.json({ ok: true, message: stdout.trim() });
   } catch (e) {
     logger.error('[Carousel]', "regen error:", e.message);

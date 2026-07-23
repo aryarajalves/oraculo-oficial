@@ -249,14 +249,15 @@ def main():
             else:
                 final_img.save(str(out_file), "JPEG", quality=95)
                 
-            # Salvar metadados do slide para permitir edição posterior com textos preenchidos
+            # Salvar metadados do slide para permitir edição posterior com textos e prompt preenchidos
             try:
                 meta_file = out_file.with_suffix(".meta.json")
                 meta_data = {
                     "title": s_title,
                     "body": body,
                     "layout": layout,
-                    "preset": preset
+                    "preset": preset,
+                    "prompt": s.get("prompt", f"Cinematic dark esoteric illustration, dramatic volumetric light, deep emotional atmosphere. Abstract visual metaphor for: {s_title}")
                 }
                 meta_file.write_text(json.dumps(meta_data, ensure_ascii=False, indent=2), encoding="utf-8")
             except Exception as ex_meta:
