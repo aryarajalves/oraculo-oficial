@@ -568,6 +568,61 @@ router.get('/api/criador/capabilities', (req, res) => {
   res.json({ canGenerateImages: true, isProd: IS_PROD });
 });
 
+function parseCarouselTextNode(text) {
+  if (!text || typeof text !== 'string') return [];
+  const t = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const slides = [];
+  const lines = t.split('\n');
+  const slideHeader = /^(?:\[S(\d+)\s*[—–\-]?\s*([^\]|]*?)(?:\s*\|\s*layout:\s*([^\]\s|]+))?\s*\]|SLIDE\s*(\d+)\b)/i;
+  let current = null;
+  let field = null;
+
+  const flush = () => {
+    if (current && (current.title || current.body)) {
+      slides.push({
+        num: current.num,
+        estado: current.estado || `S${current.num}`,
+        layout: current.layout || 'fullbleed',
+        title: (current.title || '').trim(),
+        body: (current.body || '').trim(),
+        prompt: (current.prompt || '').trim(),
+      });
+    }
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    const hm = line.match(slideHeader);
+    if (hm) {
+      flush();
+      const num = (hm[1] || hm[4] || '').padStart(2, '0');
+      const estado = hm[2] ? hm[2].trim().replace(/[^\w\s]/g, '').trim().toUpperCase() : `S${num}`;
+      let layout = (hm[3] || 'fullbleed').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      current = { num, estado, layout, title: '', body: '', prompt: '' };
+      field = null;
+      continue;
+    }
+
+    if (!current) continue;
+
+    const lower = line.toLowerCase();
+    if (lower.startsWith('título:') || lower.startsWith('titulo:') || lower.startsWith('gancho:')) {
+      field = 'title';
+      current.title = line.replace(/^(título|titulo|gancho):\s*/i, '');
+    } else if (lower.startsWith('corpo:') || lower.startsWith('texto:')) {
+      field = 'body';
+      current.body = line.replace(/^(corpo|texto):\s*/i, '');
+    } else if (lower.startsWith('prompt:') || lower.startsWith('prompt visual:')) {
+      field = 'prompt';
+      current.prompt = line.replace(/^prompt(\s*visual)?:\s*/i, '');
+    } else if (field && line) {
+      current[field] += '\n' + line;
+    }
+  }
+  flush();
+  return slides;
+}
+
 // ── API: Retry carousel generation ──────────────────────────────────────────
 router.post('/api/carousels/:id/retry', async (req, res) => {
   const { id } = req.params;
@@ -577,23 +632,47 @@ router.post('/api/carousels/:id/retry', async (req, res) => {
   if (!carousel) {
     return res.status(404).json({ error: 'Carrossel não encontrado' });
   }
-  if (!carousel.lastPayload || !Array.isArray(carousel.lastPayload.slides) || carousel.lastPayload.slides.length === 0) {
-    return res.status(400).json({ error: 'Não há payload salvo para retentativa. Refaça o briefing pelo chat.' });
+
+  let payload = carousel.lastPayload;
+
+  // Fallback: se não houver lastPayload ou lastPayload.slides estiver vazio, tenta extrair das notas ou do histórico de chat
+  if (!payload || !Array.isArray(payload.slides) || payload.slides.length === 0) {
+    let textToParse = carousel.notes || '';
+    if (!textToParse && carousel.chatHistory && Array.isArray(carousel.chatHistory)) {
+      const lastAiMsg = [...carousel.chatHistory].reverse().find(m => m.role === 'ai' && m.content && m.content.includes('[S1'));
+      if (lastAiMsg) textToParse = lastAiMsg.content;
+    }
+
+    const extractedSlides = parseCarouselTextNode(textToParse);
+    if (extractedSlides.length > 0) {
+      payload = {
+        id: carousel.id,
+        title: carousel.title,
+        theme: carousel.theme,
+        format: carousel.format || 'A',
+        totalSlides: extractedSlides.length,
+        slides: extractedSlides,
+        caption: carousel.caption || ''
+      };
+    }
   }
 
-  // Reutiliza o lastPayload com o id existente para sobrescrever o mesmo carrossel
-  const retryPayload = { ...carousel.lastPayload, id };
-  req.body = retryPayload;
+  if (!payload || !Array.isArray(payload.slides) || payload.slides.length === 0) {
+    return res.status(400).json({ error: 'Não há roteiro de slides salvo para recriar este carrossel. Por favor, gere o roteiro no Criador.' });
+  }
+
+  const retryPayload = { ...payload, id };
   logger.info('[Retry]', `Retentativa de geração para carrossel ${id}`);
 
-  // Encaminha internamente para a rota de generate (simula o body e chama o handler)
-  return res.redirect(307, '/api/criador/generate');
+  return runGenerationPipeline(retryPayload, req, res);
 });
 
 // ── API: Criador — Gerar carrossel completo ───────────────────────────────────
 router.post('/api/criador/generate', async (req, res) => {
-  const payload = req.body;
+  return runGenerationPipeline(req.body, req, res);
+});
 
+async function runGenerationPipeline(payload, req, res) {
   if (!payload || !Array.isArray(payload.slides) || payload.slides.length === 0) {
     return res.status(400).json({ error: 'slides é obrigatório' });
   }
@@ -912,7 +991,7 @@ router.post('/api/criador/generate', async (req, res) => {
     broadcast({ type: 'close', code });
     res.end();
   });
-});
+}
 
 // ── API: Obter histórico de criação em tempo real ────────────────────────────
 router.get('/api/carousels/:id/history', (req, res) => {

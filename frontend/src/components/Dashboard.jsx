@@ -459,13 +459,13 @@ export default function Dashboard({
                         </button>
                       )}
 
-                      {c.status === 'rascunho' && c.lastPayload && c.lastPayload.slides && c.lastPayload.slides.length > 0 && (
+                      {c.status === 'rascunho' && (
                         <button
                           className="btn btn-outline btn-sm"
                           style={{ borderColor: '#22c55e', color: '#22c55e', opacity: retryingId === c.id ? 0.6 : 1 }}
                           disabled={!!retryingId}
                           onClick={(e) => { e.stopPropagation(); handleRetryGeneration(c.id); }}
-                          title="Recriar carrossel usando o roteiro anterior"
+                          title="Recriar carrossel gerando as artes"
                         >
                           {retryingId === c.id ? '⏳ Recriando...' : '🔄 Recriar'}
                         </button>
