@@ -189,6 +189,9 @@ router.get("/api/carousels/:id/image/:filename", async (req, res) => {
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).send("Carrossel não encontrado");
 
+  // Habilitar cache público de 24 horas no navegador
+  res.setHeader("Cache-Control", "public, max-age=86400, must-revalidate");
+
   // Se o carrossel foi de fato enviado ao MinIO (possui b2BaseUrl ou slides são objetos com url)
   const isUploadedToB2 = c.b2BaseUrl || (c.slides && c.slides.length > 0 && typeof c.slides[0] === 'object' && c.slides[0].url);
 

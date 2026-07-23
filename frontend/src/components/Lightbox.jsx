@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Lightbox({ isOpen, onClose, carouselId, slides, initialIndex, onOpenEditModal, showToast }) {
+export default function Lightbox({ isOpen, onClose, carouselId, slides = [], initialIndex = 0, onOpenEditModal, showToast }) {
   const [index, setIndex] = useState(initialIndex);
   const [editMode, setEditMode] = useState(false);
   const [selectedZone, setSelectedZone] = useState(null);
   const [meta, setMeta] = useState({ title: '', body: '' });
   const [isMaximized, setIsMaximized] = useState(false);
+  const [imageVersion, setImageVersion] = useState(1);
 
   useEffect(() => {
     setIndex(initialIndex);
@@ -28,8 +29,36 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
     };
   }, [isOpen]);
 
+  // Pré-carregamento automático de todos os slides do carrossel na memória do navegador
   useEffect(() => {
-    if (isOpen && carouselId && slides[index]) {
+    if (isOpen && carouselId && slides && slides.length > 0) {
+      const token = encodeURIComponent(localStorage.getItem('fo_token') || '');
+      slides.forEach((slideName) => {
+        const img = new Image();
+        img.src = `/api/carousels/${carouselId}/image/${slideName}?token=${token}&v=${imageVersion}`;
+      });
+    }
+  }, [isOpen, carouselId, slides, imageVersion]);
+
+  // Navegação rápida via teclas de seta do teclado (Left/Right/Escape)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowLeft') {
+        setIndex(prev => Math.max(0, prev - 1));
+      } else if (e.key === 'ArrowRight') {
+        setIndex(prev => Math.min((slides ? slides.length - 1 : 0), prev + 1));
+      } else if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, slides, onClose]);
+
+  useEffect(() => {
+    if (isOpen && carouselId && slides && slides[index]) {
       loadSlideMeta();
     }
   }, [index, isOpen, carouselId]);
@@ -44,7 +73,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !slides || slides.length === 0) return null;
 
   const currentSlide = slides[index];
 
@@ -59,6 +88,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
       if (data.ok) {
         showToast('Elemento atualizado com sucesso!');
         setSelectedZone(null);
+        setImageVersion(prev => prev + 1); // Atualiza cache apenas ao editar
       } else {
         alert('Erro ao salvar: ' + (data.error || 'desconhecido'));
       }
@@ -69,7 +99,8 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
 
   const handleDownload = async () => {
     try {
-      const res = await fetch(`/api/carousels/${carouselId}/image/${currentSlide}`);
+      const token = encodeURIComponent(localStorage.getItem('fo_token') || '');
+      const res = await fetch(`/api/carousels/${carouselId}/image/${currentSlide}?token=${token}&v=${imageVersion}`);
       const blob = await res.blob();
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
@@ -83,7 +114,6 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
   };
 
   const handleDelete = async () => {
-    // Popup de confirmação centralizado (obrigatório pelas regras de UX!)
     if (!confirm('Excluir este slide permanentemente?')) return;
     try {
       const res = await fetch(`/api/carousels/${carouselId}/slide/${currentSlide}`, {
@@ -109,7 +139,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides, initialI
         <div className="lb-slide-wrap">
           <img
             className="modal-img"
-            src={`/api/carousels/${carouselId}/image/${currentSlide}?t=${Date.now()}&token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}`}
+            src={`/api/carousels/${carouselId}/image/${currentSlide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&v=${imageVersion}`}
             alt="Slide"
             style={isMaximized ? {
               maxHeight: '85vh',

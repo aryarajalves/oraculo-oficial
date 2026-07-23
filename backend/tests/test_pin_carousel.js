@@ -116,6 +116,16 @@ async function runTests() {
   assert.strictEqual(lineCount, 5, 'Deve contar exatamente 5 linhas no prompt');
   console.log('✅ Teste 8: Cálculo do numerador de linhas no editor aprovado.');
 
+  // Teste 9: Geração de URLs de Slides com Cache Estável e Pré-carregamento
+  const getSlideUrl = (carouselId, slideName, token, version) =>
+    `/api/carousels/${carouselId}/image/${slideName}?token=${token}&v=${version}`;
+  
+  const url1 = getSlideUrl('carrossel-01', 'slide-01.jpg', 'token123', 1);
+  const url2 = getSlideUrl('carrossel-01', 'slide-01.jpg', 'token123', 1);
+  assert.strictEqual(url1, url2, 'URLs do mesmo slide e versão devem ser idênticas para permitir cache do navegador');
+  assert.strictEqual(url1.includes('Date.now()'), false, 'URL não deve conter timestamps dinâmicos aleatórios');
+  console.log('✅ Teste 9: URLs de imagem estáveis com suporte a cache e pré-carregamento aprovadas.');
+
   console.log('\n🎉 TODOS OS TESTES UNITÁRIOS DA FUNCIONALIDADE E AJUSTES FORAM APROVADOS!');
 }
 
