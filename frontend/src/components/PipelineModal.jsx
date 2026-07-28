@@ -64,6 +64,9 @@ export default function PipelineModal({ carousel, onClose }) {
       onClick={(e) => e.stopPropagation()}
     >
       <style>{`
+        .pipeline-modal-panel {
+          overflow: hidden !important;
+        }
         .custom-pipeline-scroll::-webkit-scrollbar {
           width: 6px;
           height: 6px;
@@ -82,7 +85,7 @@ export default function PipelineModal({ carousel, onClose }) {
       `}</style>
 
       <div
-        className="pipeline-modal-panel custom-pipeline-scroll"
+        className="pipeline-modal-panel"
         style={{
           width: '100%',
           maxWidth: '920px',
@@ -99,7 +102,7 @@ export default function PipelineModal({ carousel, onClose }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Modal (Fixo) */}
+        {/* Header Modal (Fixo no topo 1) */}
         <div style={{
           flexShrink: 0,
           padding: '20px 24px',
@@ -152,7 +155,7 @@ export default function PipelineModal({ carousel, onClose }) {
           </button>
         </div>
 
-        {/* Modal Tabs Navigation (Fixo no topo da área interna) */}
+        {/* Modal Tabs Navigation (Fixo no topo 2 — NUNCA ROLA) */}
         <div style={{
           flexShrink: 0,
           display: 'flex',
@@ -160,7 +163,9 @@ export default function PipelineModal({ carousel, onClose }) {
           padding: '12px 24px 0 24px',
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           backgroundColor: '#0c0d12',
-          overflowX: 'auto'
+          overflowX: 'auto',
+          position: 'relative',
+          zIndex: 10
         }}>
           {[
             { id: 'overview', label: '🎯 Visão Geral' },
@@ -191,7 +196,7 @@ export default function PipelineModal({ carousel, onClose }) {
           ))}
         </div>
 
-        {/* Modal Body (Rolagem interna apenas no conteúdo) */}
+        {/* Modal Body (ÚNICO ELEMENTO QUE ROLA INTERNAMENTE) */}
         <div
           className="custom-pipeline-scroll"
           style={{
@@ -496,7 +501,7 @@ export default function PipelineModal({ carousel, onClose }) {
           )}
         </div>
 
-        {/* Modal Footer (Fixo) */}
+        {/* Modal Footer (Fixo no rodapé) */}
         <div style={{
           flexShrink: 0,
           padding: '16px 24px',
