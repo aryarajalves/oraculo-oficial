@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useScrollLock } from '../hooks/useScrollLock';
+import PipelineModal from './PipelineModal';
 
 export default function Dashboard({
   allCarousels,
@@ -22,11 +23,12 @@ export default function Dashboard({
   const [deleteTargetId, setDeleteTargetId] = useState(null);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [selectedDetailsCarousel, setSelectedDetailsCarousel] = useState(null);
+  const [selectedPipelineCarousel, setSelectedPipelineCarousel] = useState(null);
   const [isCaptionMaximized, setIsCaptionMaximized] = useState(false);
   const [retryingId, setRetryingId] = useState(null);
 
   // Trava scroll do body quando qualquer modal estiver aberto
-  const anyModalOpen = !!selectedDetailsCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized;
+  const anyModalOpen = !!selectedDetailsCarousel || !!selectedPipelineCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized;
   useScrollLock(anyModalOpen);
 
   const handleRetryGeneration = async (carouselId) => {
@@ -474,6 +476,17 @@ export default function Dashboard({
                       {c.status !== 'generating' && (
                         <button
                           className="btn btn-outline btn-sm"
+                          style={{ borderColor: '#8b5cf6', color: '#a78bfa' }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedPipelineCarousel(c); }}
+                          title="Ver todo o pipeline de criação e prompts utilizados"
+                        >
+                          ⚡ Pipeline
+                        </button>
+                      )}
+
+                      {c.status !== 'generating' && (
+                        <button
+                          className="btn btn-outline btn-sm"
                           onClick={(e) => { e.stopPropagation(); setSelectedDetailsCarousel(c); }}
                         >
                           🔎 Detalhes
@@ -824,6 +837,14 @@ export default function Dashboard({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal do Pipeline de Criação */}
+      {selectedPipelineCarousel && (
+        <PipelineModal
+          carousel={selectedPipelineCarousel}
+          onClose={() => setSelectedPipelineCarousel(null)}
+        />
       )}
     </div>
   );

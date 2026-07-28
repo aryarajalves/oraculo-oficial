@@ -59,6 +59,52 @@ router.get("/api/carousels/:id", async (req, res) => {
   res.json({ ...c, slides, cost: costDetails.cost, costDetails });
 });
 
+// ── API: Get carousel pipeline details ───────────────────────────────────────
+router.get("/api/carousels/:id/pipeline", async (req, res) => {
+  const all = await readDataAsync();
+  const c = all.find(x => x.id === req.params.id);
+  if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
+
+  const slides = getSlidesForCarousel(c);
+  const costDetails = getCarouselCostDetails(c);
+  const job = generationJobs.get(c.id);
+  const agentPrompts = buildAgentPrompts(CLIENT);
+
+  res.json({
+    id: c.id,
+    title: c.title,
+    theme: c.theme || '',
+    format: c.format || 'A',
+    preset: c.preset || 'cinematografico',
+    status: c.status,
+    createdAt: c.createdAt,
+    slidesDir: c.slidesDir,
+    totalSlides: c.totalSlides || slides.length || 10,
+    caption: c.caption || '',
+    notes: c.notes || '',
+    imageProvider: c.imageProvider || process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2',
+    copyModel: c.copyModel || process.env.COPY_GENERATION_MODEL || 'gpt-4o',
+    cost: c.cost || costDetails.cost || 0,
+    costDetails,
+    slides,
+    slidesFound: slides.length,
+    chatHistory: c.chatHistory || [],
+    agentPrompts,
+    generationLogs: job ? job.logs : (c.generationLogs || c.logs || [
+      'Iniciando pipeline de geração...',
+      `Configuração: Formato ${c.format || 'A'}, Preset ${c.preset || 'cinematografico'}, Provedor: ${c.imageProvider || 'gpt-image-2'}`,
+      `Processamento de ${slides.length || c.totalSlides || 10} slides concluído com status "${c.status}".`
+    ]),
+    pipelineData: {
+      theme: c.theme || '',
+      format: c.format || 'A',
+      preset: c.preset || 'cinematografico',
+      imageQuality: c.imageQuality || 'high',
+      no_image_slides_count: c.no_image_slides_count || 0
+    }
+  });
+});
+
 // ── API: Create carousel ─────────────────────────────────────────────────────
 router.post("/api/carousels", async (req, res) => {
   logger.info('[CarouselsAPI]', `CRIAR NOVO CARROSSEL (POST): ${JSON.stringify(req.body)}`);
@@ -81,6 +127,7 @@ router.post("/api/carousels", async (req, res) => {
     slidePrefix: "slide-",
     totalSlides: Number(req.body.totalSlides) || 10,
     imageQuality: req.body.imageQuality || "high",
+    no_image_slides_count: Number(req.body.noImageSlidesCount || req.body.no_image_slides_count || 0),
     caption: req.body.caption || "",
     notes: req.body.notes || "",
     chatHistory: req.body.chatHistory || [],
@@ -1014,7 +1061,7 @@ router.get('/api/debug-jobs', (req, res) => {
 
 // ── API: Criador — Chat unificado com streaming SSE ──────────────────────────
 router.post('/api/criador/stream', async (req, res) => {
-  const { messages, totalSlides } = req.body;
+  const { messages, totalSlides, noImageSlidesCount } = req.body;
   let system = AGENT_SYSTEM_PROMPTS['criador'];
   if (!system) return res.status(500).json({ error: 'Agente criador não configurado' });
 
@@ -1034,6 +1081,15 @@ router.post('/api/criador/stream', async (req, res) => {
     
     // Adiciona uma instrução clara no topo do system prompt instruindo a IA sobre a restrição de tamanho
     system = `IMPORTANTE: Para esta geração, o usuário configurou e deseja estritamente um carrossel de exatamente ${numSlides} slides. Adapte o Método Jordânico de Curva Dramática e sintetize as etapas para caberem exatamente em ${numSlides} slides (S1 até S${numSlides}), garantindo que o slide final S${numSlides} seja o CTA FIXO.\n\n` + system;
+  }
+
+  const numNoImage = Number(noImageSlidesCount) || 0;
+  if (numNoImage > 0) {
+    if (numNoImage >= numSlides) {
+      system = `IMPORTANTE: O usuário configurou no formulário que TODOS os ${numSlides} slides devem ter fundo preto puro (layout "text_only") SEM NENHUMA imagem gerada por IA. Defina o layout de TODOS os slides (S1 até S${numSlides}) obrigatoriamente como "text_only" e com "prompt_imagem": null.\n\n` + system;
+    } else {
+      system = `IMPORTANTE: O usuário configurou no formulário que exatamente os últimos ${numNoImage} slide(s) (de S${numSlides - numNoImage + 1} até S${numSlides}) devem ter fundo preto puro (layout "text_only") SEM imagem de IA ("prompt_imagem": null).\n\n` + system;
+    }
   }
 
   if (!Array.isArray(messages) || messages.length === 0) {
