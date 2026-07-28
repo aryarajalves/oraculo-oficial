@@ -306,71 +306,104 @@ export default function PipelineModal({ carousel, onClose }) {
               {/* TAB 2: PROMPTS DOS AGENTES */}
               {activeTab === 'agents' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {[
-                    { key: 'copywriter', title: '✍️ Copywriter (Estrutura & Falas)', color: '#e0a96d' },
-                    { key: 'diretor_artistico', title: '🎨 Diretor Artístico (Conceito Visual)', color: '#8b5cf6' },
-                    { key: 'diretor_cena', title: '🎬 Diretor de Cena (Prompts Surrealistas)', color: '#06b6d4' },
-                    { key: 'sonoplasta', title: '🔊 Sonoplasta (Trilha & Efeitos SFX)', color: '#ec4899' },
-                    { key: 'voz', title: '🎙️ Narrador (Pausas & Ritmo)', color: '#22c55e' }
-                  ].map((agent) => {
-                    const promptText = agentPrompts[agent.key] || 'Prompt do sistema não disponível.';
-                    return (
-                      <div
-                        key={agent.key}
-                        style={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                          border: '1px solid rgba(255, 255, 255, 0.08)',
-                          borderRadius: '10px',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        <div style={{
-                          padding: '10px 14px',
-                          backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
-                        }}>
-                          <span style={{ fontWeight: '600', fontSize: '13px', color: agent.color }}>
-                            {agent.title}
-                          </span>
-                          <button
-                            onClick={() => handleCopy(promptText, agent.key)}
-                            style={{
-                              padding: '4px 10px',
-                              backgroundColor: copiedPromptKey === agent.key ? '#22c55e' : 'rgba(255, 255, 255, 0.08)',
-                              color: '#fff',
-                              border: 'none',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              cursor: 'pointer',
-                              fontWeight: '500',
-                              transition: 'all 0.2s'
-                            }}
-                          >
-                            {copiedPromptKey === agent.key ? '✓ Copiado!' : '📋 Copiar Prompt'}
-                          </button>
-                        </div>
-                        <pre
-                          className="custom-pipeline-scroll"
-                          style={{
-                            margin: 0,
-                            padding: '14px',
-                            fontSize: '12px',
-                            lineHeight: '1.5',
-                            fontFamily: 'monospace',
-                            whiteSpace: 'pre-wrap',
-                            color: '#a1a1aa',
-                            maxHeight: '220px',
-                            overflowY: 'auto'
-                          }}
-                        >
-                          {promptText}
-                        </pre>
-                      </div>
+                  {(() => {
+                    const agentList = pipelineInfo?.agentPromptsList || (
+                      Object.entries(agentPrompts).map(([k, v]) => ({
+                        id: k,
+                        name: k.split(/[-_]/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+                        content: v
+                      }))
                     );
-                  })}
+
+                    const getAgentColor = (id, idx) => {
+                      const colors = ['#e0a96d', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#f43f5e', '#3b82f6', '#eab308'];
+                      return colors[idx % colors.length];
+                    };
+
+                    return (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#a78bfa' }}>
+                            🤖 Todos os Agentes Registrados ({agentList.length})
+                          </span>
+                        </div>
+
+                        {agentList.map((agent, idx) => {
+                          const promptText = agent.content || agentPrompts[agent.id] || 'Prompt não disponível.';
+                          const agentColor = getAgentColor(agent.id, idx);
+
+                          return (
+                            <div
+                              key={agent.id || idx}
+                              style={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                                borderRadius: '10px',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              <div style={{
+                                padding: '10px 14px',
+                                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontWeight: '600', fontSize: '13px', color: agentColor }}>
+                                    🎭 {agent.name || agent.id}
+                                  </span>
+                                  <span style={{
+                                    fontSize: '10px',
+                                    padding: '1px 6px',
+                                    borderRadius: '4px',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                                    color: 'rgba(255, 255, 255, 0.5)',
+                                    fontFamily: 'monospace'
+                                  }}>
+                                    {agent.id}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={() => handleCopy(promptText, agent.id)}
+                                  style={{
+                                    padding: '4px 10px',
+                                    backgroundColor: copiedPromptKey === agent.id ? '#22c55e' : 'rgba(255, 255, 255, 0.08)',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    fontSize: '11px',
+                                    cursor: 'pointer',
+                                    fontWeight: '500',
+                                    transition: 'all 0.2s'
+                                  }}
+                                >
+                                  {copiedPromptKey === agent.id ? '✓ Copiado!' : '📋 Copiar Prompt'}
+                                </button>
+                              </div>
+                              <pre
+                                className="custom-pipeline-scroll"
+                                style={{
+                                  margin: 0,
+                                  padding: '14px',
+                                  fontSize: '12px',
+                                  lineHeight: '1.5',
+                                  fontFamily: 'monospace',
+                                  whiteSpace: 'pre-wrap',
+                                  color: '#a1a1aa',
+                                  maxHeight: '220px',
+                                  overflowY: 'auto'
+                                }}
+                              >
+                                {promptText}
+                              </pre>
+                            </div>
+                          );
+                        })}
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 

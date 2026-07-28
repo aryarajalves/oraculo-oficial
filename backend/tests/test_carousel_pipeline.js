@@ -90,14 +90,11 @@ async function runTests() {
     }
     console.log('✅ Estrutura de campos do pipeline validada com sucesso');
 
-    // 5. Valida prompts dos agentes
-    const agents = ['copywriter', 'diretor_artistico', 'diretor_cena', 'sonoplasta', 'voz'];
-    for (const agent of agents) {
-      if (!data.agentPrompts[agent]) {
-        throw new Error(`Prompt do agente ${agent} ausente no payload`);
-      }
+    // 5. Valida se todos os 12 agentes do sistema estão presentes
+    if (!Array.isArray(data.agentPromptsList) || data.agentPromptsList.length < 12) {
+      throw new Error(`Esperado pelo menos 12 agentes no pipeline, retornado: ${data.agentPromptsList?.length}`);
     }
-    console.log('✅ Prompts dos 5 agentes do Oráculo validados');
+    console.log(`✅ Validados todos os ${data.agentPromptsList.length} agentes do sistema (mínimo de 12 agências de IA)`);
 
     console.log('🎉 Todos os testes unitários do pipeline foram APROVADOS!');
     process.exit(0);

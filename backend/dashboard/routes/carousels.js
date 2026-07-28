@@ -59,6 +59,59 @@ router.get("/api/carousels/:id", async (req, res) => {
   res.json({ ...c, slides, cost: costDetails.cost, costDetails });
 });
 
+function getAllAgentPrompts(client) {
+  const AGENTS_DIR = path.join(__dirname, "..", "..", "agents");
+  const NAMES_FILE = path.join(AGENTS_DIR, "display_names.json");
+  let displayNames = {};
+  try {
+    if (fs.existsSync(NAMES_FILE)) {
+      displayNames = JSON.parse(fs.readFileSync(NAMES_FILE, "utf-8"));
+    }
+  } catch {}
+
+  const dynamicPrompts = buildAgentPrompts(client) || {};
+  let list = [];
+
+  try {
+    if (fs.existsSync(AGENTS_DIR)) {
+      const files = fs.readdirSync(AGENTS_DIR);
+      list = files
+        .filter(f => f.endsWith(".md"))
+        .map(f => {
+          const id = f.replace(".md", "");
+          const content = fs.readFileSync(path.join(AGENTS_DIR, f), "utf-8");
+          let name = displayNames[id];
+          if (!name) {
+            name = id
+              .split("-")
+              .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(" ")
+              .replace("Haucacau", "HauCacau")
+              .replace("V2", "V2")
+              .replace("Dna", "DNA")
+              .replace("Cta", "CTA");
+          }
+          return { id, name, content };
+        });
+    }
+  } catch (e) {
+    logger.error("[AgentPrompts]", "Erro ao ler pasta agents:", e.message);
+  }
+
+  for (const [key, text] of Object.entries(dynamicPrompts)) {
+    if (!list.some(a => a.id === key)) {
+      const formattedName = key
+        .split("_")
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(" ");
+      list.push({ id: key, name: formattedName, content: text });
+    }
+  }
+
+  const map = Object.fromEntries(list.map(a => [a.id, a.content]));
+  return { map, list };
+}
+
 // ── API: Get carousel pipeline details ───────────────────────────────────────
 router.get("/api/carousels/:id/pipeline", async (req, res) => {
   const all = await readDataAsync();
@@ -68,7 +121,7 @@ router.get("/api/carousels/:id/pipeline", async (req, res) => {
   const slides = getSlidesForCarousel(c);
   const costDetails = getCarouselCostDetails(c);
   const job = generationJobs.get(c.id);
-  const agentPrompts = buildAgentPrompts(CLIENT);
+  const { map: agentPromptsMap, list: agentPromptsList } = getAllAgentPrompts(CLIENT);
 
   res.json({
     id: c.id,
@@ -89,7 +142,9 @@ router.get("/api/carousels/:id/pipeline", async (req, res) => {
     slides,
     slidesFound: slides.length,
     chatHistory: c.chatHistory || [],
-    agentPrompts,
+    agentPrompts: agentPromptsMap,
+    agentPromptsList,
+    totalAgents: agentPromptsList.length,
     generationLogs: job ? job.logs : (c.generationLogs || c.logs || [
       'Iniciando pipeline de geração...',
       `Configuração: Formato ${c.format || 'A'}, Preset ${c.preset || 'cinematografico'}, Provedor: ${c.imageProvider || 'gpt-image-2'}`,
