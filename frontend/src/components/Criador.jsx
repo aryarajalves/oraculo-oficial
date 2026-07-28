@@ -63,7 +63,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           messages: [...chatHistory, { role: 'user', content: text }],
-          totalSlides: activeBriefing?.totalSlides || 10
+          totalSlides: activeBriefing?.totalSlides || 10,
+          noImageSlidesCount: activeBriefing?.noImageSlidesCount || 0
         }),
       });
 
@@ -185,16 +186,26 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
 
     const displayUserText = `Briefing enviado para avaliação da IA: "${briefing.title || 'Novo Carrossel'}" (Tema: ${briefing.theme || 'Não definido'}, Formato: ${briefing.format})`;
 
+    let designRule = '';
+    const noImgCount = Number(briefing.noImageSlidesCount || 0);
+    const totS = Number(briefing.totalSlides || 10);
+    if (noImgCount >= totS) {
+      designRule = `\n- **REGRA OBRIGATÓRIA DE DESIGN:** O usuário selecionou que TODOS os ${totS} slides devem ter FUNDO PRETO PURO (layout "text_only"), sem NENHUMA imagem gerada por IA (prompt_imagem deve ser null em todos os slides).`;
+    } else if (noImgCount > 0) {
+      designRule = `\n- **REGRA OBRIGATÓRIA DE DESIGN:** O usuário selecionou que os últimos ${noImgCount} slide(s) (de S${totS - noImgCount + 1} até S${totS}) devem ter FUNDO PRETO PURO (layout "text_only"), sem imagem de IA.`;
+    }
+
     const actualAIPrompt = `Avalie o seguinte briefing de carrossel de forma muito objetiva, curta e direta (em no máximo 2-3 parágrafos curtos). Seja prático e direto ao ponto, sem introduções longas ou textos prolixos:
 
 - **Título/Gancho:** ${briefing.title || 'Não definido'}
 - **Tema:** ${briefing.theme || 'Não definido'}
 - **Formato:** ${briefing.format || 'Não definido'}
-- **Total de Slides:** ${briefing.totalSlides || '10'}
+- **Total de Slides:** ${totS}
+- **Slides Sem Imagem (Fundo Preto):** ${noImgCount}
 - **Qualidade das Imagens:** ${briefing.imageQuality || 'high'}
 - **Pasta:** ${briefing.dir || 'Não definido'}
 - **Legenda (Caption):** ${briefing.caption || 'Não definido'}
-- **Notas:** ${briefing.notes || 'Não definido'}`;
+- **Notas:** ${briefing.notes || 'Não definido'}${designRule}`;
 
     setMessages(prev => [...prev, { role: 'user', content: displayUserText }]);
     // Scroll suave para o final do chat após enviar o briefing
@@ -213,7 +224,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
           slidesDir: briefing.dir || '',
           caption: briefing.caption || '',
           notes: briefing.notes || '',
-          totalSlides: briefing.totalSlides || 10,
+          totalSlides: totS,
+          noImageSlidesCount: noImgCount,
           imageQuality: briefing.imageQuality || 'high',
           status: 'rascunho',
           chatHistory: [
@@ -245,7 +257,11 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
       const res = await fetch('/api/criador/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history }),
+        body: JSON.stringify({ 
+          messages: history,
+          totalSlides: totS,
+          noImageSlidesCount: noImgCount
+        }),
       });
 
       if (!res.ok) {

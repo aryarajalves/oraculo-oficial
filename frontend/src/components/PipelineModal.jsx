@@ -63,16 +63,35 @@ export default function PipelineModal({ carousel, onClose }) {
       }}
       onClick={(e) => e.stopPropagation()}
     >
+      <style>{`
+        .custom-pipeline-scroll::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .custom-pipeline-scroll::-webkit-scrollbar-track {
+          background: rgba(0, 0, 0, 0.2);
+          border-radius: 4px;
+        }
+        .custom-pipeline-scroll::-webkit-scrollbar-thumb {
+          background: rgba(139, 92, 246, 0.4);
+          border-radius: 4px;
+        }
+        .custom-pipeline-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(139, 92, 246, 0.7);
+        }
+      `}</style>
+
       <div
-        className="pipeline-modal-panel"
+        className="pipeline-modal-panel custom-pipeline-scroll"
         style={{
           width: '100%',
-          maxWidth: '900px',
-          maxHeight: '90vh',
+          maxWidth: '920px',
+          height: '85vh',
+          maxHeight: '850px',
           backgroundColor: '#121319',
           border: '1px solid rgba(139, 92, 246, 0.3)',
           borderRadius: '16px',
-          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(139, 92, 246, 0.15)',
+          boxShadow: '0 20px 50px rgba(0, 0, 0, 0.9), 0 0 35px rgba(139, 92, 246, 0.2)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -80,14 +99,15 @@ export default function PipelineModal({ carousel, onClose }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header Modal */}
+        {/* Header Modal (Fixo) */}
         <div style={{
+          flexShrink: 0,
           padding: '20px 24px',
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.1) 0%, rgba(18, 19, 25, 0) 100%)'
+          background: 'linear-gradient(90deg, rgba(139, 92, 246, 0.12) 0%, rgba(18, 19, 25, 0) 100%)'
         }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
@@ -120,7 +140,7 @@ export default function PipelineModal({ carousel, onClose }) {
               color: 'rgba(255, 255, 255, 0.6)',
               fontSize: '20px',
               cursor: 'pointer',
-              padding: '4px 8px',
+              padding: '6px 12px',
               borderRadius: '6px',
               transition: 'all 0.2s'
             }}
@@ -132,10 +152,11 @@ export default function PipelineModal({ carousel, onClose }) {
           </button>
         </div>
 
-        {/* Modal Tabs Navigation */}
+        {/* Modal Tabs Navigation (Fixo no topo da área interna) */}
         <div style={{
+          flexShrink: 0,
           display: 'flex',
-          gap: '4px',
+          gap: '6px',
           padding: '12px 24px 0 24px',
           borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
           backgroundColor: '#0c0d12',
@@ -154,8 +175,9 @@ export default function PipelineModal({ carousel, onClose }) {
               style={{
                 padding: '8px 16px',
                 border: 'none',
+                borderRadius: '8px 8px 0 0',
+                backgroundColor: activeTab === tab.id ? 'rgba(139, 92, 246, 0.15)' : 'transparent',
                 borderBottom: activeTab === tab.id ? '2px solid #8b5cf6' : '2px solid transparent',
-                backgroundColor: 'transparent',
                 color: activeTab === tab.id ? '#a78bfa' : 'rgba(255, 255, 255, 0.6)',
                 fontWeight: activeTab === tab.id ? '600' : '400',
                 fontSize: '13px',
@@ -169,8 +191,16 @@ export default function PipelineModal({ carousel, onClose }) {
           ))}
         </div>
 
-        {/* Modal Body */}
-        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+        {/* Modal Body (Rolagem interna apenas no conteúdo) */}
+        <div
+          className="custom-pipeline-scroll"
+          style={{
+            padding: '24px',
+            overflowY: 'auto',
+            flex: 1,
+            minHeight: 0
+          }}
+        >
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#a78bfa' }}>
               ⚡ Carregando dados do pipeline...
@@ -317,17 +347,20 @@ export default function PipelineModal({ carousel, onClose }) {
                             {copiedPromptKey === agent.key ? '✓ Copiado!' : '📋 Copiar Prompt'}
                           </button>
                         </div>
-                        <pre style={{
-                          margin: 0,
-                          padding: '14px',
-                          fontSize: '12px',
-                          lineHeight: '1.5',
-                          fontFamily: 'monospace',
-                          whiteSpace: 'pre-wrap',
-                          color: '#a1a1aa',
-                          maxHeight: '200px',
-                          overflowY: 'auto'
-                        }}>
+                        <pre
+                          className="custom-pipeline-scroll"
+                          style={{
+                            margin: 0,
+                            padding: '14px',
+                            fontSize: '12px',
+                            lineHeight: '1.5',
+                            fontFamily: 'monospace',
+                            whiteSpace: 'pre-wrap',
+                            color: '#a1a1aa',
+                            maxHeight: '220px',
+                            overflowY: 'auto'
+                          }}
+                        >
                           {promptText}
                         </pre>
                       </div>
@@ -431,18 +464,21 @@ export default function PipelineModal({ carousel, onClose }) {
 
               {/* TAB 5: LOGS DE EXECUÇÃO */}
               {activeTab === 'logs' && (
-                <div style={{
-                  backgroundColor: '#090a0f',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '10px',
-                  padding: '16px',
-                  fontFamily: 'monospace',
-                  fontSize: '12px',
-                  lineHeight: '1.6',
-                  color: '#4ade80',
-                  maxHeight: '400px',
-                  overflowY: 'auto'
-                }}>
+                <div
+                  className="custom-pipeline-scroll"
+                  style={{
+                    backgroundColor: '#090a0f',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '10px',
+                    padding: '16px',
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    lineHeight: '1.6',
+                    color: '#4ade80',
+                    maxHeight: '400px',
+                    overflowY: 'auto'
+                  }}
+                >
                   {logs && logs.length > 0 ? (
                     logs.map((log, i) => (
                       <div key={i} style={{ marginBottom: '4px' }}>
@@ -460,8 +496,9 @@ export default function PipelineModal({ carousel, onClose }) {
           )}
         </div>
 
-        {/* Modal Footer */}
+        {/* Modal Footer (Fixo) */}
         <div style={{
+          flexShrink: 0,
           padding: '16px 24px',
           borderTop: '1px solid rgba(255, 255, 255, 0.08)',
           display: 'flex',

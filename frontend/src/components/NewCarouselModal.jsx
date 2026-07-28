@@ -9,18 +9,19 @@ export default function NewCarouselModal({ isOpen, onClose, onCreate, onSendToCh
   const [notes, setNotes] = useState('');
 
   const [totalSlides, setTotalSlides] = useState('10');
+  const [noImageSlides, setNoImageSlides] = useState('0');
   const [imageQuality, setImageQuality] = useState('high');
 
   if (!isOpen) return null;
 
   const handleSubmit = () => {
-    onCreate({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), imageQuality });
+    onCreate({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), noImageSlidesCount: Number(noImageSlides), imageQuality });
     onClose();
   };
 
   const handleSendToChat = () => {
     if (onSendToChat) {
-      onSendToChat({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), imageQuality });
+      onSendToChat({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), noImageSlidesCount: Number(noImageSlides), imageQuality });
     }
     onClose();
   };
@@ -56,7 +57,11 @@ export default function NewCarouselModal({ isOpen, onClose, onCreate, onSendToCh
             <input type="number" className="form-input" min="1" max="20" value={totalSlides} onChange={e => setTotalSlides(e.target.value)} />
           </div>
           <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-            <label className="form-label">Qualidade das Imagens</label>
+            <label className="form-label">Slides Sem Imagem</label>
+            <input type="number" className="form-input" min="0" max={totalSlides} value={noImageSlides} onChange={e => setNoImageSlides(e.target.value)} />
+          </div>
+          <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
+            <label className="form-label">Qualidade</label>
             <select className="form-select" value={imageQuality} onChange={e => setImageQuality(e.target.value)}>
               <option value="auto">Auto</option>
               <option value="low">Baixa</option>
