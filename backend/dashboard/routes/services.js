@@ -320,7 +320,7 @@ router.get('/api/settings/prompts', (req, res) => {
   }
 });
 
-router.post('/api/settings/prompts', (req, res) => {
+router.post('/api/settings/prompts', async (req, res) => {
   const { id, content } = req.body;
   if (!id || content === undefined) {
     return res.status(400).json({ error: 'Parâmetros inválidos. É necessário fornecer id e content.' });
@@ -329,13 +329,22 @@ router.post('/api/settings/prompts', (req, res) => {
   const filePath = path.join(AGENTS_DIR, `${safeId}.md`);
   try {
     fs.writeFileSync(filePath, content, 'utf-8');
+    try {
+      await query(`
+        INSERT INTO agent_prompts (id, content, updated_at)
+        VALUES ($1, $2, NOW())
+        ON CONFLICT (id) DO UPDATE SET content = $2, updated_at = NOW()
+      `, [safeId, content]);
+    } catch (dbErr) {
+      logger.warn('[AgentPrompts]', `Aviso ao salvar prompt no DB: ${dbErr.message}`);
+    }
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-router.post('/api/settings/prompts/rename', (req, res) => {
+router.post('/api/settings/prompts/rename', async (req, res) => {
   const { id, name } = req.body;
   if (!id || !name) {
     return res.status(400).json({ error: 'Parâmetros inválidos. Forneça id e name.' });
@@ -344,6 +353,13 @@ router.post('/api/settings/prompts/rename', (req, res) => {
     const displayNames = readDisplayNames();
     displayNames[id] = name;
     writeDisplayNames(displayNames);
+    try {
+      await query(`
+        INSERT INTO agent_prompts (id, display_name, updated_at)
+        VALUES ($1, $2, NOW())
+        ON CONFLICT (id) DO UPDATE SET display_name = $2, updated_at = NOW()
+      `, [id, name]);
+    } catch {}
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
