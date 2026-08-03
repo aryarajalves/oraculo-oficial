@@ -345,10 +345,34 @@ export default function PipelineModal({ carousel, onClose }) {
                       }))
                     );
 
+                    const categorizePrompt = (id) => {
+                      const normId = (id || '').toLowerCase();
+                      const textCopyKeywords = ['copy', 'oraculo', 'gancho', 'humanizer', 'cta', 'criador', 'roteirista'];
+                      const designVisualKeywords = ['visual', 'diretor', 'arte', 'dna', 'imagem'];
+                      
+                      if (textCopyKeywords.some(k => normId.includes(k))) return 'TEXTO & COPY';
+                      if (designVisualKeywords.some(k => normId.includes(k))) return 'DESIGN & VISUAL';
+                      return 'REVISÃO & GESTÃO';
+                    };
+
+                    const groupedAgents = {
+                      'TEXTO & COPY': [],
+                      'DESIGN & VISUAL': [],
+                      'REVISÃO & GESTÃO': []
+                    };
+
+                    agentList.forEach(agent => {
+                      const cat = categorizePrompt(agent.id);
+                      if (!groupedAgents[cat]) groupedAgents[cat] = [];
+                      groupedAgents[cat].push(agent);
+                    });
+
                     const getAgentColor = (id, idx) => {
                       const colors = ['#e0a96d', '#8b5cf6', '#06b6d4', '#ec4899', '#22c55e', '#f43f5e', '#3b82f6', '#eab308'];
                       return colors[idx % colors.length];
                     };
+
+                    let globalIdx = 0;
 
                     return (
                       <>
@@ -375,124 +399,152 @@ export default function PipelineModal({ carousel, onClose }) {
                           </button>
                         </div>
 
-                        {agentList.map((agent, idx) => {
-                          const promptText = agent.content || agentPrompts[agent.id] || 'Prompt não disponível.';
-                          const agentColor = getAgentColor(agent.id, idx);
-                          const isCollapsed = Boolean(collapsedAgents[agent.id]);
+                        {Object.entries(groupedAgents).map(([categoryName, items]) => {
+                          if (items.length === 0) return null;
 
                           return (
-                            <div
-                              key={agent.id || idx}
-                              style={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                                border: '1px solid rgba(255, 255, 255, 0.08)',
-                                borderRadius: '10px',
-                                overflow: 'hidden',
-                                transition: 'all 0.2s ease'
-                              }}
-                            >
-                              <div
-                                onClick={() => toggleAgentCollapse(agent.id)}
-                                style={{
-                                  padding: '10px 14px',
-                                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center',
-                                  borderBottom: isCollapsed ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
-                                  cursor: 'pointer',
-                                  userSelect: 'none'
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)' }}>
-                                    {isCollapsed ? '►' : '▼'}
-                                  </span>
-                                  <span style={{ fontWeight: '600', fontSize: '13px', color: agentColor }}>
-                                    🎭 {agent.name || agent.id}
-                                  </span>
-                                  <span style={{
-                                    fontSize: '10px',
-                                    padding: '1px 6px',
-                                    borderRadius: '4px',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-                                    color: 'rgba(255, 255, 255, 0.5)',
-                                    fontFamily: 'monospace'
-                                  }}>
-                                    {agent.id}
-                                  </span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setMaximizedAgent({
-                                        id: agent.id,
-                                        name: agent.name || agent.id,
-                                        content: promptText,
-                                        color: agentColor
-                                      });
-                                    }}
-                                    title="Maximizar prompt em tela cheia"
-                                    style={{
-                                      padding: '4px 10px',
-                                      backgroundColor: 'rgba(139, 92, 246, 0.15)',
-                                      color: '#a78bfa',
-                                      border: '1px solid rgba(139, 92, 246, 0.3)',
-                                      borderRadius: '4px',
-                                      fontSize: '11px',
-                                      cursor: 'pointer',
-                                      fontWeight: '500',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      transition: 'all 0.2s'
-                                    }}
-                                  >
-                                    ⛶ Maximizar
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleCopy(promptText, agent.id);
-                                    }}
-                                    style={{
-                                      padding: '4px 10px',
-                                      backgroundColor: copiedPromptKey === agent.id ? '#22c55e' : 'rgba(255, 255, 255, 0.08)',
-                                      color: '#fff',
-                                      border: 'none',
-                                      borderRadius: '4px',
-                                      fontSize: '11px',
-                                      cursor: 'pointer',
-                                      fontWeight: '500',
-                                      transition: 'all 0.2s'
-                                    }}
-                                  >
-                                    {copiedPromptKey === agent.id ? '✓ Copiado!' : '📋 Copiar Prompt'}
-                                  </button>
-                                  <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)' }}>
-                                    {isCollapsed ? 'Mostrar' : 'Ocultar'}
-                                  </span>
-                                </div>
+                            <div key={categoryName} style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '8px' }}>
+                              <div style={{
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                color: 'rgba(255, 255, 255, 0.45)',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.12em',
+                                paddingTop: '8px',
+                                paddingBottom: '4px',
+                                borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px'
+                              }}>
+                                <span>{categoryName}</span>
+                                <span style={{ fontSize: '10px', color: 'rgba(255, 255, 255, 0.3)', fontWeight: 'normal' }}>
+                                  ({items.length})
+                                </span>
                               </div>
-                              {!isCollapsed && (
-                                <pre
-                                  className="custom-pipeline-scroll"
-                                  style={{
-                                    margin: 0,
-                                    padding: '14px',
-                                    fontSize: '12px',
-                                    lineHeight: '1.5',
-                                    fontFamily: 'monospace',
-                                    whiteSpace: 'pre-wrap',
-                                    color: '#a1a1aa',
-                                    maxHeight: '220px',
-                                    overflowY: 'auto'
-                                  }}
-                                >
-                                  {promptText}
-                                </pre>
-                              )}
+
+                              {items.map(agent => {
+                                const idx = globalIdx++;
+                                const promptText = agent.content || agentPrompts[agent.id] || 'Prompt não disponível.';
+                                const agentColor = getAgentColor(agent.id, idx);
+                                const isCollapsed = Boolean(collapsedAgents[agent.id]);
+
+                                return (
+                                  <div
+                                    key={agent.id || idx}
+                                    style={{
+                                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                                      borderRadius: '10px',
+                                      overflow: 'hidden',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                  >
+                                    <div
+                                      onClick={() => toggleAgentCollapse(agent.id)}
+                                      style={{
+                                        padding: '10px 14px',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        borderBottom: isCollapsed ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
+                                        cursor: 'pointer',
+                                        userSelect: 'none'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)' }}>
+                                          {isCollapsed ? '►' : '▼'}
+                                        </span>
+                                        <span style={{ fontWeight: '600', fontSize: '13px', color: agentColor }}>
+                                          🎭 {agent.name || agent.id}
+                                        </span>
+                                        <span style={{
+                                          fontSize: '10px',
+                                          padding: '1px 6px',
+                                          borderRadius: '4px',
+                                          backgroundColor: 'rgba(255, 255, 255, 0.06)',
+                                          color: 'rgba(255, 255, 255, 0.5)',
+                                          fontFamily: 'monospace'
+                                        }}>
+                                          {agent.id}
+                                        </span>
+                                      </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setMaximizedAgent({
+                                              id: agent.id,
+                                              name: agent.name || agent.id,
+                                              content: promptText,
+                                              color: agentColor
+                                            });
+                                          }}
+                                          title="Maximizar prompt em tela cheia"
+                                          style={{
+                                            padding: '4px 10px',
+                                            backgroundColor: 'rgba(139, 92, 246, 0.15)',
+                                            color: '#a78bfa',
+                                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                                            borderRadius: '4px',
+                                            fontSize: '11px',
+                                            cursor: 'pointer',
+                                            fontWeight: '500',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            transition: 'all 0.2s'
+                                          }}
+                                        >
+                                          ⛶ Maximizar
+                                        </button>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCopy(promptText, agent.id);
+                                          }}
+                                          style={{
+                                            padding: '4px 10px',
+                                            backgroundColor: copiedPromptKey === agent.id ? '#22c55e' : 'rgba(255, 255, 255, 0.08)',
+                                            color: '#fff',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            fontSize: '11px',
+                                            cursor: 'pointer',
+                                            fontWeight: '500',
+                                            transition: 'all 0.2s'
+                                          }}
+                                        >
+                                          {copiedPromptKey === agent.id ? '✓ Copiado!' : '📋 Copiar Prompt'}
+                                        </button>
+                                        <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)' }}>
+                                          {isCollapsed ? 'Mostrar' : 'Ocultar'}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {!isCollapsed && (
+                                      <pre
+                                        className="custom-pipeline-scroll"
+                                        style={{
+                                          margin: 0,
+                                          padding: '14px',
+                                          fontSize: '12px',
+                                          lineHeight: '1.5',
+                                          fontFamily: 'monospace',
+                                          whiteSpace: 'pre-wrap',
+                                          color: '#a1a1aa',
+                                          maxHeight: '220px',
+                                          overflowY: 'auto'
+                                        }}
+                                      >
+                                        {promptText}
+                                      </pre>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           );
                         })}

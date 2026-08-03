@@ -54,10 +54,11 @@ try {
   assert(modalContent.includes('Recolher Todos'), 'Botão "Recolher Todos" presente na interface');
   assert(modalContent.includes('maximizedAgent'), 'Estado maximizedAgent declarado para modal de tela cheia');
   assert(modalContent.includes('Maximizar'), 'Botão "Maximizar" presente nos cards de agente');
+  assert(modalContent.includes('TEXTO & COPY') && modalContent.includes('DESIGN & VISUAL'), 'Cabeçalhos de categorias/grupos de agentes implementados');
   assert(modalContent.includes('zIndex: 10005') && modalContent.includes('e.stopPropagation()'), 'Fechamento por clique fora do painel desativado (backdrop bloqueado com stopPropagation)');
 } catch (err) {
   console.error('  ❌ Erro ao ler PipelineModal.jsx:', err.message);
-  failed += 7;
+  failed += 8;
 }
 
 console.log(`\n📊 Resultado: ${passed} passou / ${failed} falhou\n`);
