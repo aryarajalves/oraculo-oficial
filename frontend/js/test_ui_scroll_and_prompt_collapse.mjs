@@ -42,8 +42,8 @@ try {
   failed += 2;
 }
 
-// TESTE 2: Verificar se PipelineModal.jsx possui a lógica de recolhimento de prompts
-console.log('\nTeste 2: Verificar funcionalidade de recolher/expandir prompts em PipelineModal.jsx');
+// TESTE 2: Verificar se PipelineModal.jsx possui a lógica de recolhimento e maximização de prompts
+console.log('\nTeste 2: Verificar funcionalidade de recolher/expandir e maximizar prompts em PipelineModal.jsx');
 try {
   const modalPath = path.resolve('frontend/src/components/PipelineModal.jsx');
   const modalContent = fs.readFileSync(modalPath, 'utf-8');
@@ -52,10 +52,11 @@ try {
   assert(modalContent.includes('toggleAgentCollapse'), 'Função toggleAgentCollapse implementada');
   assert(modalContent.includes('toggleAllAgents'), 'Função toggleAllAgents implementada');
   assert(modalContent.includes('Recolher Todos'), 'Botão "Recolher Todos" presente na interface');
-  assert(modalContent.includes('!isCollapsed'), 'Renderização condicional do prompt pre-block implementada');
+  assert(modalContent.includes('maximizedAgent'), 'Estado maximizedAgent declarado para modal de tela cheia');
+  assert(modalContent.includes('Maximizar'), 'Botão "Maximizar" presente nos cards de agente');
 } catch (err) {
   console.error('  ❌ Erro ao ler PipelineModal.jsx:', err.message);
-  failed += 5;
+  failed += 6;
 }
 
 console.log(`\n📊 Resultado: ${passed} passou / ${failed} falhou\n`);
