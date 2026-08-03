@@ -675,7 +675,7 @@ export default function PipelineModal({ carousel, onClose }) {
             justifyContent: 'center',
             padding: '24px'
           }}
-          onClick={() => setMaximizedAgent(null)}
+          onClick={(e) => e.stopPropagation()}
         >
           <div
             style={{
@@ -690,7 +690,6 @@ export default function PipelineModal({ carousel, onClose }) {
               flexDirection: 'column',
               overflow: 'hidden'
             }}
-            onClick={(e) => e.stopPropagation()}
           >
             {/* Header do Modal Maximizado */}
             <div style={{
