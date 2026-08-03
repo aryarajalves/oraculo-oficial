@@ -88,11 +88,15 @@ export function parseCarouselText(text, fallbackData = null) {
   }
   flush();
 
+  const finalTitle = temaMatch 
+    ? temaMatch[1].trim().slice(0, 80) 
+    : (slides[0]?.title?.replace(/\n/g, ' ') || fallbackData?.title || 'Carrossel Fonte Oculta');
+
   return {
-    title,
+    title: finalTitle,
     theme: temaMatch 
-      ? title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48)
-      : (fallbackData?.theme || title.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48)),
+      ? finalTitle.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48)
+      : (fallbackData?.theme || finalTitle.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48)),
     format: pracaMatch?.[1]?.trim().slice(0, 20) || (fallbackData?.format || 'B'),
     caption: caption || (fallbackData?.caption || ''),
     notes: ctaMatch?.[1]?.trim() || (fallbackData?.notes || ''),
@@ -100,5 +104,7 @@ export function parseCarouselText(text, fallbackData = null) {
     slides,
     totalSlides: slides.length || fallbackData?.totalSlides || 10,
     imageQuality: fallbackData?.imageQuality || 'high',
+    // Contagem de slides com fundo preto (text_only) extraída diretamente da estrutura gerada pela IA
+    noImageSlidesCount: slides.filter(s => s.layout === 'text_only').length,
   };
 }
