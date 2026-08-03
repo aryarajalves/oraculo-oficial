@@ -289,32 +289,73 @@ function writeDisplayNames(data) {
   } catch (e) {}
 }
 
-router.get('/api/settings/prompts', (req, res) => {
+async function getAllAgentPrompts(client) {
+  let displayNames = readDisplayNames();
+
+  let dbPromptsMap = {};
   try {
-    if (!fs.existsSync(AGENTS_DIR)) {
-      return res.json({ prompts: [] });
+    const dbRes = await query('SELECT id, display_name, content FROM agent_prompts');
+    if (dbRes && dbRes.rows) {
+      for (const row of dbRes.rows) {
+        dbPromptsMap[row.id] = {
+          name: row.display_name,
+          content: row.content
+        };
+      }
     }
-    const files = fs.readdirSync(AGENTS_DIR);
-    const displayNames = readDisplayNames();
-    const prompts = files
-      .filter(f => f.endsWith('.md'))
-      .map(f => {
-        const id = f.replace('.md', '');
-        const content = fs.readFileSync(path.join(AGENTS_DIR, f), 'utf-8');
-        let name = displayNames[id];
-        if (!name) {
-          name = id
-            .split('-')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ')
-            .replace('Haucacau', 'HauCacau')
-            .replace('V2', 'V2')
-            .replace('Dna', 'DNA')
-            .replace('Cta', 'CTA');
-        }
-        return { id, name, content };
-      });
-    res.json({ prompts });
+  } catch {}
+
+  const dynamicPrompts = buildAgentPrompts(client) || {};
+  let list = [];
+
+  try {
+    if (fs.existsSync(AGENTS_DIR)) {
+      const files = fs.readdirSync(AGENTS_DIR);
+      list = files
+        .filter(f => f.endsWith('.md'))
+        .map(f => {
+          const id = f.replace('.md', '');
+          const fileContent = fs.readFileSync(path.join(AGENTS_DIR, f), 'utf-8');
+          const dbEntry = dbPromptsMap[id];
+          let name = (dbEntry && dbEntry.name) || displayNames[id];
+          if (!name) {
+            name = id
+              .split('-')
+              .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+              .join(' ')
+              .replace('Haucacau', 'HauCacau')
+              .replace('V2', 'V2')
+              .replace('Dna', 'DNA')
+              .replace('Cta', 'CTA');
+          }
+          const content = (dbEntry && dbEntry.content) ? dbEntry.content : fileContent;
+          return { id, name, content };
+        });
+    }
+  } catch (e) {
+    logger.error('[AgentPrompts]', 'Erro ao ler pasta agents:', e.message);
+  }
+
+  for (const [key, text] of Object.entries(dynamicPrompts)) {
+    if (!list.some(a => a.id === key)) {
+      const formattedName = key
+        .split('_')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+      const dbEntry = dbPromptsMap[key];
+      const content = (dbEntry && dbEntry.content) ? dbEntry.content : text;
+      list.push({ id: key, name: formattedName, content });
+    }
+  }
+
+  const map = Object.fromEntries(list.map(a => [a.id, a.content]));
+  return { map, list };
+}
+
+router.get('/api/settings/prompts', async (req, res) => {
+  try {
+    const { list } = await getAllAgentPrompts(CLIENT);
+    res.json({ prompts: list });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
