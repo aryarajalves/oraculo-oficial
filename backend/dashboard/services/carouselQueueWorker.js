@@ -1,0 +1,211 @@
+import path from 'path';
+import fs from 'fs';
+import { spawn } from 'child_process';
+import { fileURLToPath } from 'url';
+import { logger } from '../logger.js';
+import { readDataAsync, writeDataAsync, getSlidesForCarousel } from '../helpers.js';
+import { generationJobs, sseClients, b2 } from '../state.js';
+import { enqueueCarouselTask, setupCarouselQueueConsumer } from './rabbitmq.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+export function broadcastSSE(data) {
+  sseClients.forEach(send => {
+    try {
+      send(data);
+    } catch (e) {}
+  });
+}
+
+export function initCarouselQueueWorker() {
+  logger.info('[QueueWorker]', 'Iniciando worker consumidor de filas de carrosséis...');
+  
+  setupCarouselQueueConsumer(async (taskData, ack, nack) => {
+    const { carouselId, payload, startTime } = taskData;
+    logger.info('[QueueWorker]', `▶ Processando carrossel ${carouselId} da fila...`);
+
+    const allCarousels = await readDataAsync();
+    const currentIdx = allCarousels.findIndex(c => c.id === carouselId);
+    if (currentIdx >= 0) {
+      allCarousels[currentIdx].status = 'generating';
+      allCarousels[currentIdx].generationStartedAt = startTime || Date.now();
+      await writeDataAsync(allCarousels);
+    }
+
+    generationJobs.set(carouselId, {
+      id: carouselId,
+      title: payload.title || 'Carrossel',
+      status: 'generating',
+      logs: ['Iniciando pipeline de geração de imagens via Fila RabbitMQ...'],
+      slides: [],
+      totalSlides: payload.slides?.length || 10,
+      startedAt: startTime || Date.now(),
+    });
+
+    broadcastSSE({ type: 'status_change', id: carouselId, status: 'generating' });
+    broadcastSSE({ type: 'log', msg: `⚙️ [Fila] Iniciando geração do carrossel ${carouselId}` });
+
+    const PYTHON = process.platform === 'win32' ? 'python' : 'python3';
+    const scriptName = process.env.USE_MOCK_GENERATOR === 'true' ? 'generate_mock_slides.py' : 'criador_pipeline.py';
+    const PIPELINE = path.join(__dirname, '..', '..', 'core', scriptName);
+
+    const spawnPayload = { ...payload, slides: payload.slides ? payload.slides.map(s => ({ ...s })) : [] };
+
+    // ── Forçamento estrito de slides de fundo preto (text_only) ──────────────
+    // Se o usuário solicitou N slides de fundo preto, garantir exatamente N.
+    if (taskData.noImageSlidesCount > 0 && spawnPayload.slides && spawnPayload.slides.length > 0) {
+      const totalS = spawnPayload.slides.length;
+      const target = Math.min(taskData.noImageSlidesCount, totalS);
+
+      // Contar quantos a IA já marcou como text_only
+      const currentTextOnly = spawnPayload.slides.filter(s => s.layout === 'text_only').length;
+
+      if (currentTextOnly < target) {
+        // Precisamos converter mais slides para text_only.
+        // Ordem de prioridade de candidatos: PS > CTA > Síntese > slides do fim para o início
+        const priority = ['PS', 'CTA', 'SINTESE', 'REFLEXÃO', 'SETUP'];
+        const candidates = [];
+
+        // Primeiro: slides com estado prioritário que ainda têm imagem
+        for (const p of priority) {
+          spawnPayload.slides.forEach((s, i) => {
+            if (s.layout !== 'text_only' && s.estado?.toUpperCase().includes(p)) {
+              candidates.push(i);
+            }
+          });
+        }
+
+        // Depois: slides do fim para o início que ainda têm imagem
+        for (let i = totalS - 1; i >= 0; i--) {
+          if (!candidates.includes(i) && spawnPayload.slides[i].layout !== 'text_only') {
+            candidates.push(i);
+          }
+        }
+
+        let remaining = target - currentTextOnly;
+        for (const idx of candidates) {
+          if (remaining <= 0) break;
+          spawnPayload.slides[idx].layout = 'text_only';
+          remaining--;
+        }
+
+      } else if (currentTextOnly > target) {
+        // A IA gerou mais text_only do que o pedido — restaurar alguns para 'fullbleed'
+        let excess = currentTextOnly - target;
+        for (let i = totalS - 1; i >= 0 && excess > 0; i--) {
+          if (spawnPayload.slides[i].layout === 'text_only') {
+            spawnPayload.slides[i].layout = 'fullbleed';
+            excess--;
+          }
+        }
+      }
+
+      logger.info('[QueueWorker]', `Distribuição final: ${spawnPayload.slides.filter(s => s.layout === 'text_only').length} slides fundo preto de ${totalS} totais (pedido: ${target})`);
+    }
+
+    return new Promise((resolve) => {
+      const child = spawn(PYTHON, ['-X', 'utf8', PIPELINE, '--data', JSON.stringify(spawnPayload)], {
+        shell: false,
+        cwd: path.join(__dirname, '..', '..'),
+        env: {
+          ...process.env,
+          PYTHONPATH: [
+            path.join(__dirname, '..', '..'),
+            path.join(__dirname, '..', '..', 'python_packages'),
+          ].join(process.platform === 'win32' ? ';' : ':'),
+        },
+      });
+
+      const generatedSlides = [];
+      let donePayload = null;
+      child.stdout.on('data', (buf) => {
+        const text = buf.toString();
+        text.split('\n').forEach(line => {
+          if (!line.trim()) return;
+          logger.info('[Generator-stdout]', line);
+          const job = generationJobs.get(carouselId);
+          if (job) job.logs.push(line);
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.type === 'slide' && parsed.status === 'ok' && parsed.file) {
+              const filename = path.basename(parsed.file);
+              if (!generatedSlides.some(s => s.filename === filename)) {
+                generatedSlides.push({ num: parsed.num, estado: parsed.estado, filename });
+              }
+            }
+            if (parsed.type === 'done') {
+              donePayload = parsed;
+            }
+            if (parsed.type === 'slide_ready' && parsed.slide) {
+              if (job && !job.slides.includes(parsed.slide)) {
+                job.slides.push(parsed.slide);
+              }
+              broadcastSSE({ type: 'slide_ready', carouselId, slide: parsed.slide, slideIndex: parsed.slideIndex });
+            }
+          } catch (e) {}
+        });
+      });
+
+      child.stderr.on('data', (buf) => {
+        const text = buf.toString();
+        text.split('\n').forEach(line => {
+          if (!line.trim()) return;
+          logger.warn('[Generator-stderr]', line);
+          const job = generationJobs.get(carouselId);
+          if (job) job.logs.push(`[ERR] ${line}`);
+        });
+      });
+
+      child.on('close', async (code) => {
+        const durationSeconds = Math.round((Date.now() - (startTime || Date.now())) / 1000);
+        const mins = Math.floor(durationSeconds / 60);
+        const secs = durationSeconds % 60;
+        const durationFormatted = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+        logger.info('[QueueWorker]', `✓ Processo finalizado para ${carouselId} com código ${code}. Duração: ${durationFormatted}`);
+
+        const localCarousels = await readDataAsync();
+        const idx = localCarousels.findIndex(c => c.id === carouselId);
+        let finalStatus = 'rascunho';
+        if (idx >= 0) {
+          const cRecord = localCarousels[idx];
+          if (donePayload?.slides_dir) {
+            cRecord.slidesDir = donePayload.slides_dir;
+          }
+          let slides = getSlidesForCarousel(cRecord);
+          if (slides.length === 0 && generatedSlides.length > 0) {
+            slides = generatedSlides.map(s => s.filename);
+          }
+          const isAllOk = code === 0 && donePayload && donePayload.total_ok === donePayload.total && slides.length > 0;
+          finalStatus = isAllOk ? 'pronto' : 'rascunho';
+
+          localCarousels[idx] = {
+            ...cRecord,
+            slidesDir: donePayload?.slides_dir || cRecord.slidesDir,
+            totalSlides: slides.length,
+            slides: slides,
+            status: finalStatus,
+            completedAt: new Date().toISOString(),
+            generationTimeSeconds: durationSeconds,
+            generationDuration: durationFormatted,
+          };
+          await writeDataAsync(localCarousels);
+        }
+
+        generationJobs.delete(carouselId);
+
+        broadcastSSE({ 
+          type: 'done', 
+          carouselId, 
+          status: finalStatus, 
+          generationDuration: durationFormatted, 
+          generationTimeSeconds: durationSeconds 
+        });
+
+        ack(); // Confirma a conclusão da mensagem ao RabbitMQ para liberar o próximo da fila!
+        resolve();
+      });
+    });
+  });
+}

@@ -4,6 +4,32 @@ Este documento registra a evolução do esquema de banco de dados do projeto, ga
 
 ---
 
+## [2026-08-03] Adição de colunas de tempo de geração na tabela carousels
+
+### Motivação
+O campo de duração da geração (`generationDuration`) era calculado corretamente no worker após a conclusão do pipeline, mas não era persistido no banco de dados PostgreSQL. Isso causava o desaparecimento do badge `⏱️ 1m 45s` nos cards do Dashboard após recarregar a página.
+
+### Tabela Afetada: `carousels`
+
+#### Novas Colunas
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `generation_duration` | `VARCHAR(100)` | Duração formatada da geração (ex: `1m 45s`) |
+| `generation_time_seconds` | `INTEGER` | Duração em segundos (para cálculo programático) |
+
+#### Script de Migração
+`backend/scripts/add_generation_duration_columns.py`
+
+**Para aplicar manualmente (se necessário):**
+```sql
+ALTER TABLE carousels ADD COLUMN IF NOT EXISTS generation_duration VARCHAR(100);
+ALTER TABLE carousels ADD COLUMN IF NOT EXISTS generation_time_seconds INTEGER;
+```
+
+> **Nota:** A migração já é executada automaticamente no `initDb()` ao iniciar o servidor.
+
+---
+
 ## [2026-06-23] Migração de JSON para PostgreSQL
 
 ### Motivação
