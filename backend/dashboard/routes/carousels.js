@@ -17,6 +17,7 @@ import {
   getCarouselCostDetails
 } from "../helpers.js";
 import { buildAgentPrompts } from "../agentPrompts.js";
+import { enqueueCarouselTask } from "../services/rabbitmq.js";
 import { 
   IS_PROD, 
   b2, 
@@ -44,7 +45,36 @@ router.get("/api/carousels", async (req, res) => {
   const carousels = all.map(c => {
     const slides = getSlidesForCarousel(c);
     const costDetails = getCarouselCostDetails(c);
-    return { ...c, slidesFound: slides.length, slides, cost: costDetails.cost, costDetails };
+    const activeJob = generationJobs.get(c.id);
+    const generationStartedAt = activeJob?.startedAt || c.generationStartedAt || (c.status === 'generating' ? new Date(c.createdAt || Date.now()).getTime() : undefined);
+    
+    let generationDuration = c.generationDuration;
+    let generationTimeSeconds = c.generationTimeSeconds;
+    if (c.status !== 'generating') {
+      if (!generationTimeSeconds && c.completedAt && (c.generationStartedAt || c.createdAt)) {
+        const startMs = new Date(c.generationStartedAt || c.createdAt).getTime();
+        const endMs = new Date(c.completedAt).getTime();
+        if (startMs && endMs && endMs > startMs) {
+          generationTimeSeconds = Math.max(1, Math.round((endMs - startMs) / 1000));
+        }
+      }
+      if (!generationDuration && generationTimeSeconds) {
+        const mins = Math.floor(generationTimeSeconds / 60);
+        const secs = generationTimeSeconds % 60;
+        generationDuration = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+      }
+    }
+    
+    return { 
+      ...c, 
+      slidesFound: slides.length, 
+      slides, 
+      cost: costDetails.cost, 
+      costDetails, 
+      generationStartedAt,
+      generationDuration,
+      generationTimeSeconds 
+    };
   });
   res.json(carousels);
 });
@@ -56,8 +86,35 @@ router.get("/api/carousels/:id", async (req, res) => {
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
   const slides = getSlidesForCarousel(c);
   const costDetails = getCarouselCostDetails(c);
+  const activeJob = generationJobs.get(c.id);
+  const generationStartedAt = activeJob?.startedAt || c.generationStartedAt || (c.status === 'generating' ? new Date(c.createdAt || Date.now()).getTime() : undefined);
 
-  res.json({ ...c, slides, cost: costDetails.cost, costDetails });
+  let generationDuration = c.generationDuration;
+  let generationTimeSeconds = c.generationTimeSeconds;
+  if (c.status !== 'generating') {
+    if (!generationTimeSeconds && c.completedAt && (c.generationStartedAt || c.createdAt)) {
+      const startMs = new Date(c.generationStartedAt || c.createdAt).getTime();
+      const endMs = new Date(c.completedAt).getTime();
+      if (startMs && endMs && endMs > startMs) {
+        generationTimeSeconds = Math.max(1, Math.round((endMs - startMs) / 1000));
+      }
+    }
+    if (!generationDuration && generationTimeSeconds) {
+      const mins = Math.floor(generationTimeSeconds / 60);
+      const secs = generationTimeSeconds % 60;
+      generationDuration = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    }
+  }
+
+  res.json({ 
+    ...c, 
+    slides, 
+    cost: costDetails.cost, 
+    costDetails, 
+    generationStartedAt,
+    generationDuration,
+    generationTimeSeconds
+  });
 });
 
 async function getAllAgentPrompts(client) {
@@ -136,7 +193,46 @@ router.get("/api/carousels/:id/pipeline", async (req, res) => {
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
 
-  const slides = getSlidesForCarousel(c);
+  const rawSlides = getSlidesForCarousel(c);
+  const slidesDir = getLocalSlidesDir(c);
+  const slides = rawSlides.map((s, idx) => {
+    const filename = typeof s === 'string' ? s : (s.filename || s.name);
+    const numStr = String(idx + 1).padStart(2, '0');
+    let prompt = null;
+    let layout = 'fullbleed';
+    let title = '';
+    
+    if (slidesDir && fs.existsSync(slidesDir)) {
+      const metaPath = path.join(slidesDir, `slide-${numStr}.meta.json`);
+      if (fs.existsSync(metaPath)) {
+        try {
+          const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+          prompt = meta.prompt || meta.arte_prompt || null;
+          layout = meta.layout || layout;
+          title = meta.title || title;
+        } catch (e) {}
+      }
+    }
+
+    if (typeof s === 'object') {
+      return {
+        ...s,
+        filename,
+        num: s.num || idx + 1,
+        prompt: s.prompt || prompt || (layout === 'text_only' ? '[ Slide de Fundo Preto / Sem Imagem ]' : null),
+        layout: s.layout || layout,
+        title: s.title || title
+      };
+    }
+    return {
+      filename,
+      num: idx + 1,
+      prompt: prompt || (layout === 'text_only' ? '[ Slide de Fundo Preto / Sem Imagem ]' : null),
+      layout,
+      title
+    };
+  });
+
   const costDetails = getCarouselCostDetails(c);
   const job = generationJobs.get(c.id);
   const { map: agentPromptsMap, list: agentPromptsList } = await getAllAgentPrompts(CLIENT);
@@ -309,8 +405,12 @@ router.get("/api/carousels/:id/image/:filename", async (req, res) => {
   const c = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).send("Carrossel não encontrado");
 
-  // Habilitar cache público de 24 horas no navegador
-  res.setHeader("Cache-Control", "public, max-age=86400, must-revalidate");
+  // Desabilitar cache se um parâmetro de versão (v ou t) for fornecido
+  if (req.query.v || req.query.t) {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  } else {
+    res.setHeader("Cache-Control", "public, max-age=86400, must-revalidate");
+  }
 
   // Se o carrossel foi de fato enviado ao MinIO (possui b2BaseUrl ou slides são objetos com url)
   const isUploadedToB2 = c.b2BaseUrl || (c.slides && c.slides.length > 0 && typeof c.slides[0] === 'object' && c.slides[0].url);
@@ -782,17 +882,63 @@ router.post('/api/carousels/:id/retry', async (req, res) => {
   }
 
   const retryPayload = { ...payload, id };
+  const newStartTime = Date.now();
+  const newCarousel = {
+    ...carousel,
+    id:          id,
+    title:       payload.title || carousel?.title || 'Carrossel',
+    theme:       payload.theme || carousel?.theme || 'sem-titulo',
+    format:      payload.format || carousel?.format || 'B',
+    status:      'queued',
+    generationStartedAt: newStartTime,
+    generationDuration: undefined,
+    generationTimeSeconds: undefined,
+    completedAt: undefined,
+    createdAt:   carousel?.createdAt || new Date().toISOString(),
+    slidesDir:   carousel?.slidesDir || '',
+    slidePrefix: 'slide-',
+    totalSlides: Number(payload.totalSlides) || payload.slides?.length || 10,
+    imageQuality: payload.imageQuality || carousel?.imageQuality || 'high',
+    caption:     payload.caption || carousel?.caption || '',
+    notes:       payload.notes || carousel?.notes || '',
+    chatHistory: carousel?.chatHistory || [],
+    slides:      [],
+    noImageSlidesCount: payload.noImageSlidesCount || carousel?.noImageSlidesCount || 0,
+    imageProvider: process.env.ACTIVE_IMAGE_PROVIDER || carousel?.imageProvider || 'gpt-image-2',
+    copyModel:     process.env.COPY_GENERATION_MODEL || carousel?.copyModel || 'gpt-4o',
+    lastPayload: { ...payload, slidesDir: undefined }
+  };
+  
+  const allCarousels = await readDataAsync();
+  const idx = allCarousels.findIndex(c => c.id === id);
+  if (idx >= 0) {
+    allCarousels[idx] = newCarousel;
+    await writeDataAsync(allCarousels);
+  }
+
   logger.info('[Retry]', `Retentativa de geração para carrossel ${id}`);
 
-  return runGenerationPipeline(retryPayload, req, res);
+  const taskPayload = {
+    carouselId: id,
+    payload: { ...payload, slidesDir: '' },
+    noImageSlidesCount: newCarousel.noImageSlidesCount,
+    startTime: newStartTime
+  };
+
+  const queueResult = await enqueueCarouselTask(taskPayload);
+
+  res.json({
+    ok: true,
+    id: id,
+    status: 'queued',
+    queuePosition: queueResult.queuePosition || 1,
+    message: 'Carrossel enfileirado no RabbitMQ com sucesso'
+  });
 });
 
 // ── API: Criador — Gerar carrossel completo ───────────────────────────────────
 router.post('/api/criador/generate', async (req, res) => {
-  return runGenerationPipeline(req.body, req, res);
-});
-
-async function runGenerationPipeline(payload, req, res) {
+  const payload = req.body;
   if (!payload || !Array.isArray(payload.slides) || payload.slides.length === 0) {
     return res.status(400).json({ error: 'slides é obrigatório' });
   }
@@ -836,7 +982,7 @@ async function runGenerationPipeline(payload, req, res) {
     title:       payload.title || existingCarousel?.title || 'Carrossel',
     theme:       payload.theme || existingCarousel?.theme || slug,
     format:      payload.format || existingCarousel?.format || 'B',
-    status:      'generating',
+    status:      'queued',
     createdAt:   existingCarousel?.createdAt || new Date().toISOString(),
     slidesDir:   outDir,
     slidePrefix: 'slide-',
@@ -849,10 +995,8 @@ async function runGenerationPipeline(payload, req, res) {
     noImageSlidesCount: noImageSlidesCount,
     imageProvider: process.env.ACTIVE_IMAGE_PROVIDER || existingCarousel?.imageProvider || 'gpt-image-2',
     copyModel:     process.env.COPY_GENERATION_MODEL || existingCarousel?.copyModel || 'gpt-4o',
+    lastPayload: { ...payload, slidesDir: undefined }
   };
-
-  // Salvar o payload para possibilitar retentativa futura
-  newCarousel.lastPayload = { ...payload, slidesDir: undefined };
 
   if (existingCarousel) {
     const idx = allCarousels.findIndex(c => c.id === newId);
@@ -862,256 +1006,23 @@ async function runGenerationPipeline(payload, req, res) {
   }
   await writeDataAsync(allCarousels);
 
-  generationJobs.set(newId, {
-    id: newId,
-    title: newCarousel.title,
-    status: 'generating',
-    logs: ['Iniciando pipeline de geração de imagens...'],
-    slides: [],
-    totalSlides: payload.slides.length
-  });
-
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-
-  const broadcast = (data) => {
-    try {
-      res.write(`data: ${JSON.stringify(data)}\n\n`);
-    } catch (e) {}
-    sseClients.forEach(send => {
-      try {
-        send(data);
-      } catch (e) {}
-    });
+  const taskPayload = {
+    carouselId: newId,
+    payload: { ...payload, slidesDir: newCarousel.slidesDir },
+    noImageSlidesCount,
+    startTime: Date.now()
   };
 
-  logger.info('[Generator]', `PASSO 1: Iniciando pipeline para o carrossel ${newId}. Total de slides: ${payload.slides?.length}`);
-  broadcast({ type: 'log', msg: `⚙️ [Servidor] PASSO 1: Iniciando geração do carrossel ${newId}` });
+  const queueResult = await enqueueCarouselTask(taskPayload);
 
-  const PYTHON   = process.platform === 'win32' ? 'python' : 'python3';
-  const scriptName = process.env.USE_MOCK_GENERATOR === 'true' ? 'generate_mock_slides.py' : 'criador_pipeline.py';
-  const PIPELINE = path.join(__dirname, '..', '..', 'core', scriptName);
-  
-  logger.info('[Generator]', `PASSO 2: Caminho do script: ${PIPELINE}. Python Exec: ${PYTHON} | Usando Mock: ${process.env.USE_MOCK_GENERATOR === 'true'}`);
-  broadcast({ type: 'log', msg: `⚙️ [Servidor] PASSO 2: Caminho do pipeline: ${PIPELINE} (Mock: ${process.env.USE_MOCK_GENERATOR === 'true'})` });
-
-  const spawnPayload = { ...payload, slidesDir: newCarousel.slidesDir };
-  if (noImageSlidesCount > 0 && spawnPayload.slides && spawnPayload.slides.length > 0) {
-    const totalS = spawnPayload.slides.length;
-    for (let i = Math.max(0, totalS - noImageSlidesCount); i < totalS; i++) {
-      spawnPayload.slides[i].layout = "text_only";
-    }
-  }
-  const child = spawn(PYTHON, ['-X', 'utf8', PIPELINE, '--data', JSON.stringify(spawnPayload)], {
-    shell: false,
-    cwd: path.join(__dirname, '..', '..'),
-    env: {
-      ...process.env,
-      PYTHONPATH: [
-        path.join(__dirname, '..', '..'),
-        path.join(__dirname, '..', '..', 'python_packages'),
-      ].join(process.platform === 'win32' ? ';' : ':'),
-    },
+  res.json({
+    ok: true,
+    id: newId,
+    status: 'queued',
+    queuePosition: queueResult.queuePosition || 1,
+    message: 'Carrossel enfileirado no RabbitMQ com sucesso'
   });
-
-  logger.info('[Generator]', `PASSO 3: Processo spawnado com PID ${child.pid}`);
-  broadcast({ type: 'log', msg: `⚙️ [Servidor] PASSO 3: Processo de geração de imagens iniciado` });
-
-  child.on('error', (err) => {
-    logger.error('[Generator]', `PASSO 3 — FALHA NO SPAWN: ${err.message}. Stack: ${err.stack}`);
-    const job = generationJobs.get(newId);
-    if (job) {
-      job.status = 'failed';
-      job.logs.push(`Erro de spawn: ${err.message}`);
-    }
-    broadcast({ type: 'error', msg: `Falha ao iniciar Python: ${err.message}` });
-    res.end();
-  });
-
-  const generatedFiles = [];
-  let donePayload = null;
-  let buf = '';
-
-  child.stdout.on('data', (data) => {
-    logger.info('[Generator]', `DADOS RECEBIDOS DA SAÍDA DO PIPELINE: ${data.toString().trim()}`);
-    buf += data.toString();
-    const lines = buf.split('\n');
-    buf = lines.pop();
-    for (const line of lines) {
-      const t = line.trim();
-      if (!t) continue;
-      try {
-        const obj = JSON.parse(t);
-        const job = generationJobs.get(newId);
-        if (job) {
-          if (obj.type === 'slide') {
-            const sIdx = job.slides.findIndex(s => s.num === obj.num);
-            const slideData = {
-              num: obj.num,
-              estado: obj.estado,
-              status: obj.status,
-              filename: obj.file ? path.basename(obj.file) : `slide-${String(obj.num).padStart(2, '0')}.jpg`,
-              msg: obj.msg || ''
-            };
-            if (sIdx >= 0) job.slides[sIdx] = slideData;
-            else job.slides.push(slideData);
-            job.logs.push(`[Slide ${obj.num}/${obj.total}] Estado: ${obj.estado} -> ${obj.status === 'ok' ? 'Concluído' : obj.status === 'erro' ? 'Erro' : 'Gerando'}`);
-          } else if (obj.type === 'done') {
-            job.status = 'done';
-            job.logs.push(`Pipeline concluído. Sucesso em ${obj.total_ok}/${obj.total} slides.`);
-          } else if (obj.type === 'error') {
-            job.status = 'failed';
-            job.logs.push(`Erro no pipeline: ${obj.msg}`);
-          }
-        }
-
-        if (IS_PROD && obj.type === 'slide' && obj.status === 'ok' && obj.file) {
-          generatedFiles.push({ num: obj.num, estado: obj.estado, file: obj.file });
-        }
-        if (IS_PROD && obj.type === 'done') donePayload = obj;
-        broadcast(obj);
-      } catch {
-        const job = generationJobs.get(newId);
-        if (job) job.logs.push(t);
-        broadcast({ type: 'log', msg: t });
-      }
-    }
-  });
-
-  child.stderr.on('data', (data) => {
-    const msg = data.toString().trim();
-    if (msg) {
-      logger.error('[Generator]', `ERRO NO PIPELINE (STDERR): ${msg}`);
-      const job = generationJobs.get(newId);
-      if (job) job.logs.push(msg);
-      broadcast({ type: 'log', msg: `⚠️ [Pipeline] ${msg}` });
-    }
-  });
-
-  child.on('close', async (code) => {
-    logger.info('[Generator]', `PASSO 4: Script finalizado com código de saída ${code}`);
-    broadcast({ type: 'log', msg: `⚙️ [Servidor] PASSO 4: Processo encerrado com código ${code}` });
-    if (buf.trim()) {
-      try {
-        const obj = JSON.parse(buf.trim());
-        const job = generationJobs.get(newId);
-        if (job) {
-          if (obj.type === 'slide') {
-            const sIdx = job.slides.findIndex(s => s.num === obj.num);
-            const slideData = {
-              num: obj.num,
-              estado: obj.estado,
-              status: obj.status,
-              filename: obj.file ? path.basename(obj.file) : `slide-${String(obj.num).padStart(2, '0')}.jpg`,
-              msg: obj.msg || ''
-            };
-            if (sIdx >= 0) job.slides[sIdx] = slideData;
-            else job.slides.push(slideData);
-          } else if (obj.type === 'done') {
-            job.status = 'done';
-          }
-        }
-        if (obj.type === 'slide' && obj.status === 'ok' && obj.file) {
-          generatedFiles.push({ num: obj.num, estado: obj.estado, file: obj.file });
-        }
-        if (obj.type === 'done') donePayload = obj;
-        broadcast(obj);
-      } catch {}
-    }
-
-    const job = generationJobs.get(newId);
-    if (job) {
-      if (code !== 0 && job.status === 'generating') {
-        job.status = 'failed';
-      }
-      job.logs.push(`Processo finalizado com código ${code}`);
-      logger.info('[Carousel]', `Job ${newId} finalizado. Logs do pipeline:\n${job.logs.join('\n')}`);
-    }
-
-    if (b2 && generatedFiles.length > 0 && donePayload) {
-      try {
-        broadcast({ type: 'log', msg: '☁ Enviando imagens para o MinIO...' });
-
-        const slideUrls = [];
-        for (const { num, estado, file } of generatedFiles) {
-          const filename = path.basename(file);
-          try {
-            const url = await b2.uploadImageToB2(newId, filename, file);
-            slideUrls.push({ num, estado, filename, url });
-            broadcast({ type: 'log', msg: `☁ ${filename} → MinIO ✓` });
-          } catch (err) {
-            broadcast({ type: 'log', msg: `☁ ${filename} falhou: ${err.message}` });
-          }
-          // Em dev local, não apagamos a pasta do Desktop para o usuário poder acessar as artes locais se quiser.
-          // Se for produção, limpamos para poupar espaço.
-          if (IS_PROD) {
-            try { fs.unlinkSync(file); } catch {}
-          }
-        }
-        if (IS_PROD) {
-          try { fs.rmdirSync(donePayload.slides_dir); } catch {}
-        }
-
-        const allCarousels = await readDataAsync();
-        const currentIdx = allCarousels.findIndex(c => c.id === newId);
-        if (currentIdx >= 0) {
-          const imageProvider = process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
-          let costPerImage = 0.08;
-          if (imageProvider === 'fal') costPerImage = 0.003;
-          else if (imageProvider === 'gemini') costPerImage = 0.015;
-          else if (imageProvider === 'gpt-image-1-mini' || imageProvider === 'dall-e-2') costPerImage = 0.02;
-
-          const totalCost = slideUrls.length * costPerImage;
-
-          allCarousels[currentIdx] = {
-            ...allCarousels[currentIdx],
-            title:       donePayload.title   || payload.title   || 'Carrossel',
-            status:      (donePayload.total_ok === donePayload.total) ? 'pronto' : 'rascunho',
-            totalSlides: slideUrls.length,
-            caption:     donePayload.caption || payload.caption || '',
-            notes:       donePayload.notes   || payload.notes   || '',
-            b2BaseUrl:   b2.b2ImageUrl(newId, ''),
-            slides:      slideUrls,
-            cost:        totalCost,
-            imageProvider: process.env.ACTIVE_IMAGE_PROVIDER || allCarousels[currentIdx].imageProvider || 'gpt-image-2',
-            copyModel:     process.env.COPY_GENERATION_MODEL || allCarousels[currentIdx].copyModel || 'gpt-4o',
-          };
-          if (donePayload.revisor_score) allCarousels[currentIdx].revisorScore = donePayload.revisor_score;
-          await writeDataAsync(allCarousels);
-        }
-
-        broadcast({ type: 'registered', id: newId, entry: allCarousels[currentIdx] });
-        broadcast({ type: 'log', msg: `✓ ${newId} salvo no MinIO` });
-      } catch (err) {
-        broadcast({ type: 'error', msg: `Upload MinIO falhou: ${err.message}` });
-      }
-    } else {
-      // Fallback local se o módulo MinIO/B2 não estiver configurado
-      try {
-        const localCarousels = await readDataAsync();
-        const currentIdx = localCarousels.findIndex(c => c.id === newId);
-        if (currentIdx >= 0) {
-          const cRecord = localCarousels[currentIdx];
-          const slides = getSlidesForCarousel(cRecord);
-          localCarousels[currentIdx] = {
-            ...cRecord,
-            totalSlides: slides.length,
-            slides: slides,
-            status: code === 0 ? 'pronto' : 'rascunho'
-          };
-          await writeDataAsync(localCarousels);
-        }
-      } catch (err) {
-        logger.error('[Carousel]', "Erro ao atualizar dados pós-geração local:", err);
-      }
-    }
-
-    broadcast({ type: 'done', carouselId: newId });
-    broadcast({ type: 'close', code });
-    res.end();
-  });
-}
+});
 
 // ── API: Obter histórico de criação em tempo real ────────────────────────────
 router.get('/api/carousels/:id/history', (req, res) => {
@@ -1159,9 +1070,9 @@ router.post('/api/criador/stream', async (req, res) => {
   const numNoImage = Number(noImageSlidesCount) || 0;
   if (numNoImage > 0) {
     if (numNoImage >= numSlides) {
-      system = `IMPORTANTE: O usuário configurou no formulário que TODOS os ${numSlides} slides devem ter fundo preto puro (layout "text_only") SEM NENHUMA imagem gerada por IA. Defina o layout de TODOS os slides (S1 até S${numSlides}) obrigatoriamente como "text_only" e com "prompt_imagem": null.\n\n` + system;
+      system = `IMPORTANTE: O usuário configurou no formulário que TODOS os ${numSlides} slides devem ter fundo preto puro (layout "text_only") SEM NENHUMA imagem gerada por IA. Defina o layout de TODOS os slides (S1 até S${numSlides}) obrigatoriamente como "text_only" e com a linha VISUAL escrita como "Fundo escuro".\n\n` + system;
     } else {
-      system = `IMPORTANTE: O usuário configurou no formulário que exatamente os últimos ${numNoImage} slide(s) (de S${numSlides - numNoImage + 1} até S${numSlides}) devem ter fundo preto puro (layout "text_only") SEM imagem de IA ("prompt_imagem": null).\n\n` + system;
+      system = `IMPORTANTE: O usuário configurou no formulário que exatamente ${numNoImage} slide(s) devem ter fundo preto puro (layout "text_only") SEM imagem de IA. Defina exatamente ${numNoImage} slides com layout "text_only" e com a linha VISUAL escrita obrigatoriamente como "Fundo escuro" (sem descrever imagens reais).\n\n` + system;
     }
   }
 
