@@ -5,6 +5,22 @@ export default function PipelineModal({ carousel, onClose }) {
   const [copiedPromptKey, setCopiedPromptKey] = useState(null);
   const [pipelineInfo, setPipelineInfo] = useState(carousel);
   const [loading, setLoading] = useState(true);
+  const [collapsedAgents, setCollapsedAgents] = useState({});
+
+  const toggleAgentCollapse = (id) => {
+    setCollapsedAgents(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleAllAgents = (agentList) => {
+    const allCollapsed = agentList.every(a => collapsedAgents[a.id]);
+    if (allCollapsed) {
+      setCollapsedAgents({});
+    } else {
+      const newMap = {};
+      agentList.forEach(a => { newMap[a.id] = true; });
+      setCollapsedAgents(newMap);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -129,6 +145,19 @@ export default function PipelineModal({ carousel, onClose }) {
               }}>
                 {pipelineInfo.id}
               </span>
+              {(pipelineInfo.generationDuration || carousel?.generationDuration) && (
+                <span style={{
+                  fontSize: '11px',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                  color: '#60a5fa',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  fontWeight: '600'
+                }}>
+                  ⏱️ {pipelineInfo.generationDuration || carousel?.generationDuration}
+                </span>
+              )}
             </div>
             <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255, 255, 255, 0.6)' }}>
               {pipelineInfo.title || 'Sem título'}
@@ -322,15 +351,33 @@ export default function PipelineModal({ carousel, onClose }) {
 
                     return (
                       <>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                           <span style={{ fontSize: '13px', fontWeight: '600', color: '#a78bfa' }}>
                             🤖 Todos os Agentes Registrados ({agentList.length})
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleAllAgents(agentList)}
+                            style={{
+                              padding: '4px 10px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                              color: '#a1a1aa',
+                              border: '1px solid rgba(255, 255, 255, 0.12)',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              cursor: 'pointer',
+                              fontWeight: '500',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {agentList.every(a => collapsedAgents[a.id]) ? '▲ Expandir Todos' : '▼ Recolher Todos'}
+                          </button>
                         </div>
 
                         {agentList.map((agent, idx) => {
                           const promptText = agent.content || agentPrompts[agent.id] || 'Prompt não disponível.';
                           const agentColor = getAgentColor(agent.id, idx);
+                          const isCollapsed = Boolean(collapsedAgents[agent.id]);
 
                           return (
                             <div
@@ -339,18 +386,27 @@ export default function PipelineModal({ carousel, onClose }) {
                                 backgroundColor: 'rgba(255, 255, 255, 0.02)',
                                 border: '1px solid rgba(255, 255, 255, 0.08)',
                                 borderRadius: '10px',
-                                overflow: 'hidden'
+                                overflow: 'hidden',
+                                transition: 'all 0.2s ease'
                               }}
                             >
-                              <div style={{
-                                padding: '10px 14px',
-                                backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                borderBottom: '1px solid rgba(255, 255, 255, 0.06)'
-                              }}>
+                              <div
+                                onClick={() => toggleAgentCollapse(agent.id)}
+                                style={{
+                                  padding: '10px 14px',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  borderBottom: isCollapsed ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
+                                  cursor: 'pointer',
+                                  userSelect: 'none'
+                                }}
+                              >
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)' }}>
+                                    {isCollapsed ? '►' : '▼'}
+                                  </span>
                                   <span style={{ fontWeight: '600', fontSize: '13px', color: agentColor }}>
                                     🎭 {agent.name || agent.id}
                                   </span>
@@ -365,39 +421,49 @@ export default function PipelineModal({ carousel, onClose }) {
                                     {agent.id}
                                   </span>
                                 </div>
-                                <button
-                                  onClick={() => handleCopy(promptText, agent.id)}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopy(promptText, agent.id);
+                                    }}
+                                    style={{
+                                      padding: '4px 10px',
+                                      backgroundColor: copiedPromptKey === agent.id ? '#22c55e' : 'rgba(255, 255, 255, 0.08)',
+                                      color: '#fff',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      cursor: 'pointer',
+                                      fontWeight: '500',
+                                      transition: 'all 0.2s'
+                                    }}
+                                  >
+                                    {copiedPromptKey === agent.id ? '✓ Copiado!' : '📋 Copiar Prompt'}
+                                  </button>
+                                  <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)' }}>
+                                    {isCollapsed ? 'Mostrar' : 'Ocultar'}
+                                  </span>
+                                </div>
+                              </div>
+                              {!isCollapsed && (
+                                <pre
+                                  className="custom-pipeline-scroll"
                                   style={{
-                                    padding: '4px 10px',
-                                    backgroundColor: copiedPromptKey === agent.id ? '#22c55e' : 'rgba(255, 255, 255, 0.08)',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    fontSize: '11px',
-                                    cursor: 'pointer',
-                                    fontWeight: '500',
-                                    transition: 'all 0.2s'
+                                    margin: 0,
+                                    padding: '14px',
+                                    fontSize: '12px',
+                                    lineHeight: '1.5',
+                                    fontFamily: 'monospace',
+                                    whiteSpace: 'pre-wrap',
+                                    color: '#a1a1aa',
+                                    maxHeight: '220px',
+                                    overflowY: 'auto'
                                   }}
                                 >
-                                  {copiedPromptKey === agent.id ? '✓ Copiado!' : '📋 Copiar Prompt'}
-                                </button>
-                              </div>
-                              <pre
-                                className="custom-pipeline-scroll"
-                                style={{
-                                  margin: 0,
-                                  padding: '14px',
-                                  fontSize: '12px',
-                                  lineHeight: '1.5',
-                                  fontFamily: 'monospace',
-                                  whiteSpace: 'pre-wrap',
-                                  color: '#a1a1aa',
-                                  maxHeight: '220px',
-                                  overflowY: 'auto'
-                                }}
-                              >
-                                {promptText}
-                              </pre>
+                                  {promptText}
+                                </pre>
+                              )}
                             </div>
                           );
                         })}
@@ -407,6 +473,8 @@ export default function PipelineModal({ carousel, onClose }) {
                 </div>
               )}
 
+
+
               {/* TAB 3: PROMPTS DOS SLIDES */}
               {activeTab === 'slides' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -414,7 +482,10 @@ export default function PipelineModal({ carousel, onClose }) {
                     slides.map((s, idx) => {
                       const slideNum = typeof s === 'object' ? s.num || idx + 1 : idx + 1;
                       const slideName = typeof s === 'object' ? (s.filename || s.estado || `Slide ${slideNum}`) : s;
-                      const promptDesc = typeof s === 'object' ? s.msg || s.prompt || `Prompt visual do slide ${slideNum} no preset ${pipelineInfo.preset}` : `Arte gerada para ${slideName}`;
+                      const isTextOnly = typeof s === 'object' && (s.layout === 'text_only' || s.prompt?.includes('Fundo Preto'));
+                      const promptDesc = typeof s === 'object' 
+                        ? (s.prompt || s.msg || (isTextOnly ? '[ Slide de Fundo Preto / Sem Imagem ]' : `Arte gerada para ${slideName}`))
+                        : `Arte gerada para ${slideName}`;
 
                       return (
                         <div
@@ -434,10 +505,10 @@ export default function PipelineModal({ carousel, onClose }) {
                               fontSize: '11px',
                               padding: '2px 8px',
                               borderRadius: '4px',
-                              backgroundColor: 'rgba(6, 182, 212, 0.15)',
-                              color: '#06b6d4'
+                              backgroundColor: isTextOnly ? 'rgba(239, 68, 68, 0.15)' : 'rgba(6, 182, 212, 0.15)',
+                              color: isTextOnly ? '#ef4444' : '#06b6d4'
                             }}>
-                              {(pipelineInfo.imageProvider || 'gpt-image-2').toUpperCase()}
+                              {isTextOnly ? 'FUNDO PRETO (TEXTO)' : (pipelineInfo.imageProvider || 'gpt-image-2').toUpperCase()}
                             </span>
                           </div>
                           <div style={{
@@ -445,9 +516,10 @@ export default function PipelineModal({ carousel, onClose }) {
                             padding: '10px 12px',
                             borderRadius: '6px',
                             fontSize: '12px',
-                            color: '#d4d4d8',
+                            color: isTextOnly ? '#9ca3af' : '#d4d4d8',
                             fontFamily: 'monospace',
-                            lineHeight: '1.4'
+                            lineHeight: '1.4',
+                            fontStyle: isTextOnly ? 'italic' : 'normal'
                           }}>
                             {promptDesc}
                           </div>
@@ -461,8 +533,6 @@ export default function PipelineModal({ carousel, onClose }) {
                   )}
                 </div>
               )}
-
-              {/* TAB 4: HISTÓRICO DE CHAT */}
               {activeTab === 'chat' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {chatHistory && chatHistory.length > 0 ? (
