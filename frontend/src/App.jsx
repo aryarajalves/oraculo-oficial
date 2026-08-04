@@ -127,9 +127,10 @@ export default function App() {
                 const coverPath = c.cover || (typeof c.slides[0] === 'string' ? c.slides[0] : c.slides[0]?.filename);
                 if (!coverPath) return resolve();
                 
+                const token = encodeURIComponent(localStorage.getItem('fo_token') || '');
                 img.src = coverPath.startsWith('http') || coverPath.startsWith('/')
                   ? coverPath 
-                  : `/api/carousels/${c.id}/slide/${coverPath}`;
+                  : `/api/carousels/${c.id}/image/${coverPath}?token=${token}`;
                 
                 img.onload = () => resolve();
                 img.onerror = () => resolve(); // se falhar imagem individual não trava o dashboard

@@ -10,6 +10,8 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
   const [imageVersion, setImageVersion] = useState(1);
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setIndex(initialIndex);
@@ -120,9 +122,6 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
       showToast('Erro ao baixar slide.');
     }
   };
-
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDelete = async () => {
     setIsDeleting(true);
