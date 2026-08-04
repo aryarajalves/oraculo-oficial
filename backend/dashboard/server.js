@@ -82,10 +82,13 @@ app.use(requireAuth);
 app.use('/auth', rateLimiter(100, 60000));
 
 // 2. Geração e Backups (carousels, services, backups): mínimo de 100/150/300 requisições por minuto
+const carouselsRecomposeLimiter = rateLimiter(600, 60000, '/api/carousels:recompose'); // endpoint interativo de preview
 const carouselsMediaLimiter = rateLimiter(300, 60000, '/api/carousels:media');
 const carouselsGeneralLimiter = rateLimiter(150, 60000, '/api/carousels:general');
 app.use('/api/carousels', (req, res, next) => {
+  const isRecompose = /\/recompose$/.test(req.path);
   const isMediaRoute = /\/(image|download)\/|\/meta$/.test(req.path);
+  if (isRecompose) return carouselsRecomposeLimiter(req, res, next);
   return isMediaRoute
     ? carouselsMediaLimiter(req, res, next)
     : carouselsGeneralLimiter(req, res, next);

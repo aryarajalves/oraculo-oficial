@@ -160,7 +160,7 @@ export function rateLimiter(maxRequests, windowMs) {
   return (req, res, next) => {
     const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
     const now = Date.now();
-    const key = `${ip}:${req.baseUrl || req.path}`;
+    const key = `${ip}:${req.baseUrl || ''}${req.path || ''}`;
 
     if (!rateLimitsMap.has(key)) {
       rateLimitsMap.set(key, { count: 1, resetTime: now + windowMs });
