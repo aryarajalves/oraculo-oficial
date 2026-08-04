@@ -74,19 +74,25 @@ export default function App() {
   // Histórico de Geração
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyCarouselId, setHistoryCarouselId] = useState('');
-  const [branding, setBranding] = useState({
-    companyName: 'Haucacau',
-    logoText: '@HAUCACAU',
-    logoSub: 'PRODUÇÃO',
-    logoSize: '6px',
-    logoColor: '#ffffff',
-    carouselTextSize: '15px',
-    carouselTextColor: '#e4e4e7',
-    titleTextSize: '18px',
-    bodyTextSize: '12px',
-    titleTextColor: '#ffffff',
-    bodyTextColor: '#df0c7c',
-    logoPosition: 'right'
+  const [branding, setBranding] = useState(() => {
+    try {
+      const cached = localStorage.getItem('fo_branding');
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+    return {
+      companyName: 'Tete',
+      logoText: '@HAUCACAU',
+      logoSub: 'PRODUÇÃO',
+      logoSize: '6px',
+      logoColor: '#ffffff',
+      carouselTextSize: '15px',
+      carouselTextColor: '#e4e4e7',
+      titleTextSize: '18px',
+      bodyTextSize: '12px',
+      titleTextColor: '#ffffff',
+      bodyTextColor: '#df0c7c',
+      logoPosition: 'right'
+    };
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -179,15 +185,17 @@ export default function App() {
   };
 
   useEffect(() => {
-    const titleName = branding?.companyName || branding?.logoText || 'Haucacau';
-    document.title = `${titleName} — Dashboard de Produção`;
-  }, [branding]);
+    document.title = "Oraculo";
+  }, []);
 
   const loadBranding = async () => {
     try {
       const res = await customFetch('/api/settings/branding');
       const data = await res.json();
-      if (data) setBranding(data);
+      if (data) {
+        setBranding(data);
+        localStorage.setItem('fo_branding', JSON.stringify(data));
+      }
     } catch (e) {}
   };
 
