@@ -188,6 +188,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
           )}
 
           <img
+            key={`${carouselId}-${currentSlide}-${imageVersion}`}
             className="modal-img"
             src={`/api/carousels/${carouselId}/image/${currentSlide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&v=${imageVersion}`}
             alt="Slide"
@@ -200,10 +201,13 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
                 borderRadius: '8px',
                 border: '1px solid rgba(255, 255, 255, 0.25)'
               } : {
+                maxHeight: '75vh',
+                maxWidth: '100%',
+                borderRadius: '8px',
                 border: '1px solid rgba(255, 255, 255, 0.25)'
               }),
               opacity: imageLoading ? 0 : 1,
-              transition: 'opacity 0.25s ease-in-out'
+              transition: 'opacity 0.2s ease-in-out'
             }}
           />
 
