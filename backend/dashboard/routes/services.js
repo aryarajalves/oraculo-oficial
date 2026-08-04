@@ -473,21 +473,30 @@ router.post('/api/settings/prompts/rename', async (req, res) => {
   if (!id || !name) {
     return res.status(400).json({ error: 'Parâmetros inválidos. Forneça id e name.' });
   }
+
+  // 1. Salvar nome no banco de dados PRIMEIRO (fonte de verdade permanente)
+  try {
+    await query(`
+      INSERT INTO agent_prompts (id, display_name, updated_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (id) DO UPDATE SET display_name = $2, updated_at = NOW()
+    `, [id, name]);
+    logger.info('[AgentPrompts]', `Nome do agente '${id}' renomeado para '${name}' no banco de dados.`);
+  } catch (dbErr) {
+    logger.error('[AgentPrompts]', `Falha crítica ao renomear agente '${id}' no banco: ${dbErr.message}`);
+    return res.status(500).json({ error: `Erro ao salvar nome no banco de dados: ${dbErr.message}` });
+  }
+
+  // 2. Salvar no arquivo display_names.json como cache local (best-effort)
   try {
     const displayNames = readDisplayNames();
     displayNames[id] = name;
     writeDisplayNames(displayNames);
-    try {
-      await query(`
-        INSERT INTO agent_prompts (id, display_name, updated_at)
-        VALUES ($1, $2, NOW())
-        ON CONFLICT (id) DO UPDATE SET display_name = $2, updated_at = NOW()
-      `, [id, name]);
-    } catch {}
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (fileErr) {
+    logger.warn('[AgentPrompts]', `Aviso: nome '${name}' salvo no DB mas falhou no arquivo local: ${fileErr.message}`);
   }
+
+  res.json({ ok: true });
 });
 
 // ── API: Branding e Estilo Visual ─────────────────────────────────────────────
