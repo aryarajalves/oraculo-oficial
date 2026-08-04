@@ -64,16 +64,30 @@ export default function PromptsTab({
   // ── Export / Import JSON ──────────────────────────────────────────────────
   const importInputRef = useRef(null);
 
-  const handleExport = () => {
-    const exportData = prompts.map(p => ({ id: p.id, name: p.name, content: p.content }));
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `oraculo-prompts-${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    if (showToast) showToast('\u2713 Prompts exportados com sucesso!');
+  const handleExport = async () => {
+    try {
+      if (showToast) showToast('Gerando exportação de todos os prompts...');
+      const res = await fetch('/api/settings/prompts', { credentials: 'include' });
+      const data = await res.json();
+      const allPrompts = data.prompts || prompts;
+
+      const exportData = allPrompts.map(p => ({
+        id: p.id,
+        name: p.name,
+        content: p.content || ''
+      }));
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `oraculo-prompts-todos-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      if (showToast) showToast(`✓ ${exportData.length} prompt(s) exportado(s) com sucesso!`);
+    } catch (err) {
+      if (showToast) showToast('Erro ao exportar prompts: ' + err.message);
+    }
   };
 
   const handleImport = (e) => {
@@ -83,8 +97,9 @@ export default function PromptsTab({
     reader.onload = async (ev) => {
       try {
         const parsed = JSON.parse(ev.target.result);
-        if (!Array.isArray(parsed)) throw new Error('Formato inválido: esperado um array.');
+        if (!Array.isArray(parsed)) throw new Error('Formato inválido: esperado um array de prompts.');
         let count = 0;
+        if (showToast) showToast(`Importando ${parsed.length} prompt(s)...`);
         for (const entry of parsed) {
           if (!entry.id || entry.content === undefined) continue;
           await fetch('/api/settings/prompts', {
@@ -103,7 +118,11 @@ export default function PromptsTab({
           }
           count++;
         }
-        if (showToast) showToast(`\u2713 ${count} prompt(s) importado(s)! Recarregue para ver as mudanças.`);
+        // Se a função de recarregar a lista existir no componente pai ou recarregar a página
+        if (showToast) showToast(`✓ ${count} prompt(s) importado(s) e salvos com sucesso! Recarregando...`);
+        setTimeout(() => {
+          window.location.reload();
+        }, 1200);
       } catch (err) {
         if (showToast) showToast('Erro ao importar: ' + err.message);
       }
