@@ -101,21 +101,45 @@ export default function App() {
   useEffect(() => {
     const initApp = async () => {
       try {
-        // Executa todas as chamadas iniciais simultaneamente para evitar piscar de tela
+        // Executa chamadas iniciais
         await Promise.all([
           loadCurrentUser(),
           loadBranding(),
-          loadCarousels(),
           loadStats()
         ]);
+
+        const loadedCarousels = await loadCarousels();
         setupSSE();
+
+        // Pré-carrega as imagens de capa dos carrosséis para só exibir quando estiverem renderizadas
+        if (Array.isArray(loadedCarousels) && loadedCarousels.length > 0) {
+          const imagePromises = loadedCarousels
+            .filter(c => c.cover || (c.slides && c.slides[0]))
+            .map(c => {
+              return new Promise((resolve) => {
+                const img = new Image();
+                const coverPath = c.cover || (typeof c.slides[0] === 'string' ? c.slides[0] : c.slides[0]?.filename);
+                if (!coverPath) return resolve();
+                
+                img.src = coverPath.startsWith('http') || coverPath.startsWith('/')
+                  ? coverPath 
+                  : `/api/carousels/${c.id}/slide/${coverPath}`;
+                
+                img.onload = () => resolve();
+                img.onerror = () => resolve(); // se falhar imagem individual não trava o dashboard
+              });
+            });
+          
+          // Aguarda o pré-carregamento de todas as imagens de capa
+          await Promise.all(imagePromises);
+        }
       } catch (err) {
         console.error("Erro na inicialização do painel:", err);
       } finally {
-        // Timeout curto e elegante para dar suavidade na transição
+        // Transição suave
         setTimeout(() => {
           setInitialLoading(false);
-        }, 600);
+        }, 400);
       }
     };
 
@@ -183,10 +207,12 @@ export default function App() {
       if (res.ok) {
         setAllCarousels(data);
         setImageVersion(Date.now());
+        return data;
       }
     } catch (e) {
       showToast('Erro ao carregar carrosséis.');
     }
+    return [];
   };
 
   const loadStats = async () => {

@@ -1,14 +1,14 @@
 {
-  "companyName": "Haucacau",
-  "logoText": "@HAUCACAU",
   "logoSub": "PRODUÇÃO",
   "logoSize": "6px",
+  "logoText": "@HAUCACAU",
   "logoColor": "#ffffff",
-  "carouselTextSize": "15px",
-  "carouselTextColor": "#e4e4e7",
-  "titleTextSize": "18px",
+  "companyName": "Haucacau",
   "bodyTextSize": "12px",
-  "titleTextColor": "#ffffff",
+  "logoPosition": "right",
   "bodyTextColor": "#df0c7c",
-  "logoPosition": "right"
+  "titleTextSize": "18px",
+  "titleTextColor": "#ffffff",
+  "carouselTextSize": "15px",
+  "carouselTextColor": "#e4e4e7"
 }
