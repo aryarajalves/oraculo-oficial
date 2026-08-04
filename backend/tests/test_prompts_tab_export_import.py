@@ -67,19 +67,19 @@ class TestPromptsTabExportImport(unittest.TestCase):
             self.content = f.read()
 
     def test_export_button_exists(self):
-        """O botão 'Exportar JSON' deve existir no PromptsTab."""
+        """O botão 'Exportar' deve existir no PromptsTab."""
         self.assertIn(
-            "Exportar JSON",
+            "Exportar",
             self.content,
-            "Botão 'Exportar JSON' não encontrado no PromptsTab.jsx."
+            "Botão 'Exportar' não encontrado no PromptsTab.jsx."
         )
 
     def test_import_button_exists(self):
-        """O botão 'Importar JSON' deve existir no PromptsTab."""
+        """O botão 'Importar' deve existir no PromptsTab."""
         self.assertIn(
-            "Importar JSON",
+            "Importar",
             self.content,
-            "Botão 'Importar JSON' não encontrado no PromptsTab.jsx."
+            "Botão 'Importar' não encontrado no PromptsTab.jsx."
         )
 
     def test_export_function_exists(self):

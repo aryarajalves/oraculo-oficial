@@ -292,6 +292,67 @@ export default function PromptsTab({
               Arquivo: agents/{selectedPromptId}.md · {lineCount} linha(s)
             </div>
             <button
+              onClick={handleExport}
+              title="Exportar todos os prompts como JSON"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid var(--border)',
+                borderRadius: '4px',
+                color: 'var(--text-2)',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                fontSize: '11px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Exportar
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".json,application/json"
+              style={{ display: 'none' }}
+              onChange={handleImport}
+            />
+            <button
+              onClick={() => importInputRef.current?.click()}
+              title="Importar prompts de um arquivo JSON"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid var(--border)',
+                borderRadius: '4px',
+                color: 'var(--text-2)',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                fontSize: '11px',
+                fontWeight: '500',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Importar
+            </button>
+            <button
               onClick={() => setIsMaximized(!isMaximized)}
               style={{
                 background: 'transparent',
@@ -388,73 +449,6 @@ export default function PromptsTab({
             placeholder="Selecione um prompt ou aguarde o carregamento..."
           />
         </div>
-      </div>
-
-      {/* Botões de Export / Import no rodapé do painel */}
-      <div style={{ display: 'flex', gap: '6px', paddingTop: '10px', borderTop: '1px solid var(--border)', marginTop: '4px' }}>
-        <button
-          onClick={handleExport}
-          title="Exportar todos os prompts como JSON"
-          style={{
-            flex: 1,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid var(--border)',
-            borderRadius: '6px',
-            color: 'var(--text-2)',
-            fontSize: '11px',
-            padding: '7px 6px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '5px',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Exportar JSON
-        </button>
-        <input
-          ref={importInputRef}
-          type="file"
-          accept=".json,application/json"
-          style={{ display: 'none' }}
-          onChange={handleImport}
-        />
-        <button
-          onClick={() => importInputRef.current?.click()}
-          title="Importar prompts de um arquivo JSON"
-          style={{
-            flex: 1,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid var(--border)',
-            borderRadius: '6px',
-            color: 'var(--text-2)',
-            fontSize: '11px',
-            padding: '7px 6px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '5px',
-            transition: 'all 0.2s'
-          }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="17 8 12 3 7 8"/>
-            <line x1="12" y1="3" x2="12" y2="15"/>
-          </svg>
-          Importar JSON
-        </button>
       </div>
     </div>
   );
