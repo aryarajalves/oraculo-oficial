@@ -8,6 +8,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
   const [isMaximized, setIsMaximized] = useState(false);
   const [imageVersion, setImageVersion] = useState(1);
   const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
 
   useEffect(() => {
     setIndex(initialIndex);
@@ -15,6 +16,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
     setSelectedZone(null);
     setIsMaximized(false);
     setImageLoading(true);
+    setImageError(false);
     if (isOpen) {
       setImageVersion(Date.now());
     }
@@ -73,6 +75,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
   useEffect(() => {
     if (isOpen && carouselId && slides && slides[index]) {
       setImageLoading(true);
+      setImageError(false);
       loadSlideMeta();
     }
   }, [index, isOpen, carouselId]);
@@ -187,29 +190,58 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
             </div>
           )}
 
-          <img
-            key={`${carouselId}-${currentSlide}-${imageVersion}`}
-            className="modal-img"
-            src={`/api/carousels/${carouselId}/image/${currentSlide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&v=${imageVersion}`}
-            alt="Slide"
-            onLoad={() => setImageLoading(false)}
-            onError={() => setImageLoading(false)}
-            style={{
-              ...(isMaximized ? {
-                maxHeight: '85vh',
-                maxWidth: '95vw',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.25)'
-              } : {
-                maxHeight: '75vh',
-                maxWidth: '100%',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.25)'
-              }),
-              opacity: imageLoading ? 0 : 1,
-              transition: 'opacity 0.2s ease-in-out'
-            }}
-          />
+          {imageError ? (
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              padding: '48px 32px',
+              background: 'rgba(20, 20, 24, 0.9)',
+              borderRadius: '8px',
+              border: '1px solid rgba(244, 63, 94, 0.25)',
+              minWidth: '280px'
+            }}>
+              <div style={{ fontSize: '36px' }}>🖼️</div>
+              <div style={{ color: '#f43f5e', fontWeight: '700', fontSize: '14px' }}>Erro ao carregar imagem</div>
+              <div style={{ color: '#71717a', fontSize: '12px', textAlign: 'center', lineHeight: '1.6' }}>
+                Não foi possível carregar o slide <strong style={{ color: '#a1a1aa' }}>{index + 1}</strong>.<br />
+                O arquivo pode estar corrompido ou indisponível.
+              </div>
+              <button
+                className="btn btn-outline btn-sm"
+                style={{ marginTop: '4px' }}
+                onClick={() => { setImageError(false); setImageLoading(true); setImageVersion(Date.now()); }}
+              >
+                🔄 Tentar novamente
+              </button>
+            </div>
+          ) : (
+            <img
+              key={`${carouselId}-${currentSlide}-${imageVersion}`}
+              className="modal-img"
+              src={`/api/carousels/${carouselId}/image/${currentSlide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&v=${imageVersion}`}
+              alt="Slide"
+              onLoad={() => setImageLoading(false)}
+              onError={() => { setImageLoading(false); setImageError(true); }}
+              style={{
+                ...(isMaximized ? {
+                  maxHeight: '85vh',
+                  maxWidth: '95vw',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.25)'
+                } : {
+                  maxHeight: '75vh',
+                  maxWidth: '100%',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 255, 255, 0.25)'
+                }),
+                opacity: imageLoading ? 0 : 1,
+                transition: 'opacity 0.2s ease-in-out'
+              }}
+            />
+          )}
 
           <div className="lb-zones">
             <div

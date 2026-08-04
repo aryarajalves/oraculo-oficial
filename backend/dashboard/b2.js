@@ -157,6 +157,18 @@ export async function listImagesInB2(carouselId) {
     .sort();
 }
 
+// ── Streaming proxy ──────────────────────────────────────────────────────────
+// Retorna um stream legível da imagem diretamente do MinIO.
+// Usado pelo backend para fazer proxy sem redirecionar o browser para URL interna.
+export async function getImageStream(carouselId, filename) {
+  const cmd = new GetObjectCommand({
+    Bucket: BUCKET,
+    Key: `${PREFIX}/${carouselId}/${filename}`,
+  });
+  const res = await getClient().send(cmd);
+  return res.Body;
+}
+
 export function isB2Configured() {
   return !!(KEY_ID && APP_KEY && BUCKET && ENDPOINT);
 }

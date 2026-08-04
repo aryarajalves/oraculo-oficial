@@ -416,12 +416,25 @@ router.get("/api/carousels/:id/image/:filename", async (req, res) => {
   const isUploadedToB2 = c.b2BaseUrl || (c.slides && c.slides.length > 0 && typeof c.slides[0] === 'object' && c.slides[0].url);
 
   if (isUploadedToB2 && b2) {
-    let url = b2.b2ImageUrl(req.params.id, req.params.filename);
-    const queryStr = new URLSearchParams(req.query).toString();
-    if (queryStr) {
-      url += `?${queryStr}`;
+    // CORREÇÃO: Faz proxy da imagem internamente em vez de redirecionar o navegador
+    // para a URL do MinIO, que pode ser interna do Docker e inacessível pelo cliente.
+    try {
+      const ext = path.extname(req.params.filename).toLowerCase();
+      const contentType = ext === ".png" ? "image/png" : "image/jpeg";
+      res.setHeader("Content-Type", contentType);
+
+      const stream = await b2.getImageStream(req.params.id, req.params.filename);
+      stream.pipe(res);
+    } catch (e) {
+      logger.error('[imagem]', `Erro ao fazer proxy da imagem do MinIO: ${e.message}`);
+      // Fallback: tenta servir do disco local caso exista
+      const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
+      if (fs.existsSync(imgPath)) {
+        return res.sendFile(imgPath);
+      }
+      return res.status(502).json({ error: "Imagem indisponível no armazenamento remoto." });
     }
-    return res.redirect(302, url);
+    return;
   }
 
   // Local fallback: serve do disco
