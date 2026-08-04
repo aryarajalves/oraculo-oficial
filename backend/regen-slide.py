@@ -14,31 +14,37 @@ from core.util.compose_util import compose
 from core.util.prompt_builder import build_prompt
 
 API_KEY  = os.getenv("GEMINI_API_KEY")
-MODEL    = "gemini-2.0-flash-preview-image-generation"
-ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
+MODEL    = "imagen-3.0-generate-002"
+ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:predict"
 
-def gen(prompt, retries=4):
-    data = json.dumps({
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"responseModalities": ["IMAGE"]}
-    }).encode()
+def gen(prompt, retries=3):
+    headers = {
+        "x-goog-api-key": API_KEY,
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "instances": [{"prompt": prompt}],
+        "parameters": {
+            "sampleCount": 1,
+            "aspectRatio": "3:4"
+        }
+    }
+    data = json.dumps(payload).encode("utf-8")
+    
     for attempt in range(retries):
-        if attempt: time.sleep(12 * attempt)
-        req = urllib.request.Request(
-            ENDPOINT, data=data,
-            headers={"x-goog-api-key": API_KEY, "Content-Type": "application/json"}
-        )
+        if attempt: time.sleep(4 * attempt)
+        req = urllib.request.Request(ENDPOINT, data=data, headers=headers)
         try:
             with urllib.request.urlopen(req, timeout=120) as r:
                 body = json.loads(r.read())
-            parts = body.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-            ip = next((p for p in parts if p.get("inlineData", {}).get("mimeType", "").startswith("image/")), None)
-            if ip: return base64.b64decode(ip["inlineData"]["data"])
-            print(f"  Sem imagem: {json.dumps(body)[:150]}", file=sys.stderr)
+            predictions = body.get("predictions", [])
+            if predictions and "bytesBase64Encoded" in predictions[0]:
+                return base64.b64decode(predictions[0]["bytesBase64Encoded"])
+            print(f"  Sem imagem no Imagen 3: {json.dumps(body)[:150]}", file=sys.stderr)
         except urllib.error.HTTPError as e:
-            print(f"  HTTP {e.code}: {e.read().decode()[:120]}", file=sys.stderr)
+            print(f"  HTTP {e.code}: {e.read().decode()[:150]}", file=sys.stderr)
         except Exception as e:
-            print(f"  Erro: {e}", file=sys.stderr)
+            print(f"  Erro Imagen 3: {e}", file=sys.stderr)
     return None
 
 def main():
