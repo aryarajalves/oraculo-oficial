@@ -7,12 +7,14 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
   const [meta, setMeta] = useState({ title: '', body: '' });
   const [isMaximized, setIsMaximized] = useState(false);
   const [imageVersion, setImageVersion] = useState(1);
+  const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
     setIndex(initialIndex);
     setEditMode(false);
     setSelectedZone(null);
     setIsMaximized(false);
+    setImageLoading(true);
     if (isOpen) {
       setImageVersion(Date.now());
     }
@@ -62,6 +64,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
 
   useEffect(() => {
     if (isOpen && carouselId && slides && slides[index]) {
+      setImageLoading(true);
       loadSlideMeta();
     }
   }, [index, isOpen, carouselId]);
@@ -139,18 +142,52 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
       <button className="modal-close" onClick={onClose}>✕</button>
 
       <div className="lb-container" style={isMaximized ? { maxHeight: '95vh', width: 'auto', display: 'block' } : {}}>
-        <div className="lb-slide-wrap">
+        <div className="lb-slide-wrap" style={{ position: 'relative', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {imageLoading && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'rgba(9, 9, 11, 0.85)',
+              borderRadius: '8px',
+              zIndex: 10,
+              backdropFilter: 'blur(4px)'
+            }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                border: '3px solid rgba(217, 119, 6, 0.2)',
+                borderTopColor: 'var(--gold, #d97706)',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+                marginBottom: '12px'
+              }} />
+              <div style={{ fontSize: '12px', color: 'var(--gold, #d97706)', letterSpacing: '1px' }}>
+                Carregando Imagem...
+              </div>
+            </div>
+          )}
+
           <img
             className="modal-img"
             src={`/api/carousels/${carouselId}/image/${currentSlide}?token=${encodeURIComponent(localStorage.getItem('fo_token') || '')}&v=${imageVersion}`}
             alt="Slide"
-            style={isMaximized ? {
-              maxHeight: '85vh',
-              maxWidth: '95vw',
-              borderRadius: '8px',
-              border: '1px solid rgba(255, 255, 255, 0.25)'
-            } : {
-              border: '1px solid rgba(255, 255, 255, 0.25)'
+            onLoad={() => setImageLoading(false)}
+            onError={() => setImageLoading(false)}
+            style={{
+              ...(isMaximized ? {
+                maxHeight: '85vh',
+                maxWidth: '95vw',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.25)'
+              } : {
+                border: '1px solid rgba(255, 255, 255, 0.25)'
+              }),
+              opacity: imageLoading ? 0 : 1,
+              transition: 'opacity 0.25s ease-in-out'
             }}
           />
 
