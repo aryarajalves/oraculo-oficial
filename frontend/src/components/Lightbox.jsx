@@ -119,8 +119,11 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
     }
   };
 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleDelete = async () => {
-    if (!confirm('Excluir este slide permanentemente?')) return;
+    setIsDeleting(true);
     try {
       const res = await fetch(`/api/carousels/${carouselId}/slide/${currentSlide}`, {
         method: 'DELETE'
@@ -128,12 +131,15 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
       const data = await res.json();
       if (data.ok) {
         showToast('Slide excluído com sucesso!');
+        setIsDeleteModalOpen(false);
         onClose();
       } else {
         alert('Erro: ' + data.error);
       }
     } catch (e) {
       showToast('Erro ao excluir slide.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -262,13 +268,90 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
             </button>
             <button className="lb-action-btn" onClick={handleDownload}>Baixar</button>
             <button className="lb-action-btn" onClick={() => { onClose(); onOpenEditModal(carouselId, currentSlide); }}>Editar</button>
-            <button className="lb-action-btn lb-action-del" onClick={handleDelete}>Excluir</button>
+            <button className="lb-action-btn lb-action-del" onClick={() => setIsDeleteModalOpen(true)}>Excluir</button>
           </div>
         </div>
         <button className="lb-nav-arrow" disabled={index === slides.length - 1} onClick={() => setIndex(index + 1)}>
           ›
         </button>
       </div>
+
+      {/* Popup de Confirmação de Exclusão Centralizado */}
+      {isDeleteModalOpen && (
+        <div 
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(4px)',
+            zIndex: 3000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '20px'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div 
+            style={{
+              background: '#09090b',
+              border: '1px solid rgba(244, 63, 94, 0.4)',
+              borderRadius: '12px',
+              padding: '28px 32px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '16px',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 0 25px rgba(244, 63, 94, 0.15)',
+              maxWidth: '400px',
+              width: '100%',
+              textAlign: 'center'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{
+              width: '48px',
+              height: '48px',
+              borderRadius: '50%',
+              background: 'rgba(244, 63, 94, 0.12)',
+              color: '#f43f5e',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '22px'
+            }}>
+              ⚠️
+            </div>
+            <div>
+              <div style={{ color: '#ffffff', fontSize: '17px', fontWeight: 'bold', marginBottom: '8px' }}>
+                Excluir Slide
+              </div>
+              <div style={{ color: '#a1a1aa', fontSize: '13px', lineHeight: '1.5' }}>
+                Tem certeza que deseja excluir permanentemente o <strong style={{ color: '#f43f5e' }}>Slide {index + 1}</strong> ({currentSlide})? Essa ação não pode ser desfeita.
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
+              <button 
+                className="btn btn-outline" 
+                style={{ flex: 1, padding: '10px 16px', borderColor: 'rgba(255,255,255,0.15)' }}
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={isDeleting}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn" 
+                style={{ flex: 1, padding: '10px 16px', background: '#f43f5e', color: '#ffffff', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Excluindo...' : 'Sim, Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
