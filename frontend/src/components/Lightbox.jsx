@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 export default function Lightbox({ isOpen, onClose, carouselId, slides = [], initialIndex = 0, onOpenEditModal, showToast }) {
   const [index, setIndex] = useState(initialIndex);
@@ -22,19 +23,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
     }
   }, [initialIndex, isOpen]);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.classList.add('modal-open');
-      document.documentElement.classList.add('modal-open');
-    } else {
-      document.body.classList.remove('modal-open');
-      document.documentElement.classList.remove('modal-open');
-    }
-    return () => {
-      document.body.classList.remove('modal-open');
-      document.documentElement.classList.remove('modal-open');
-    };
-  }, [isOpen]);
+  useScrollLock(isOpen);
 
   const getSlideFilename = (item) => {
     if (!item) return '';

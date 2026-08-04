@@ -1,6 +1,9 @@
 import React from 'react';
+import { useScrollLock } from '../hooks/useScrollLock';
 
-export default function LogoutModal({ logoutModalOpen, setLogoutModalOpen }) {
+export default function LogoutModal({ logoutModalOpen, setLogoutModalOpen, onLoggedOut }) {
+  useScrollLock(logoutModalOpen);
+
   if (!logoutModalOpen) return null;
 
   return (

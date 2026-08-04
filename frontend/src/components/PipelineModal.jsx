@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 export default function PipelineModal({ carousel, onClose }) {
+  useScrollLock(Boolean(carousel));
+
   const [activeTab, setActiveTab] = useState('overview');
   const [copiedPromptKey, setCopiedPromptKey] = useState(null);
   const [pipelineInfo, setPipelineInfo] = useState(carousel);

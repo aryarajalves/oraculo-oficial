@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 export default function NewCarouselModal({ isOpen, onClose, onCreate, onSendToChat }) {
+  useScrollLock(isOpen);
+
   const [title, setTitle] = useState('');
   const [theme, setTheme] = useState('');
   const [format, setFormat] = useState('A');

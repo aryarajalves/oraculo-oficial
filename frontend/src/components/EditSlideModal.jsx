@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { customFetch } from '../utils/customFetch';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 const PRESET_DEFAULTS = {
   manuscrito_sagrado: { title: 76, body: 40 },
@@ -49,19 +50,7 @@ export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, fi
     }
   }, [isOpen, carouselId, filename, cacheBuster]);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.classList.add('modal-open');
-      document.documentElement.classList.add('modal-open');
-    } else {
-      document.body.classList.remove('modal-open');
-      document.documentElement.classList.remove('modal-open');
-    }
-    return () => {
-      document.body.classList.remove('modal-open');
-      document.documentElement.classList.remove('modal-open');
-    };
-  }, [isOpen]);
+  useScrollLock(isOpen);
 
   const handleImageError = () => {
     const token = encodeURIComponent(localStorage.getItem('fo_token') || '');

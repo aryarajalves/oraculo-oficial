@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 export default function GenerationHistoryModal({ isOpen, onClose, carouselId }) {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const logEndRef = useRef(null);
+
+  useScrollLock(isOpen);
 
   useEffect(() => {
     if (!isOpen || !carouselId) return;

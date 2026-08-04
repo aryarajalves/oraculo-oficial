@@ -79,7 +79,10 @@ body {
 
 /* Disable scroll when modal is open */
 html.modal-open,
-body.modal-open {
+body.modal-open,
+body.modal-open .main-area,
+body.modal-open .view-content,
+body.modal-open .tab-dashboard {
   overflow: hidden !important;
   height: 100vh !important;
 }
