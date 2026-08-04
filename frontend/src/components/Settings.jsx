@@ -320,6 +320,7 @@ export default function Settings({ showToast, onLoadBranding, currentUser }) {
           handleRenamePrompt={handleRenamePrompt}
           activePrompt={activePrompt}
           editorStyles={editorStyles}
+          showToast={showToast}
         />
       )}
 

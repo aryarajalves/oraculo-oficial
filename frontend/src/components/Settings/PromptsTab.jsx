@@ -16,7 +16,8 @@ export default function PromptsTab({
   setTempName,
   handleRenamePrompt,
   activePrompt,
-  editorStyles
+  editorStyles,
+  showToast
 }) {
   const [editingListId, setEditingListId] = useState(null);
   const [listTempName, setListTempName] = useState('');
@@ -59,6 +60,57 @@ export default function PromptsTab({
 
   const lineCount = promptContent ? promptContent.split('\n').length : 1;
   const lineNumbers = Array.from({ length: lineCount }, (_, i) => i + 1);
+
+  // ── Export / Import JSON ──────────────────────────────────────────────────
+  const importInputRef = useRef(null);
+
+  const handleExport = () => {
+    const exportData = prompts.map(p => ({ id: p.id, name: p.name, content: p.content }));
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `oraculo-prompts-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    if (showToast) showToast('\u2713 Prompts exportados com sucesso!');
+  };
+
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!Array.isArray(parsed)) throw new Error('Formato inválido: esperado um array.');
+        let count = 0;
+        for (const entry of parsed) {
+          if (!entry.id || entry.content === undefined) continue;
+          await fetch('/api/settings/prompts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: entry.id, content: entry.content }),
+            credentials: 'include'
+          });
+          if (entry.name) {
+            await fetch('/api/settings/prompts/rename', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: entry.id, name: entry.name }),
+              credentials: 'include'
+            });
+          }
+          count++;
+        }
+        if (showToast) showToast(`\u2713 ${count} prompt(s) importado(s)! Recarregue para ver as mudanças.`);
+      } catch (err) {
+        if (showToast) showToast('Erro ao importar: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   return (
     <div className="prompts-settings-container" style={{ display: 'flex', gap: '20px', height: 'calc(100vh - 240px)', minHeight: '450px' }}>
@@ -329,12 +381,80 @@ export default function PromptsTab({
               resize: 'none',
               outline: 'none',
               overflowY: 'auto',
-              whiteSpace: 'pre',
-              overflowX: 'auto'
+              whiteSpace: 'pre-wrap',
+              overflowX: 'hidden',
+              wordBreak: 'break-word'
             }}
             placeholder="Selecione um prompt ou aguarde o carregamento..."
           />
         </div>
+      </div>
+
+      {/* Botões de Export / Import no rodapé do painel */}
+      <div style={{ display: 'flex', gap: '6px', paddingTop: '10px', borderTop: '1px solid var(--border)', marginTop: '4px' }}>
+        <button
+          onClick={handleExport}
+          title="Exportar todos os prompts como JSON"
+          style={{
+            flex: 1,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid var(--border)',
+            borderRadius: '6px',
+            color: 'var(--text-2)',
+            fontSize: '11px',
+            padding: '7px 6px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '5px',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Exportar JSON
+        </button>
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".json,application/json"
+          style={{ display: 'none' }}
+          onChange={handleImport}
+        />
+        <button
+          onClick={() => importInputRef.current?.click()}
+          title="Importar prompts de um arquivo JSON"
+          style={{
+            flex: 1,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid var(--border)',
+            borderRadius: '6px',
+            color: 'var(--text-2)',
+            fontSize: '11px',
+            padding: '7px 6px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '5px',
+            transition: 'all 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
+          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Importar JSON
+        </button>
       </div>
     </div>
   );
