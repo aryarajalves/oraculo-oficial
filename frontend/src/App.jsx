@@ -179,7 +179,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    const titleName = branding?.companyName || branding?.logoText || 'FONTE Tete';
+    const titleName = branding?.companyName || branding?.logoText || 'Haucacau';
     document.title = `${titleName} — Dashboard de Produção`;
   }, [branding]);
 

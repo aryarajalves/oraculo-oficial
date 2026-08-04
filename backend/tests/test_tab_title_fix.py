@@ -23,8 +23,8 @@ class TestTabTitleFix(unittest.TestCase):
         self.assertNotIn("Fonte Oculta — Dashboard", self.index_content, "index.html ainda possui 'Fonte Oculta' no <title>.")
 
     def test_app_title_fallback(self):
-        """Verifica se o App.jsx usa logoText ou 'FONTE Tete' ao invés de 'Fonte Oculta'."""
-        self.assertIn("branding?.companyName || branding?.logoText || 'FONTE Tete'", self.app_content, "Lógica de fallback de título no App.jsx inconsistente.")
+        """Verifica se o App.jsx usa logoText ou 'Haucacau' ao invés de 'FONTE'."""
+        self.assertIn("branding?.companyName || branding?.logoText || 'Haucacau'", self.app_content, "Lógica de fallback de título no App.jsx inconsistente.")
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
