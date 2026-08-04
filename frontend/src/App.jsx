@@ -75,18 +75,18 @@ export default function App() {
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
   const [historyCarouselId, setHistoryCarouselId] = useState('');
   const [branding, setBranding] = useState({
-    companyName: 'FONTE OCULTA',
-    logoText: 'FONTE OCULTA',
+    companyName: 'Haucacau',
+    logoText: '@HAUCACAU',
     logoSub: 'PRODUÇÃO',
-    logoSize: '13px',
+    logoSize: '6px',
     logoColor: '#ffffff',
     carouselTextSize: '15px',
     carouselTextColor: '#e4e4e7',
-    titleTextSize: '40px',
-    bodyTextSize: '24px',
+    titleTextSize: '18px',
+    bodyTextSize: '12px',
     titleTextColor: '#ffffff',
-    bodyTextColor: '#e4e4e7',
-    logoPosition: 'left'
+    bodyTextColor: '#df0c7c',
+    logoPosition: 'right'
   });
   const [currentUser, setCurrentUser] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
