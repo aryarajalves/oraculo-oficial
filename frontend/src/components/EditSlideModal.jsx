@@ -199,6 +199,7 @@ export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, fi
   };
 
   const handleRecompose = async (silent = false) => {
+    if (!silent) setLoadingAction('recompose');
     setSaving(true);
     const effectiveTitleY = slideMeta.title_y !== '' && slideMeta.title_y !== undefined && slideMeta.title_y !== null ? Number(slideMeta.title_y) : defaultTitleY;
     const effectiveBodyY = slideMeta.body_y !== '' && slideMeta.body_y !== undefined && slideMeta.body_y !== null ? Number(slideMeta.body_y) : defaultBodyY;
@@ -238,7 +239,10 @@ export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, fi
     }
   };
 
+  const [loadingAction, setLoadingAction] = useState('recompose'); // 'recompose' | 'visualizar' | 'regen'
+
   const handleVisualizar = async () => {
+    setLoadingAction('visualizar');
     await handleRecompose(true);
     const currentIndex = slides.findIndex(s => (typeof s === 'string' ? s : s.filename) === filename);
     onClose();
@@ -250,6 +254,7 @@ export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, fi
   };
 
   const handleRegen = async () => {
+    setLoadingAction('regen');
     setSaving(true);
     try {
       const res = await customFetch(`/api/carousels/${carouselId}/slide/${filename}/regen`, {
@@ -332,10 +337,16 @@ export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, fi
             `}</style>
             <div>
               <div style={{ color: '#fff', fontSize: '16px', fontWeight: 'bold', marginBottom: '6px' }}>
-                {activeTab === 'image' ? 'Recriando Imagem com IA...' : 'Recriando & Renderizando Slide...'}
+                {loadingAction === 'visualizar' 
+                  ? 'Abrindo Visualização...' 
+                  : loadingAction === 'regen' 
+                    ? 'Recriando Imagem com IA...' 
+                    : 'Recriando & Renderizando Slide...'}
               </div>
               <div style={{ color: 'var(--text-3, #a1a1aa)', fontSize: '13px' }}>
-                Recriando o <strong style={{ color: 'var(--gold, #d97706)' }}>Slide {slideDisplayNum}</strong> ({filename}). Por favor, aguarde.
+                {loadingAction === 'visualizar'
+                  ? <>Preparando o <strong style={{ color: 'var(--gold, #d97706)' }}>Slide {slideDisplayNum}</strong> para visualização. Por favor, aguarde.</>
+                  : <>Recriando o <strong style={{ color: 'var(--gold, #d97706)' }}>Slide {slideDisplayNum}</strong> ({filename}). Por favor, aguarde.</>}
               </div>
             </div>
           </div>
