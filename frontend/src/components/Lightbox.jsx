@@ -34,11 +34,19 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
     };
   }, [isOpen]);
 
+  const getSlideFilename = (item) => {
+    if (!item) return '';
+    if (typeof item === 'string') return item;
+    return item.filename || item.name || '';
+  };
+
   // Pré-carregamento automático de todos os slides do carrossel na memória do navegador
   useEffect(() => {
     if (isOpen && carouselId && slides && slides.length > 0) {
       const token = encodeURIComponent(localStorage.getItem('fo_token') || '');
-      slides.forEach((slideName) => {
+      slides.forEach((item) => {
+        const slideName = getSlideFilename(item);
+        if (!slideName) return;
         const img = new Image();
         img.src = `/api/carousels/${carouselId}/image/${slideName}?token=${token}&v=${imageVersion}`;
       });
@@ -70,8 +78,10 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
   }, [index, isOpen, carouselId]);
 
   const loadSlideMeta = async () => {
+    const slideName = getSlideFilename(slides[index]);
+    if (!slideName) return;
     try {
-      const res = await fetch(`/api/carousels/${carouselId}/slide/${slides[index]}/meta`);
+      const res = await fetch(`/api/carousels/${carouselId}/slide/${slideName}/meta`);
       const data = await res.json();
       setMeta({ title: data.title || '', body: data.body || '' });
     } catch (e) {
@@ -81,7 +91,7 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
 
   if (!isOpen || !slides || slides.length === 0) return null;
 
-  const currentSlide = slides[index];
+  const currentSlide = getSlideFilename(slides[index]);
 
   const handleSaveElement = async () => {
     try {
