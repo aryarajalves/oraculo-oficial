@@ -1,31 +1,29 @@
 """
-Teste unitário para garantia estrita de que NENHUM arquivo HTML estático em public/ possui títulos legados.
+Teste unitário para varrer TODOS os arquivos HTML das pastas frontend/public, frontend/dist e frontend/index.html
+para garantir que a tag <title> seja estritamente 'Oraculo', eliminando qualquer oscilação de título de aba.
 """
 import unittest
-from pathlib import Path
 import re
+from pathlib import Path
 
-class TestAllStaticHtmlTitlesAreOraculo(unittest.TestCase):
-    def setUp(self):
-        self.public_dir = (
-            Path(__file__).resolve().parents[2] / "frontend" / "public"
-        )
-        self.index_file = (
-            Path(__file__).resolve().parents[2] / "frontend" / "index.html"
-        )
+FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
 
-    def test_all_public_html_titles_are_oraculo(self):
-        """Varre todos os HTMLs estáticos para garantir que <title> é exclusivamente 'Oraculo'."""
-        html_files = list(self.public_dir.glob("*.html")) + [self.index_file]
-        self.assertGreater(len(html_files), 0, "Nenhum arquivo HTML encontrado.")
+class TestAllStaticHtmlTitles(unittest.TestCase):
+    def test_all_html_files_have_oraculo_title(self):
+        """Verifica se todos os arquivos HTML em frontend possuem <title>Oraculo</title>."""
+        html_files = list(FRONTEND_DIR.glob("**/*.html"))
+        self.assertTrue(len(html_files) > 0, "Nenhum arquivo HTML encontrado em frontend")
 
         for html_path in html_files:
-            with open(html_path, "r", encoding="utf-8") as f:
-                content = f.read()
+            content = html_path.read_text(encoding="utf-8")
             match = re.search(r"<title>(.*?)</title>", content, re.IGNORECASE)
-            self.assertIsNotNone(match, f"Elemento <title> não encontrado em {html_path.name}")
-            title_text = match.group(1).trim() if hasattr(match.group(1), 'trim') else match.group(1).strip()
-            self.assertEqual(title_text, "Oraculo", f"Arquivo {html_path.name} possui título '{title_text}' ao invés de 'Oraculo'.")
+            self.assertIsNotNone(match, f"Elemento <title> não encontrado em {html_path.relative_to(FRONTEND_DIR)}")
+            title_text = match.group(1).strip()
+            self.assertEqual(
+                title_text,
+                "Oraculo",
+                f"Tag <title> em {html_path.relative_to(FRONTEND_DIR)} é '{title_text}', mas deveria ser estritamente 'Oraculo'"
+            )
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
