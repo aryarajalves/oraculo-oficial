@@ -310,7 +310,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                     )}
                     {m.role === 'ai' && !m.streaming && m.content && (
                       <div className="criador-msg-actions" style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-                        <button className="criador-action-btn" onClick={() => navigator.clipboard.writeText(m.content)}>Copiar tudo</button>
+                        <button className="criador-action-btn" onClick={() => { navigator.clipboard.writeText(m.content); showToast('✓ Copiado para a área de transferência!'); }}>Copiar tudo</button>
                         {(() => {
                           try {
                             const parsed = parseCarouselText(m.content, activeBriefing);

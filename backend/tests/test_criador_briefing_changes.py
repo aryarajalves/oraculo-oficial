@@ -37,6 +37,25 @@ class TestCriadorSalvarRascunho(unittest.TestCase):
             "O botão 'Copiar tudo' foi removido indevidamente do Criador.jsx."
         )
 
+    def test_copy_button_shows_toast(self):
+        """O botão Copiar tudo deve chamar showToast após copiar."""
+        self.assertIn(
+            "showToast",
+            self.content,
+            "showToast não é chamado no Criador.jsx."
+        )
+        # Verifica que o showToast está próximo ao writeText (no mesmo onClick)
+        import re
+        copy_with_toast = re.search(
+            r'navigator\.clipboard\.writeText.*showToast|showToast.*navigator\.clipboard\.writeText',
+            self.content,
+            re.DOTALL
+        )
+        self.assertIsNotNone(
+            copy_with_toast,
+            "O botão Copiar tudo não está disparando showToast após copiar o conteúdo."
+        )
+
     def test_handle_save_draft_not_called_from_button(self):
         """handleSaveDraft não deve ser chamado a partir de um botão visível ao usuário."""
         # A função pode ainda existir no código, mas não deve estar em botão de UI
