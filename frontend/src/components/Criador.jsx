@@ -116,11 +116,43 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
       }
       if (fullText.includes('[S1') || fullText.includes('DISRUPÇÃO')) {
         setLastCarousel(fullText);
+        
+        let targetId = currentCarouselId;
+        if (!targetId) {
+          try {
+            const parsed = parseCarouselText(fullText);
+            const res = await fetch('/api/carousels', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                title: parsed.title || 'Novo Carrossel',
+                theme: parsed.theme || '',
+                format: parsed.format || 'A',
+                caption: parsed.caption || '',
+                notes: parsed.notes || '',
+                totalSlides: parsed.slides?.length || 10,
+                status: 'rascunho',
+                chatHistory: [
+                  ...messages.map(m => ({ role: m.role, content: m.content })),
+                  { role: 'user', content: text },
+                  { role: 'ai', content: fullText }
+                ]
+              })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              setCurrentCarouselId(data.id);
+              targetId = data.id;
+            }
+          } catch (err) {
+            console.error('Erro ao salvar rascunho inicial do carrossel:', err);
+          }
+        }
       }
 
       if (currentCarouselId) {
         const updatedMessages = [
-          ...messages.filter(m => m.role !== 'form').map(m => ({
+          ...messages.map(m => ({
             role: m.role,
             content: m.content,
             model: m.model,
@@ -155,7 +187,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
 
   useEffect(() => {
     if (shouldAddFormMessage) {
-      setMessages(prev => [...prev, { role: 'form', id: 'form-' + Date.now() }]);
+      setMessages([]);
+      setCurrentCarouselId(null);
       clearAddFormMessage();
     }
   }, [shouldAddFormMessage]);
@@ -167,192 +200,8 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
     }
   }, [initialMessages]);
 
-  useEffect(() => {
-    if (messages.length === 0 && !initialMessages) {
-      setMessages([{ role: 'form', id: 'form-' + Date.now() }]);
-    }
-  }, []);
 
 
-  const handleSendFormBriefing = async (briefing) => {
-    if (generating) return;
-
-    if (!briefing.title?.trim() || !briefing.theme?.trim()) {
-      showToast("⚠ Por favor, preencha o Título e o Tema antes de enviar.");
-      return;
-    }
-
-    setActiveBriefing(briefing);
-
-    const displayUserText = `Briefing enviado para avaliação da IA: "${briefing.title || 'Novo Carrossel'}" (Tema: ${briefing.theme || 'Não definido'}, Formato: ${briefing.format})`;
-
-    let designRule = '';
-    const noImgCount = Number(briefing.noImageSlidesCount || 0);
-    const totS = Number(briefing.totalSlides || 10);
-    if (noImgCount >= totS) {
-      designRule = `\n- **REGRA OBRIGATÓRIA DE DESIGN:** O usuário selecionou que TODOS os ${totS} slides devem ter FUNDO PRETO PURO (layout "text_only"), sem NENHUMA imagem gerada por IA (prompt_imagem deve ser null em todos os slides).`;
-    } else if (noImgCount > 0) {
-      designRule = `\n- **REGRA OBRIGATÓRIA DE DESIGN:** O usuário selecionou que os últimos ${noImgCount} slide(s) (de S${totS - noImgCount + 1} até S${totS}) devem ter FUNDO PRETO PURO (layout "text_only"), sem imagem de IA.`;
-    }
-
-    const actualAIPrompt = `Avalie o seguinte briefing de carrossel de forma muito objetiva, curta e direta (em no máximo 2-3 parágrafos curtos). Seja prático e direto ao ponto, sem introduções longas ou textos prolixos:
-
-- **Título/Gancho:** ${briefing.title || 'Não definido'}
-- **Tema:** ${briefing.theme || 'Não definido'}
-- **Formato:** ${briefing.format || 'Não definido'}
-- **Total de Slides:** ${totS}
-- **Slides Sem Imagem (Fundo Preto):** ${noImgCount}
-- **Qualidade das Imagens:** ${briefing.imageQuality || 'high'}
-- **Pasta:** ${briefing.dir || 'Não definido'}
-- **Legenda (Caption):** ${briefing.caption || 'Não definido'}
-- **Notas:** ${briefing.notes || 'Não definido'}${designRule}`;
-
-    setMessages(prev => [...prev, { role: 'user', content: displayUserText }]);
-    // Scroll suave para o final do chat após enviar o briefing
-    setTimeout(() => scrollToBottom(), 100);
-
-    // Cria o rascunho do carrossel no banco de dados
-    let createdId = null;
-    try {
-      const res = await fetch('/api/carousels', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: briefing.title || 'Novo Carrossel',
-          theme: briefing.theme || '',
-          format: briefing.format || 'A',
-          slidesDir: briefing.dir || '',
-          caption: briefing.caption || '',
-          notes: briefing.notes || '',
-          totalSlides: totS,
-          noImageSlidesCount: noImgCount,
-          imageQuality: briefing.imageQuality || 'high',
-          status: 'rascunho',
-          chatHistory: [
-            ...messages.filter(m => m.role !== 'form'),
-            { role: 'user', content: displayUserText }
-          ]
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCurrentCarouselId(data.id);
-        createdId = data.id;
-      }
-    } catch (err) {
-      console.error('Erro ao salvar rascunho inicial no Postgres:', err);
-    }
-
-    setGenerating(true);
-    const aiMessageId = 'ai-' + Date.now();
-    setMessages(prev => [...prev, { role: 'ai', content: '', id: aiMessageId, streaming: true }]);
-
-    let fullText = '';
-    let responseModel = 'gpt-4o';
-    let costUsd = 0;
-    try {
-      const chatHistory = messages.filter(m => m.role !== 'form');
-      const history = [...chatHistory, { role: 'user', content: actualAIPrompt }];
-
-      const res = await fetch('/api/criador/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          messages: history,
-          totalSlides: totS,
-          noImageSlidesCount: noImgCount
-        }),
-      });
-
-      if (!res.ok) {
-        setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, content: '⚠ Erro de conexão com a IA.', streaming: false } : m));
-        return;
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buf = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buf += decoder.decode(value, { stream: true });
-        const lines = buf.split('\n');
-        buf = lines.pop();
-
-        for (const line of lines) {
-          const t = line.trim();
-          if (!t.startsWith('data: ')) continue;
-          try {
-            const json = JSON.parse(t.slice(6));
-            if (json.error) {
-              let errorMsg = json.error;
-              if (json.error.includes("quota") || json.error.includes("billing")) {
-                errorMsg = "Você excedeu sua cota atual na OpenAI. Por favor, adicione créditos ou verifique sua forma de faturamento no painel da OpenAI: https://platform.openai.com/settings/organization/billing/overview";
-              }
-              setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, content: '⚠ Erro: ' + errorMsg, streaming: false } : m));
-              return;
-            }
-            if (json.token) {
-              fullText += json.token;
-              setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, content: fullText } : m));
-            }
-            if (json.done) {
-              if (json.model) responseModel = json.model;
-              const totalWords = fullText.split(/\s+/).length + actualAIPrompt.split(/\s+/).length;
-              const approxTokens = totalWords * 1.33;
-              costUsd = approxTokens * 0.00001;
-
-              setMessages(prev => prev.map(m => m.id === aiMessageId ? { 
-                ...m, 
-                streaming: false,
-                timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' de ' + new Date().toLocaleDateString('pt-BR'),
-                costUSD: costUsd,
-                model: responseModel
-              } : m));
-            }
-          } catch {}
-        }
-      }
-      if (fullText.includes('[S1') || fullText.includes('DISRUPÇÃO')) {
-        setLastCarousel(fullText);
-      }
-
-      const targetId = createdId || currentCarouselId;
-      if (targetId) {
-        const updatedMessages = [
-          ...messages.filter(m => m.role !== 'form').map(m => ({
-            role: m.role,
-            content: m.content,
-            model: m.model,
-            costUSD: m.costUSD,
-            timestamp: m.timestamp
-          })),
-          { role: 'user', content: displayUserText },
-          { 
-            role: 'ai', 
-            content: fullText,
-            model: responseModel,
-            costUSD: costUsd,
-            timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' de ' + new Date().toLocaleDateString('pt-BR')
-          }
-        ];
-        try {
-          await fetch(`/api/carousels/${targetId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chatHistory: updatedMessages })
-          });
-        } catch (err) {
-          console.error('Erro ao atualizar histórico do briefing no Postgres:', err);
-        }
-      }
-    } catch (e) {
-      setMessages(prev => prev.map(m => m.id === aiMessageId ? { ...m, content: '⚠ Erro de rede.', streaming: false } : m));
-    } finally {
-      setGenerating(false);
-    }
-  };
 
   const handleSaveDraft = async (text) => {
     const temaMatch = text.match(/TEMA:\s*(.+)/i);
@@ -387,7 +236,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
   };
 
   return (
-    <div className="main-view active" id="view-criador" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)', overflow: 'hidden' }}>
+    <div className="main-view active" id="view-criador" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
       <div className="criador-wrap" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <div className="criador-msgs" ref={msgsRef} style={{ flex: 1, overflowY: 'auto', padding: '32px 24px 16px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {messages.length === 0 ? (
@@ -551,209 +400,4 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
   );
 }
 
-function ChatFormMessage({ onSubmit, showToast, generating, onRequestIdeas }) {
-  const [title, setTitle] = useState('');
-  const [theme, setTheme] = useState('');
-  const [format, setFormat] = useState('A');
-  const [totalSlides, setTotalSlides] = useState('10');
-  const [noImageSlides, setNoImageSlides] = useState('0');
-  const [imageQuality, setImageQuality] = useState('high');
-  const [dir, setDir] = useState('');
-  const [caption, setCaption] = useState('');
-  const [notes, setNotes] = useState('');
-  const [submitted, setSubmitted] = useState(false);
 
-  useEffect(() => {
-    const handleFill = (e) => {
-      if (e.detail.type === 'title') setTitle(e.detail.value);
-      if (e.detail.type === 'theme') setTheme(e.detail.value);
-    };
-    window.addEventListener('preencher-briefing', handleFill);
-    return () => window.removeEventListener('preencher-briefing', handleFill);
-  }, []);
-
-  if (submitted) {
-    return (
-      <div style={{ color: 'var(--text-3)', fontSize: '13px', fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>
-        ✓ Briefing enviado para avaliação da IA.
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--gold)', marginBottom: '4px', textAlign: 'center', letterSpacing: '0.05em' }}>
-        📝 NOVO BRIEFING DE CARROSSEL
-      </div>
-      
-      <div className="form-group" style={{ marginBottom: '8px' }}>
-        <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Título / Gancho</label>
-        <input 
-          className="form-input" 
-          style={{ background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
-          placeholder="Ex: O que a física prova sobre dinheiro..." 
-          value={title} 
-          onChange={e => setTitle(e.target.value)} 
-        />
-      </div>
-
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-          <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Tema</label>
-          <input 
-            className="form-input" 
-            style={{ background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
-            placeholder="Ex: frequencia-dinheiro" 
-            value={theme} 
-            onChange={e => setTheme(e.target.value)} 
-          />
-        </div>
-        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-          <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Formato</label>
-          <select 
-            className="form-select" 
-            style={{ background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
-            value={format} 
-            onChange={e => setFormat(e.target.value)}
-          >
-            <option value="A">A — Tese + Tradução</option>
-            <option value="B">B — Demolição + Reconstrução</option>
-            <option value="C">C — Lista Revelação</option>
-            <option value="D">D — História + Verdade</option>
-          </select>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-          <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Total de Slides</label>
-          <input 
-            type="number"
-            className="form-input" 
-            style={{ background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
-            min="1"
-            max="20"
-            value={totalSlides} 
-            onChange={e => setTotalSlides(e.target.value)} 
-          />
-        </div>
-        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-          <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Slides Sem Imagem</label>
-          <input 
-            type="number"
-            className="form-input" 
-            style={{ background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
-            min="0"
-            max={totalSlides} 
-            value={noImageSlides} 
-            onChange={e => setNoImageSlides(e.target.value)} 
-          />
-        </div>
-        <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-          <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Qualidade</label>
-          <select 
-            className="form-select" 
-            style={{ background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
-            value={imageQuality} 
-            onChange={e => setImageQuality(e.target.value)}
-          >
-            <option value="auto">Auto</option>
-            <option value="low">Baixa</option>
-            <option value="medium">Média</option>
-            <option value="high">Alta</option>
-            <option value="standard">Padrão (DALL-E 3)</option>
-            <option value="hd">HD (DALL-E 3)</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="form-group" style={{ marginBottom: '8px' }}>
-        <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Pasta das artes (caminho completo)</label>
-        <input 
-          className="form-input" 
-          style={{ background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
-          placeholder="C:/Users/julia/Desktop/nome-da-pasta" 
-          value={dir} 
-          onChange={e => setDir(e.target.value)} 
-        />
-      </div>
-
-      <div className="form-group" style={{ marginBottom: '8px' }}>
-        <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Caption (texto para o post)</label>
-        <textarea 
-          className="form-textarea" 
-          rows="2" 
-          style={{ minHeight: '40px', background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
-          placeholder="Legenda do post..." 
-          value={caption} 
-          onChange={e => setCaption(e.target.value)}
-        ></textarea>
-      </div>
-
-      <div className="form-group" style={{ marginBottom: '12px' }}>
-        <label className="form-label" style={{ fontSize: '10px', textTransform: 'uppercase', color: 'var(--text-3)' }}>Notas internas</label>
-        <textarea 
-          className="form-textarea" 
-          rows="2" 
-          style={{ minHeight: '40px', background: 'var(--surface)', borderColor: 'var(--border2)', color: 'var(--text)' }} 
-          placeholder="Observações..." 
-          value={notes} 
-          onChange={e => setNotes(e.target.value)}
-        ></textarea>
-      </div>
-
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button
-          onClick={() => { if (!generating && onRequestIdeas) onRequestIdeas(); }}
-          disabled={generating}
-          style={{
-            flex: '0 0 auto',
-            padding: '8px 12px',
-            fontSize: '12px',
-            fontWeight: '700',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            background: 'transparent',
-            border: '1px solid rgba(201, 168, 76, 0.4)',
-            borderRadius: '6px',
-            color: 'var(--gold)',
-            cursor: generating ? 'not-allowed' : 'pointer',
-            opacity: generating ? 0.5 : 1,
-            whiteSpace: 'nowrap',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={e => { if (!generating) e.currentTarget.style.background = 'rgba(201,168,76,0.1)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-        >
-          💡 Sugerir Temas
-        </button>
-
-        <button
-          className="btn btn-gold"
-          style={{
-            flex: 1,
-            padding: '8px 12px',
-            fontSize: '12px',
-            fontWeight: '700',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            opacity: generating ? 0.5 : 1,
-            cursor: generating ? 'not-allowed' : 'pointer'
-          }}
-          disabled={generating}
-          onClick={() => {
-            if (generating) return;
-            if (!title.trim() || !theme.trim()) {
-              if (showToast) showToast("⚠ Por favor, preencha o Título e o Tema antes de enviar.");
-              return;
-            }
-            onSubmit({ title, theme, format, dir, caption, notes, totalSlides: Number(totalSlides), imageQuality, noImageSlidesCount: Number(noImageSlides) });
-            setSubmitted(true);
-          }}
-        >
-          {generating ? 'Aguardando resposta da IA...' : 'Avaliar Briefing com IA'}
-        </button>
-      </div>
-    </div>
-  );
-}

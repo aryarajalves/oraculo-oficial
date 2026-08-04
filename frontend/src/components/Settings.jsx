@@ -3,7 +3,7 @@ import GeneralTab from './Settings/GeneralTab';
 import PromptsTab from './Settings/PromptsTab';
 import BrandingTab from './Settings/BrandingTab';
 
-export default function Settings({ showToast, onLoadBranding }) {
+export default function Settings({ showToast, onLoadBranding, currentUser }) {
   const [settingsData, setSettingsData] = useState(null);
   const [pendingUpdates, setPendingUpdates] = useState({});
   const [loading, setLoading] = useState(true);
@@ -298,6 +298,7 @@ export default function Settings({ showToast, onLoadBranding }) {
           setPendingUpdates={setPendingUpdates}
           setSettingsData={setSettingsData}
           showToast={showToast}
+          currentUser={currentUser}
         />
       )}
 

@@ -51,6 +51,8 @@ export function mapCarouselFromDb(row) {
     lastPayload: row.last_payload || null,
     isPinned: row.is_pinned || false,
     pinnedAt: row.pinned_at || null,
+    generationDuration: row.generation_duration || null,
+    generationTimeSeconds: row.generation_time_seconds || null,
     slides: typeof row.slides === 'string' ? JSON.parse(row.slides) : (row.slides || []),
     chatHistory: typeof row.chat_history === 'string' ? JSON.parse(row.chat_history) : (row.chat_history || [])
   };
@@ -80,8 +82,8 @@ export async function writeData(data) {
       const upsertQuery = `
         INSERT INTO carousels (
           id, title, theme, praca, format, preset, status, created_at,
-          slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history, image_quality, b2_base_url, image_provider, copy_model, no_image_slides_count, last_payload, is_pinned, pinned_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+          slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history, image_quality, b2_base_url, image_provider, copy_model, no_image_slides_count, last_payload, is_pinned, pinned_at, generation_duration, generation_time_seconds
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25)
         ON CONFLICT (id) DO UPDATE SET
           title = EXCLUDED.title,
           theme = EXCLUDED.theme,
@@ -104,7 +106,9 @@ export async function writeData(data) {
           no_image_slides_count = EXCLUDED.no_image_slides_count,
           last_payload = EXCLUDED.last_payload,
           is_pinned = EXCLUDED.is_pinned,
-          pinned_at = EXCLUDED.pinned_at
+          pinned_at = EXCLUDED.pinned_at,
+          generation_duration = EXCLUDED.generation_duration,
+          generation_time_seconds = EXCLUDED.generation_time_seconds
       `;
       const params = [
         c.id,
@@ -129,7 +133,9 @@ export async function writeData(data) {
         c.noImageSlidesCount || 0,
         c.lastPayload ? JSON.stringify(c.lastPayload) : null,
         c.isPinned || false,
-        c.pinnedAt || null
+        c.pinnedAt || null,
+        c.generationDuration || null,
+        c.generationTimeSeconds || null
       ];
       await query(upsertQuery, params);
     }

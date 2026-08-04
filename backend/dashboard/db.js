@@ -79,7 +79,9 @@ export async function initDb() {
       slides JSONB,
       chat_history JSONB,
       is_pinned BOOLEAN DEFAULT FALSE,
-      pinned_at TIMESTAMP DEFAULT NULL
+      pinned_at TIMESTAMP DEFAULT NULL,
+      generation_duration VARCHAR(100),
+      generation_time_seconds INTEGER
     );
   `;
 
@@ -212,6 +214,10 @@ export async function initDb() {
         [envCopyModel]
       );
     }
+
+    // Migração: adicionar colunas de duração se não existirem
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS generation_duration VARCHAR(100)");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS generation_time_seconds INTEGER");
 
     // Resetar carrosséis que ficaram presos em "generating" (processo morreu com restart do container)
     const orphaned = await query(`UPDATE carousels SET status = 'rascunho' WHERE status = 'generating'`);

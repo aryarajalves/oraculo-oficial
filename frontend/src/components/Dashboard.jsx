@@ -1,6 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useScrollLock } from '../hooks/useScrollLock';
 import PipelineModal from './PipelineModal';
+import { customFetch } from '../utils/customFetch';
+
+function GeneratingBadge({ startedAt }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const getStartMs = (val) => {
+      if (!val) return Date.now();
+      if (typeof val === 'number') return val;
+      const parsed = new Date(val).getTime();
+      return isNaN(parsed) ? Date.now() : parsed;
+    };
+
+    const start = getStartMs(startedAt);
+    setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    const interval = setInterval(() => {
+      setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startedAt]);
+
+  const mins = Math.floor(elapsed / 60);
+  const secs = elapsed % 60;
+  const formatted = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+  return (
+    <span className="badge badge-generating" style={{ background: 'rgba(234, 179, 8, 0.2)', color: '#facc15', border: '1px solid rgba(250, 204, 21, 0.4)', fontWeight: 'bold' }}>
+      ⏳ gerando... ({formatted})
+    </span>
+  );
+}
 
 export default function Dashboard({
   allCarousels,
@@ -26,6 +57,43 @@ export default function Dashboard({
   const [selectedPipelineCarousel, setSelectedPipelineCarousel] = useState(null);
   const [isCaptionMaximized, setIsCaptionMaximized] = useState(false);
   const [retryingId, setRetryingId] = useState(null);
+
+  const [editedCaption, setEditedCaption] = useState('');
+  const [isSavingCaption, setIsSavingCaption] = useState(false);
+
+  const handleOpenCaptionModal = (carousel) => {
+    setSelectedDetailsCarousel(carousel);
+    setEditedCaption(carousel.caption_full || carousel.caption || '');
+    setIsCaptionMaximized(true);
+  };
+
+  const handleSaveCaption = async () => {
+    if (!selectedDetailsCarousel) return;
+    setIsSavingCaption(true);
+    try {
+      const res = await customFetch(`/api/carousels/${selectedDetailsCarousel.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          caption: editedCaption,
+          caption_full: editedCaption
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.id) {
+        showToast('Legenda atualizada com sucesso!', 'success');
+        setSelectedDetailsCarousel(prev => prev ? { ...prev, caption: editedCaption, caption_full: editedCaption } : null);
+        if (typeof onLoadCarousels === 'function') onLoadCarousels();
+        setIsCaptionMaximized(false);
+      } else {
+        showToast(data.error || 'Erro ao salvar legenda.', 'error');
+      }
+    } catch (err) {
+      showToast('Erro de conexão ao salvar legenda.', 'error');
+    } finally {
+      setIsSavingCaption(false);
+    }
+  };
 
   // Trava scroll do body quando qualquer modal estiver aberto
   const anyModalOpen = !!selectedDetailsCarousel || !!selectedPipelineCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized;
@@ -381,7 +449,20 @@ export default function Dashboard({
                           </span>
                         )}
                         <span className="badge badge-format">F: {c.format}</span>
-                        <span className={`badge badge-${c.status}`}>{c.status === 'generating' ? 'gerando' : c.status}</span>
+                        {c.status === 'generating' ? (
+                          <GeneratingBadge startedAt={c.generationStartedAt} />
+                        ) : c.status === 'queued' ? (
+                          <span className="badge" style={{ background: 'rgba(234, 179, 8, 0.2)', color: '#facc15', border: '1px solid rgba(250, 204, 21, 0.4)', fontWeight: 'bold' }}>
+                            ⏳ em fila
+                          </span>
+                        ) : (
+                          <span className={`badge badge-${c.status}`}>{c.status}</span>
+                        )}
+                        {(c.generationDuration || c.generationTimeSeconds) && c.status !== 'generating' && (
+                          <span className="badge" title="Tempo gasto para gerar o carrossel" style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#60a5fa', border: '1px solid rgba(96, 165, 250, 0.3)', fontWeight: '500' }}>
+                            ⏱️ {c.generationDuration || (c.generationTimeSeconds >= 60 ? `${Math.floor(c.generationTimeSeconds / 60)}m ${c.generationTimeSeconds % 60}s` : `${c.generationTimeSeconds}s`)}
+                          </span>
+                        )}
                         {c.preset === 'escala' && (
                           <span className="badge" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', border: '1px solid rgba(239, 68, 68, 0.3)', fontWeight: 'bold' }}>MOCK</span>
                         )}
@@ -434,7 +515,35 @@ export default function Dashboard({
                           }
                         })}
                       </div>
-                      {c.caption && <div className="caption-box open">{c.caption_full || c.caption}</div>}
+                      {c.caption && (
+                        <div style={{ marginTop: '12px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', padding: '0 4px' }}>
+                            <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '11px', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Legenda</span>
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              style={{
+                                fontSize: '10px',
+                                padding: '2px 10px',
+                                height: 'auto',
+                                minHeight: 'auto',
+                                borderColor: 'rgba(201, 168, 76, 0.4)',
+                                color: 'var(--gold)',
+                                backgroundColor: 'rgba(18, 18, 20, 0.85)'
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenCaptionModal(c);
+                              }}
+                            >
+                              ✏️ Editar Legenda
+                            </button>
+                          </div>
+                          <div className="caption-box open" style={{ cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); handleOpenCaptionModal(c); }}>
+                            {c.caption_full || c.caption}
+                          </div>
+                        </div>
+                      )}
                     </>
                   )}
 
@@ -442,6 +551,7 @@ export default function Dashboard({
                     <select
                       className="status-select"
                       value={c.status}
+                      disabled={c.status === 'generating' || c.status === 'queued'}
                       onChange={(e) => handleStatusChange(c.id, e.target.value)}
                     >
                       <option value="rascunho">Rascunho</option>
@@ -461,7 +571,7 @@ export default function Dashboard({
                         </button>
                       )}
 
-                      {c.status === 'rascunho' && (
+                      {c.status !== 'generating' && c.status !== 'queued' && (
                         <button
                           className="btn btn-outline btn-sm"
                           style={{ borderColor: '#22c55e', color: '#22c55e', opacity: retryingId === c.id ? 0.6 : 1 }}
@@ -473,7 +583,7 @@ export default function Dashboard({
                         </button>
                       )}
 
-                      {c.status !== 'generating' && (
+                      {c.status !== 'generating' && c.status !== 'queued' && (
                         <button
                           className="btn btn-outline btn-sm"
                           style={{ borderColor: '#8b5cf6', color: '#a78bfa' }}
@@ -484,7 +594,7 @@ export default function Dashboard({
                         </button>
                       )}
 
-                      {c.status !== 'generating' && (
+                      {c.status !== 'generating' && c.status !== 'queued' && (
                         <button
                           className="btn btn-outline btn-sm"
                           onClick={(e) => { e.stopPropagation(); setSelectedDetailsCarousel(c); }}
@@ -507,13 +617,15 @@ export default function Dashboard({
                         </button>
                       )}
 
-                      <button
-                        className="btn-instagram btn-sm"
-                        disabled={c.status === 'publicado'}
-                        onClick={() => handlePublish(c.id)}
-                      >
-                        {c.status === 'publicado' ? '✓ Postado' : '✈ Postar'}
-                      </button>
+                      {c.status !== 'generating' && c.status !== 'queued' && c.status !== 'failed' && c.slides && c.slides.length > 0 && (
+                        <button
+                          className="btn-instagram btn-sm"
+                          disabled={c.status === 'publicado'}
+                          onClick={() => handlePublish(c.id)}
+                        >
+                          {c.status === 'publicado' ? '✓ Postado' : '✈ Postar'}
+                        </button>
+                      )}
                       {c.slides && c.slides.length > 0 && c.totalSlides > 0 && c.slides.length === c.totalSlides && (
                         <button 
                           className="btn btn-outline btn-sm" 
@@ -673,9 +785,9 @@ export default function Dashboard({
                     <button 
                       className="btn btn-outline btn-sm" 
                       style={{ fontSize: '10px', padding: '2px 8px', height: 'auto', minHeight: 'auto', border: '1px solid rgba(201, 168, 76, 0.4)', color: 'var(--gold)' }}
-                      onClick={() => setIsCaptionMaximized(true)}
+                      onClick={() => handleOpenCaptionModal(selectedDetailsCarousel)}
                     >
-                      ↗ Maximizar
+                      ✏️ Editar Legenda
                     </button>
                   </div>
                   <div style={{ 
@@ -801,39 +913,66 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* Modal Ampliado de Legenda (Caption Maximizado) */}
+      {/* Modal Ampliado e Editável de Legenda (Caption) */}
       {isCaptionMaximized && selectedDetailsCarousel && (
         <div className="form-modal open" style={{ zIndex: 1100 }}>
-          <div className="form-box" style={{ maxWidth: '700px', width: '90%', padding: '24px', background: '#121214' }}>
+          <div className="form-box" style={{ maxWidth: '720px', width: '90%', padding: '24px', background: '#121214' }}>
             <h3 className="form-title" style={{ color: 'var(--gold, #C9A84C)', fontSize: '18px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '8px' }}>
-              📝 Legenda Completa
+              📝 Editar Legenda
             </h3>
-            <div style={{ 
-              backgroundColor: 'rgba(0,0,0,0.3)', 
-              padding: '16px', 
-              borderRadius: '6px', 
-              whiteSpace: 'pre-wrap', 
-              fontSize: '14px',
-              lineHeight: '1.6',
-              color: '#f4f4f5',
-              maxHeight: '60vh',
-              overflowY: 'auto',
-              border: '1px solid rgba(255,255,255,0.05)'
-            }}>
-              {selectedDetailsCarousel.caption_full || selectedDetailsCarousel.caption}
-            </div>
+            
+            <textarea
+              className="form-textarea"
+              style={{ 
+                width: '100%', 
+                minHeight: '240px', 
+                maxHeight: '55vh',
+                padding: '14px', 
+                borderRadius: '6px', 
+                backgroundColor: '#09090b', 
+                color: '#f4f4f5', 
+                border: '1px solid var(--border, rgba(255,255,255,0.15))',
+                fontSize: '14px',
+                lineHeight: '1.6',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+              value={editedCaption}
+              onChange={(e) => setEditedCaption(e.target.value)}
+              placeholder="Digite ou edite a legenda do carrossel..."
+            />
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', gap: '12px' }}>
               <button 
+                type="button"
                 className="btn btn-outline" 
-                style={{ padding: '8px 20px' }} 
+                style={{ padding: '8px 16px' }} 
                 onClick={() => {
-                  navigator.clipboard.writeText(selectedDetailsCarousel.caption_full || selectedDetailsCarousel.caption);
+                  navigator.clipboard.writeText(editedCaption);
                   showToast('Legenda copiada para a área de transferência!');
                 }}
               >
                 Copiar Texto
               </button>
-              <button className="btn btn-outline" style={{ padding: '8px 20px', borderColor: 'var(--gold)' }} onClick={() => setIsCaptionMaximized(false)}>Fechar</button>
+              <button 
+                type="button"
+                className="btn btn-gold" 
+                style={{ padding: '8px 20px', fontWeight: 'bold' }}
+                onClick={handleSaveCaption}
+                disabled={isSavingCaption}
+              >
+                {isSavingCaption ? '⏳ Salvando...' : '💾 Salvar Legenda'}
+              </button>
+              <button 
+                type="button"
+                className="btn btn-outline" 
+                style={{ padding: '8px 16px', borderColor: 'rgba(255,255,255,0.2)' }} 
+                onClick={() => setIsCaptionMaximized(false)}
+              >
+                Cancelar
+              </button>
             </div>
           </div>
         </div>

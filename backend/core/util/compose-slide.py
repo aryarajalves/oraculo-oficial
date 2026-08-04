@@ -5,7 +5,7 @@ Uso: python compose-slide.py --image <path> --title <txt> --body <txt> --layout 
 import sys, argparse
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from core.util.compose_util import compose
 
 def main():

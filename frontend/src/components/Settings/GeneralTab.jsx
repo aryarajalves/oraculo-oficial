@@ -1,13 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function GeneralTab({
   settingsData,
   pendingUpdates,
   setPendingUpdates,
   setSettingsData,
-  showToast
+  showToast,
+  currentUser
 }) {
   const [activeCategory, setActiveCategory] = useState('provedores');
+  const [openaiBalance, setOpenaiBalance] = useState(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+
+  const isSuperAdmin = currentUser?.isSuperAdmin === true;
+
+  useEffect(() => {
+    if (isSuperAdmin && activeCategory === 'provedores') {
+      loadOpenAIBalance();
+    }
+  }, [isSuperAdmin, activeCategory]);
+
+  const loadOpenAIBalance = async () => {
+    setBalanceLoading(true);
+    try {
+      const token = localStorage.getItem('fo_token');
+      const res = await fetch('/api/settings/openai-balance', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setOpenaiBalance(data);
+    } catch (e) {
+      setOpenaiBalance({
+        ok: false,
+        error: 'Erro de rede.',
+        billingUrl: 'https://platform.openai.com/settings/organization/billing/overview'
+      });
+    } finally {
+      setBalanceLoading(false);
+    }
+  };
 
   const toggleVisibility = (key) => {
     const input = document.getElementById(`key-${key}`);
@@ -54,6 +85,11 @@ export default function GeneralTab({
     return false;
   });
 
+  const formatUSD = (value) => {
+    if (value === null || value === undefined) return '—';
+    return `$${Number(value).toFixed(2)}`;
+  };
+
   return (
     <div className="section">
       {/* Navegação por Sub-abas de Categorias */}
@@ -64,7 +100,7 @@ export default function GeneralTab({
           onClick={() => setActiveCategory('provedores')}
           style={{ borderRadius: '20px', fontSize: '11px', padding: '6px 14px', letterSpacing: '0.3px' }}
         >
-          ⚡ Provedores & Modelos
+          ⚡ Provedores &amp; Modelos
         </button>
         <button
           type="button"
@@ -72,7 +108,7 @@ export default function GeneralTab({
           onClick={() => setActiveCategory('imagem')}
           style={{ borderRadius: '20px', fontSize: '11px', padding: '6px 14px', letterSpacing: '0.3px' }}
         >
-          🖼️ Chaves de Imagem & IA
+          🖼️ Chaves de Imagem &amp; IA
         </button>
         <button
           type="button"
@@ -88,7 +124,7 @@ export default function GeneralTab({
           onClick={() => setActiveCategory('publicacao')}
           style={{ borderRadius: '20px', fontSize: '11px', padding: '6px 14px', letterSpacing: '0.3px' }}
         >
-          ✈️ Publicação & Social
+          ✈️ Publicação &amp; Social
         </button>
         <button
           type="button"
@@ -176,6 +212,116 @@ export default function GeneralTab({
               </select>
             </div>
           </div>
+
+          {/* Card de Saldo OpenAI — Visível apenas para Super Admin */}
+          {isSuperAdmin && (
+            <div
+              id="openai-balance-card"
+              className="settings-group"
+              style={{
+                marginTop: '24px',
+                background: 'linear-gradient(135deg, rgba(16,163,127,0.08) 0%, rgba(0,0,0,0) 100%)',
+                border: '1px solid rgba(16,163,127,0.25)',
+                borderRadius: '12px',
+                padding: '20px 24px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{
+                    width: '36px', height: '36px', borderRadius: '8px',
+                    background: 'rgba(16,163,127,0.15)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '18px'
+                  }}>💰</div>
+                  <div>
+                    <div className="settings-group-title" style={{ marginBottom: '2px' }}>Saldo OpenAI</div>
+                    <div className="settings-group-sub" style={{ margin: 0 }}>
+                      Créditos disponíveis na sua conta · Visível apenas para Super Admin
+                    </div>
+                  </div>
+                </div>
+                <button
+                  id="btn-refresh-openai-balance"
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={loadOpenAIBalance}
+                  disabled={balanceLoading}
+                  style={{ fontSize: '11px', padding: '6px 12px', borderRadius: '6px' }}
+                >
+                  {balanceLoading ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 1s linear infinite' }}>
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                      </svg>
+                      Atualizando...
+                    </span>
+                  ) : '↻ Atualizar'}
+                </button>
+              </div>
+
+              {balanceLoading && !openaiBalance ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--text-3)', fontSize: '13px', padding: '8px 0' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ animation: 'spin 1s linear infinite' }}>
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  </svg>
+                  Consultando a OpenAI...
+                </div>
+              ) : openaiBalance?.ok ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                  {[
+                    { label: 'Créditos Totais', value: formatUSD(openaiBalance.totalGranted), icon: '📦', color: '#a1a1aa' },
+                    { label: 'Já Utilizado', value: formatUSD(openaiBalance.totalUsed), icon: '📤', color: '#f87171' },
+                    { label: 'Disponível', value: formatUSD(openaiBalance.totalAvailable), icon: '✅', color: '#10a37f' },
+                  ].map(({ label, value, icon, color }) => (
+                    <div key={label} style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      padding: '14px 16px'
+                    }}>
+                      <div style={{ fontSize: '18px', marginBottom: '6px' }}>{icon}</div>
+                      <div style={{ fontSize: '20px', fontWeight: '700', color, letterSpacing: '-0.5px' }}>{value}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '4px' }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : openaiBalance ? (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 16px', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: '8px' }}>
+                  <span style={{ fontSize: '18px', flexShrink: 0 }}>⚠️</span>
+                  <div>
+                    <div style={{ color: '#fbbf24', fontSize: '13px', fontWeight: '600', marginBottom: '4px' }}>
+                      Não foi possível consultar o saldo automaticamente
+                    </div>
+                    <div style={{ color: 'var(--text-3)', fontSize: '12px', lineHeight: '1.6', marginBottom: '10px' }}>
+                      {openaiBalance.error} A OpenAI não oferece um endpoint oficial de saldo. Você pode verificar diretamente no painel deles.
+                    </div>
+                    <a
+                      id="btn-openai-billing-link"
+                      href={openaiBalance.billingUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        color: '#fbbf24', fontSize: '12px', fontWeight: '600',
+                        textDecoration: 'none', padding: '6px 12px',
+                        background: 'rgba(251,191,36,0.1)', borderRadius: '6px',
+                        border: '1px solid rgba(251,191,36,0.2)',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                        <polyline points="15 3 21 3 21 9"/>
+                        <line x1="10" y1="14" x2="21" y2="3"/>
+                      </svg>
+                      Abrir Painel de Faturamento OpenAI
+                    </a>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
         </>
       )}
 

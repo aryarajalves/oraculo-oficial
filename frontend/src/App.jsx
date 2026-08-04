@@ -471,7 +471,7 @@ export default function App() {
                 isReadOnly={criadorReadOnly}
               />
             )}
-            {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} />}
+            {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} currentUser={currentUser} />}
             {activeTab === 'users' && <UsersManagement showToast={showToast} />}
             {activeTab === 'backups' && <BackupManagement showToast={showToast} />}
             {activeTab === 'escala' && (
@@ -518,6 +518,7 @@ export default function App() {
       <EditSlideModal
         isOpen={editModalOpen}
         onClose={() => { setEditModalOpen(false); loadCarousels(); }}
+        onSave={() => { loadCarousels(); setImageVersion(Date.now()); }}
         carouselId={editCarouselId}
         filename={editFilename}
         onChangeFilename={(newFilename) => setEditFilename(newFilename)}

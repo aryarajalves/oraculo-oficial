@@ -1,14 +1,37 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function LiveGenPanel({ liveSession, setLiveSession, onOpenLightbox }) {
   if (!liveSession || !liveSession.visible) return null;
 
-  const pct = Math.round((liveSession.slides.filter(s => s.status === 'ok' || s.status === 'error').length / liveSession.total) * 100);
+  const pct = Math.round((liveSession.slides.filter(s => s.status === 'ok' || s.status === 'error').length / (liveSession.total || 1)) * 100);
+
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!liveSession || !liveSession.visible || pct >= 100) return;
+    const start = liveSession.startedAt || Date.now();
+    setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    const timer = setInterval(() => {
+      const diff = Math.max(0, Math.floor((Date.now() - start) / 1000));
+      setElapsed(diff);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [liveSession?.visible, liveSession?.startedAt, pct]);
+
+  const formatTimer = (sec) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
 
   return (
     <div id="live-gen-panel" className={`live-panel ${liveSession.expanded ? 'expanded' : ''} visible`}>
       <div className="live-gen-header">
-        <span id="live-gen-title">{pct >= 100 ? '✓ Concluído!' : 'Gerando carrossel...'}</span>
+        <span id="live-gen-title">
+          {pct >= 100 
+            ? `✓ Concluído (${liveSession.duration || formatTimer(elapsed)})` 
+            : `⏱️ ${formatTimer(elapsed)} | Gerando carrossel...`}
+        </span>
         <span className="live-gen-pct">{pct}%</span>
         <button
           className="live-gen-expand"

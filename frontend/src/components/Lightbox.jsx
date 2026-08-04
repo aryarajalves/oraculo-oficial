@@ -13,6 +13,9 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
     setEditMode(false);
     setSelectedZone(null);
     setIsMaximized(false);
+    if (isOpen) {
+      setImageVersion(Date.now());
+    }
   }, [initialIndex, isOpen]);
 
   useEffect(() => {

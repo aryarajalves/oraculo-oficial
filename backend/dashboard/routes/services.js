@@ -15,7 +15,7 @@ import {
   getCarouselCostDetails
 } from "../helpers.js";
 import { buildAgentPrompts } from "../agentPrompts.js";
-import { CLIENT } from "../state.js";
+import { CLIENT, requireSuperAdmin } from "../state.js";
 import { logger } from '../logger.js';
 import { query } from '../db.js';
 import { encrypt, decrypt, getSecret } from '../crypto.js';
@@ -270,6 +270,68 @@ router.post('/api/settings/keys', (req, res) => {
     res.json({ ok: true, updated: Object.keys(updates) });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ── API: Saldo OpenAI (apenas Super Admin) ────────────────────────────────────
+router.get('/api/settings/openai-balance', requireSuperAdmin, async (req, res) => {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey || apiKey === 'sua_openai_api_key_aqui') {
+    return res.json({
+      ok: false,
+      error: 'OPENAI_API_KEY não configurada.',
+      billingUrl: 'https://platform.openai.com/settings/organization/billing/overview'
+    });
+  }
+
+  const BILLING_URL = 'https://platform.openai.com/settings/organization/billing/overview';
+
+  try {
+    // Tenta o endpoint de credit_grants (não oficial, mas amplamente usado)
+    const response = await fetch('https://api.openai.com/v1/dashboard/billing/credit_grants', {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      const totalGranted = data.total_granted ?? null;
+      const totalUsed = data.total_used ?? null;
+      const totalAvailable = data.total_available ?? null;
+      const grants = data.grants?.data ?? [];
+
+      logger.info('[OpenAI-Balance]', `Saldo disponível: $${totalAvailable ?? 'N/A'}`);
+
+      return res.json({
+        ok: true,
+        totalGranted,
+        totalUsed,
+        totalAvailable,
+        grants,
+        billingUrl: BILLING_URL
+      });
+    }
+
+    // Se 401 ou 403, a chave não tem permissão para esse endpoint
+    const status = response.status;
+    logger.warn('[OpenAI-Balance]', `Endpoint retornou ${status}. Chave pode ser de projeto sem acesso a billing.`);
+
+    return res.json({
+      ok: false,
+      error: `Endpoint de billing retornou ${status}. Sua chave de API pode ser de um projeto e não ter acesso ao faturamento.`,
+      billingUrl: BILLING_URL
+    });
+
+  } catch (err) {
+    logger.error('[OpenAI-Balance]', 'Erro ao consultar saldo:', err.message);
+    return res.json({
+      ok: false,
+      error: 'Erro de rede ao consultar a OpenAI.',
+      billingUrl: BILLING_URL
+    });
   }
 });
 

@@ -371,15 +371,14 @@ def render_title(draw, title: str, size: int, x0: int, y: float,
 
 def fit_title_size(draw, title: str, start_px: int, min_px: int,
                    align="left", max_w=None):
-    """Reduz fonte até o título caber sem ultrapassar MAX_TW."""
+    """Reduz fonte se alguma palavra individual ultrapassar MAX_TW, permitindo auto-wrap em 2+ linhas."""
     if max_w is None:
         max_w = MAX_TW_L if align == "left" else MAX_TW_C
-    f = load_font(F_HEAVY, start_px)
     for sz in range(start_px, min_px - 1, -2):
         f = load_font(F_HEAVY, sz)
         too_wide = False
-        for ln in title.split("\n"):
-            bb = draw.textbbox((0, 0), ln, font=f)
+        for word in title.split():
+            bb = draw.textbbox((0, 0), word, font=f)
             if (bb[2] - bb[0]) > max_w:
                 too_wide = True
                 break
@@ -551,7 +550,7 @@ def compose_fullbleed(img_bytes, title, body, preset: dict, title_y=None, body_y
 
     rendered_title_y_end = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
                                         ls=1.18, align="center")
-    final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else (rendered_title_y_end + gap)
+    final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else max(980, rendered_title_y_end + gap)
     render_markup_block(draw, body, b_sz, MARGIN_L, final_body_y, p,
                         ls=1.55, align="center")
     return bg.convert("RGB")
@@ -614,7 +613,7 @@ def compose_dramatico(img_bytes, title, body, preset: dict, title_y=None, body_y
 
     rendered_title_y_end = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
                                         ls=1.18, align="left")
-    final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else (rendered_title_y_end + gap)
+    final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else max(970, rendered_title_y_end + gap)
     render_markup_block(draw, body, b_sz, MARGIN_L, final_body_y, p,
                         ls=1.58, align="left")
     return bg.convert("RGB")
@@ -655,7 +654,7 @@ def compose_etereo(img_bytes, title, body, preset: dict, title_y=None, body_y=No
 
     rendered_title_y_end = render_title(draw, title, t_sz, MARGIN_L, y, p["title_color"],
                                         ls=1.20, align="left")
-    final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else (rendered_title_y_end + gap)
+    final_body_y = int(body_y) if body_y is not None and str(body_y).strip() != "" else max(1030, rendered_title_y_end + gap)
     render_markup_block(draw, body, b_sz, MARGIN_L, final_body_y, p,
                         ls=1.60, align="left")
     return bg.convert("RGB")

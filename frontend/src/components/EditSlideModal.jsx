@@ -19,7 +19,7 @@ const parseFontSize = (val, fallback) => {
   return isNaN(parsed) || parsed <= 0 ? fallback : parsed;
 };
 
-export default function EditSlideModal({ isOpen, onClose, carouselId, filename, onChangeFilename, slides = [], showToast, onOpenLightbox }) {
+export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, filename, onChangeFilename, slides = [], showToast, onOpenLightbox }) {
   const [activeTab, setActiveTab] = useState('text');
   const [slideMeta, setSlideMeta] = useState({ 
     title: '', 
@@ -198,25 +198,54 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
     }
   };
 
-  const handleRecompose = async () => {
+  const handleRecompose = async (silent = false) => {
     setSaving(true);
+    const effectiveTitleY = slideMeta.title_y !== '' && slideMeta.title_y !== undefined && slideMeta.title_y !== null ? Number(slideMeta.title_y) : defaultTitleY;
+    const effectiveBodyY = slideMeta.body_y !== '' && slideMeta.body_y !== undefined && slideMeta.body_y !== null ? Number(slideMeta.body_y) : defaultBodyY;
+
+    const payloadToSend = {
+      ...slideMeta,
+      title_y: effectiveTitleY,
+      body_y: effectiveBodyY
+    };
+
     try {
       const res = await customFetch(`/api/carousels/${carouselId}/slide/${filename}/recompose`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(slideMeta)
+        body: JSON.stringify(payloadToSend)
       });
       const data = await res.json();
       if (data.ok) {
-        showToast('Slide recomposto!');
+        setSlideMeta(prev => ({
+          ...prev,
+          title_y: effectiveTitleY,
+          body_y: effectiveBodyY
+        }));
+        if (!silent) showToast('Slide recomposto com sucesso!', 'success');
         setCacheBuster(Date.now());
+        if (typeof onSave === 'function') onSave();
+        return true;
       } else {
-        alert('Erro: ' + (data.error || 'desconhecido'));
+        alert('Erro ao recompor slide: ' + (data.error || 'desconhecido'));
+        return false;
       }
     } catch (e) {
-      showToast('Erro ao recompor slide.');
+      showToast('Erro ao recompor slide.', 'error');
+      return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleVisualizar = async () => {
+    await handleRecompose(true);
+    const currentIndex = slides.findIndex(s => (typeof s === 'string' ? s : s.filename) === filename);
+    onClose();
+    if (onOpenLightbox) {
+      setTimeout(() => {
+        onOpenLightbox(carouselId, slides, currentIndex >= 0 ? currentIndex : 0);
+      }, 50);
     }
   };
 
@@ -295,14 +324,10 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                           borderColor: 'var(--gold)', 
                           color: 'var(--gold)' 
                         }}
-                        onClick={() => {
-                          onClose();
-                          setTimeout(() => {
-                            onOpenLightbox(carouselId, slides, currentIndex);
-                          }, 0);
-                        }}
+                        disabled={saving}
+                        onClick={handleVisualizar}
                       >
-                        Visualizar 👁️
+                        {saving ? 'Salvando...' : 'Visualizar 👁️'}
                       </button>
                     )}
                   </>
@@ -426,6 +451,18 @@ export default function EditSlideModal({ isOpen, onClose, carouselId, filename, 
                   alt="Preview" 
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                 />
+                
+                {/* Overlay de gradiente para alinhar com a composição final */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  background: 'linear-gradient(to bottom, transparent 40%, rgba(26, 14, 4, 0.65) 75%, rgba(14, 7, 2, 0.92) 100%)',
+                  pointerEvents: 'none',
+                  zIndex: 1
+                }} />
                 
                 {/* Simulador de Posicionamento de Texto (Overlay) */}
                 {activeTab === 'text' && (() => {

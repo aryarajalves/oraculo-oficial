@@ -2,7 +2,7 @@
 .nav-item--criador { color: var(--gold) !important; }
 .nav-item--criador.active { background: rgba(245,158,11,0.1) !important; border-left-color: var(--gold) !important; }
 
-#view-criador { display: none; flex-direction: column; height: calc(100vh - 64px); padding: 0; overflow: hidden; }
+#view-criador { display: none; flex-direction: column; flex: 1; min-height: 0; height: 100%; padding: 0; overflow: hidden; }
 #view-criador.active { display: flex; }
 
 .criador-wrap { display: flex; flex-direction: column; flex: 1; min-height: 0; }
