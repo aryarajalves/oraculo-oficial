@@ -116,11 +116,19 @@ class TestAgentPromptsSlidesBriefing(unittest.TestCase):
         )
 
     def test_format_question_still_exists(self):
-        """A pergunta sobre formato do roteiro (A, B, C, D) deve CONTINUAR existindo."""
+        """A pergunta sobre formato do roteiro (A, B, C, D) deve CONTINUAR existindo e ser estritamente obrigatória."""
         self.assertIn(
-            "Formato do Roteiro",
-            self.content,
+            "formato de roteiro",
+            self.content.lower(),
             "A pergunta sobre formato do roteiro (A/B/C/D) foi removida indevidamente do agentPrompts.js."
+        )
+
+    def test_strictly_forbidden_to_skip_format(self):
+        """O agente deve ser proibido de assumir o formato ou pular a pergunta."""
+        self.assertIn(
+            "STRICTLY PROIBIDO",
+            self.content,
+            "Regra estrita proibindo o agente de assumir o formato não encontrada no prompt."
         )
 
     def test_format_options_still_present(self):
