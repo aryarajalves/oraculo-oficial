@@ -179,11 +179,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (branding && branding.companyName) {
-      document.title = `${branding.companyName} — Dashboard de Produção`;
-    } else {
-      document.title = "Fonte Oculta — Dashboard de Produção";
-    }
+    const titleName = branding?.companyName || branding?.logoText || 'FONTE Tete';
+    document.title = `${titleName} — Dashboard de Produção`;
   }, [branding]);
 
   const loadBranding = async () => {
