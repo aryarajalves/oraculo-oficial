@@ -1275,12 +1275,17 @@ router.post("/api/escala/criar-mock", async (req, res) => {
         carouselTextColor: "#e4e4e7"
       };
       try {
-        const brandingPath = path.join(__dirname, '..', 'data', 'branding.json');
-        if (fs.existsSync(brandingPath)) {
-          branding = JSON.parse(fs.readFileSync(brandingPath, 'utf-8'));
+        const resBranding = await query('SELECT data FROM branding WHERE id = 1');
+        if (resBranding.rows.length > 0 && resBranding.rows[0].data && Object.keys(resBranding.rows[0].data).length > 0) {
+          branding = resBranding.rows[0].data;
+        } else {
+          const brandingPath = path.join(__dirname, '..', 'data', 'branding.json');
+          if (fs.existsSync(brandingPath)) {
+            branding = JSON.parse(fs.readFileSync(brandingPath, 'utf-8'));
+          }
         }
       } catch (err) {
-        logger.error('[Carousel mock branding]', "Erro ao ler branding.json:", err.message);
+        logger.error('[Carousel mock branding]', "Erro ao ler branding do DB/arquivo:", err.message);
       }
 
       const PYTHON = process.platform === 'win32' ? 'python' : 'python3';
