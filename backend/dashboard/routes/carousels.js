@@ -645,11 +645,12 @@ router.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
   const { prompt, title, body, layout = "fullbleed" } = req.body;
   if (!prompt || !title || !body) return res.status(400).json({ error: "prompt, title e body são obrigatórios" });
+  const activeProvider = c.imageProvider || process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
   try {
     const { stdout } = await execFileAsync(PYTHON, [
       REGEN_SCRIPT,
       "--prompt", prompt, "--title", title, "--body", body,
-      "--layout", layout, "--output", imgPath
+      "--layout", layout, "--provider", activeProvider, "--output", imgPath
     ], {
       timeout: 180000,
       cwd: path.join(__dirname, '..', '..'),

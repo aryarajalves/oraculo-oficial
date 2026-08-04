@@ -14,51 +14,99 @@ from core.util.compose_util import compose
 from core.util.prompt_builder import build_prompt
 
 API_KEY  = os.getenv("GEMINI_API_KEY")
-MODEL    = "imagen-3.0-generate-002"
-ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:predict"
+OPENAI_KEY = os.getenv("OPENAI_API_KEY")
+FAL_KEY = os.getenv("FAL_KEY") or os.getenv("FAL_API_KEY")
 
-def gen(prompt, retries=3):
-    headers = {
-        "x-goog-api-key": API_KEY,
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "instances": [{"prompt": prompt}],
-        "parameters": {
-            "sampleCount": 1,
-            "aspectRatio": "3:4"
-        }
-    }
+def gen_gemini_imagen3(prompt, retries=2):
+    if not API_KEY: return None
+    MODEL    = "imagen-3.0-generate-002"
+    ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:predict"
+    headers = {"x-goog-api-key": API_KEY, "Content-Type": "application/json"}
+    payload = {"instances": [{"prompt": prompt}], "parameters": {"sampleCount": 1, "aspectRatio": "3:4"}}
     data = json.dumps(payload).encode("utf-8")
-    
     for attempt in range(retries):
-        if attempt: time.sleep(4 * attempt)
+        if attempt: time.sleep(3 * attempt)
         req = urllib.request.Request(ENDPOINT, data=data, headers=headers)
         try:
-            with urllib.request.urlopen(req, timeout=120) as r:
+            with urllib.request.urlopen(req, timeout=90) as r:
                 body = json.loads(r.read())
             predictions = body.get("predictions", [])
             if predictions and "bytesBase64Encoded" in predictions[0]:
                 return base64.b64decode(predictions[0]["bytesBase64Encoded"])
-            print(f"  Sem imagem no Imagen 3: {json.dumps(body)[:150]}", file=sys.stderr)
-        except urllib.error.HTTPError as e:
-            print(f"  HTTP {e.code}: {e.read().decode()[:150]}", file=sys.stderr)
         except Exception as e:
             print(f"  Erro Imagen 3: {e}", file=sys.stderr)
     return None
 
+def gen_openai(prompt, model_name="gpt-image-2", retries=2):
+    if not OPENAI_KEY: return None
+    try:
+        from core.util.gen_image_openai import gen_openai as open_ai_gen
+        quality = "low" if model_name in ["gpt-image-1-mini", "dall-e-2"] else "high"
+        return open_ai_gen(prompt, retries=retries, quality=quality)
+    except Exception as e:
+        print(f"  Erro OpenAI Image ({model_name}): {e}", file=sys.stderr)
+        return None
+
+def gen_fal_ai(prompt, retries=2):
+    if not FAL_KEY: return None
+    headers = {
+        "Authorization": f"Key {FAL_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "prompt": prompt,
+        "image_size": "portrait_4_3"
+    }
+    data = json.dumps(payload).encode("utf-8")
+    url = "https://queue.fal.run/fal-ai/flux/schnell"
+    for attempt in range(retries):
+        if attempt: time.sleep(3 * attempt)
+        req = urllib.request.Request(url, data=data, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=90) as r:
+                res_body = json.loads(r.read())
+                images = res_body.get("images", [])
+                if images and "url" in images[0]:
+                    with urllib.request.urlopen(images[0]["url"], timeout=60) as img_r:
+                        return img_r.read()
+        except Exception as e:
+            print(f"  Erro Fal.ai: {e}", file=sys.stderr)
+    return None
+
+def gen(prompt, provider=None):
+    active_prov = (provider or os.getenv("ACTIVE_IMAGE_PROVIDER") or "gpt-image-2").lower()
+    print(f"  Usando Provedor de Imagem: {active_prov}", file=sys.stderr)
+
+    if active_prov in ["gpt-image-2", "openai", "dall-e-3"]:
+        img = gen_openai(prompt, model_name="gpt-image-2")
+        if img: return img
+    elif active_prov in ["gpt-image-1-mini", "dall-e-2", "mini"]:
+        img = gen_openai(prompt, model_name="gpt-image-1-mini")
+        if img: return img
+    elif active_prov in ["fal-ai", "fal", "flux"]:
+        img = gen_fal_ai(prompt)
+        if img: return img
+    elif active_prov in ["gemini-imagen", "gemini", "imagen"]:
+        img = gen_gemini_imagen3(prompt)
+        if img: return img
+
+    # Fallback em cascata caso o provedor selecionado falhe
+    print("  Fallback: tentando provedores secundários...", file=sys.stderr)
+    return gen_openai(prompt, "gpt-image-2") or gen_gemini_imagen3(prompt) or gen_fal_ai(prompt)
+
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--prompt", required=True, help="Prompt de imagem para o Gemini")
-    p.add_argument("--title",  required=True, help="Titulo do slide")
-    p.add_argument("--body",   required=True, help="Corpo do slide")
-    p.add_argument("--layout", default="fullbleed", choices=["fullbleed", "card"])
-    p.add_argument("--output", required=True, help="Caminho de saida (.jpg)")
+    p.add_argument("--prompt",   required=True, help="Prompt de imagem")
+    p.add_argument("--title",    required=True, help="Titulo do slide")
+    p.add_argument("--body",     required=True, help="Corpo do slide")
+    p.add_argument("--layout",   default="fullbleed", choices=["fullbleed", "card"])
+    p.add_argument("--provider", default=None, help="Provedor de imagem ativo")
+    p.add_argument("--output",   required=True, help="Caminho de saida (.jpg)")
     args = p.parse_args()
 
     final_prompt = build_prompt(args.prompt)
     print("Gerando imagem...", file=sys.stderr)
-    img_bytes = gen(final_prompt)
+    img_bytes = gen(final_prompt, provider=args.provider)
     if not img_bytes:
         print("FALHOU: nao foi possivel gerar a imagem", file=sys.stderr)
         sys.exit(1)
