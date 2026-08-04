@@ -355,17 +355,23 @@ async function getAllAgentPrompts(client) {
   let displayNames = readDisplayNames();
 
   let dbPromptsMap = {};
+  let dbAvailable = false;
   try {
     const dbRes = await query('SELECT id, display_name, content FROM agent_prompts');
     if (dbRes && dbRes.rows) {
+      dbAvailable = true;
       for (const row of dbRes.rows) {
         dbPromptsMap[row.id] = {
           name: row.display_name,
           content: row.content
         };
       }
+      logger.info('[AgentPrompts]', `DB carregado com ${dbRes.rows.length} prompt(s) salvos.`);
     }
-  } catch {}
+  } catch (dbErr) {
+    // Logar o erro explicitamente — nunca swallow silencioso!
+    logger.error('[AgentPrompts]', `Falha ao ler prompts do banco de dados: ${dbErr.message}. Usando arquivos como fallback.`);
+  }
 
   const dynamicPrompts = buildAgentPrompts(client) || {};
   let list = [];
@@ -390,7 +396,13 @@ async function getAllAgentPrompts(client) {
               .replace('Dna', 'DNA')
               .replace('Cta', 'CTA');
           }
+          // DB tem SEMPRE prioridade sobre o arquivo em disco
           const content = (dbEntry && dbEntry.content) ? dbEntry.content : fileContent;
+          if (dbEntry && dbEntry.content) {
+            logger.info('[AgentPrompts]', `Prompt '${id}' carregado do banco de dados.`);
+          } else {
+            logger.warn('[AgentPrompts]', `Prompt '${id}' não encontrado no DB — usando arquivo em disco (pode estar desatualizado).`);
+          }
           return { id, name, content };
         });
     }
@@ -430,21 +442,30 @@ router.post('/api/settings/prompts', async (req, res) => {
   }
   const safeId = path.basename(id);
   const filePath = path.join(AGENTS_DIR, `${safeId}.md`);
+
+  // 1. Salvar no banco de dados PRIMEIRO (fonte de verdade permanente)
+  try {
+    await query(`
+      INSERT INTO agent_prompts (id, content, updated_at)
+      VALUES ($1, $2, NOW())
+      ON CONFLICT (id) DO UPDATE SET content = $2, updated_at = NOW()
+    `, [safeId, content]);
+    logger.info('[AgentPrompts]', `Prompt '${safeId}' salvo no banco de dados com sucesso.`);
+  } catch (dbErr) {
+    // Se o DB falhar, a operação inteira falha — não aceitar salvar apenas no arquivo
+    logger.error('[AgentPrompts]', `Falha crítica ao salvar prompt '${safeId}' no banco: ${dbErr.message}`);
+    return res.status(500).json({ error: `Erro ao salvar no banco de dados: ${dbErr.message}` });
+  }
+
+  // 2. Salvar no arquivo em disco como cache local (best-effort, não crítico)
   try {
     fs.writeFileSync(filePath, content, 'utf-8');
-    try {
-      await query(`
-        INSERT INTO agent_prompts (id, content, updated_at)
-        VALUES ($1, $2, NOW())
-        ON CONFLICT (id) DO UPDATE SET content = $2, updated_at = NOW()
-      `, [safeId, content]);
-    } catch (dbErr) {
-      logger.warn('[AgentPrompts]', `Aviso ao salvar prompt no DB: ${dbErr.message}`);
-    }
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  } catch (fileErr) {
+    // Falha no arquivo não bloqueia: o DB já tem o dado salvo
+    logger.warn('[AgentPrompts]', `Aviso: prompt '${safeId}' salvo no DB mas falhou no arquivo: ${fileErr.message}`);
   }
+
+  res.json({ ok: true });
 });
 
 router.post('/api/settings/prompts/rename', async (req, res) => {
