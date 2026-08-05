@@ -58,7 +58,7 @@ async function getAgentPromptAsync(agentId) {
     }
   }
 
-  return AGENT_SYSTEM_PROMPTS[agentId] || null;
+  return null;
 }
 
 // ── API: List all carousels ──────────────────────────────────────────────────
