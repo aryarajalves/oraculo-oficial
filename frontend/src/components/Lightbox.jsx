@@ -46,12 +46,42 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
     }
   }, [isOpen, carouselId, slides, imageVersion]);
 
-  // Navegação rápida via teclas de seta do teclado (Left/Right/Escape) e roda do mouse (Scroll)
+  // Ref para guardar timestamp do último scroll entre renderizações sem recriar listener
+  const lastScrollTimeRef = React.useRef(0);
+
+  const handleWheelAction = (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+    const now = Date.now();
+    if (now - lastScrollTimeRef.current < 220) return; // Cooldown de 220ms
+
+    // Captura qualquer variação de scroll vertical (deltaY) ou horizontal (deltaX)
+    const deltaY = e.deltaY;
+    const deltaX = e.deltaX;
+    const absY = Math.abs(deltaY);
+    const absX = Math.abs(deltaX);
+    const delta = absX > absY ? deltaX : deltaY;
+
+    if (Math.abs(delta) < 2) return; // Limiar bem baixo de sensibilidade
+
+    if (delta > 0) {
+      // Scroll para baixo / direita -> Próximo slide
+      if (index < (slides ? slides.length - 1 : 0)) {
+        lastScrollTimeRef.current = now;
+        setIndex(prev => Math.min(slides.length - 1, prev + 1));
+      }
+    } else if (delta < 0) {
+      // Scroll para cima / esquerda -> Slide anterior
+      if (index > 0) {
+        lastScrollTimeRef.current = now;
+        setIndex(prev => Math.max(0, prev - 1));
+      }
+    }
+  };
+
+  // Navegação rápida via teclas de seta do teclado (Left/Right/Escape) e roda do mouse (Scroll global)
   useEffect(() => {
     if (!isOpen) return;
-
-    let lastScrollTime = 0;
-    const SCROLL_COOLDOWN = 280; // Cooldown de 280ms para evitar trocas excessivas durante um scroll contínuo
 
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
@@ -64,45 +94,18 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
       }
     };
 
-    const handleWheel = (e) => {
-      // Se o usuário estiver interagindo com campo de texto, ignora
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-
-      const now = Date.now();
-      if (now - lastScrollTime < SCROLL_COOLDOWN) return;
-
-      // Suporta deltaY (scroll padrão de mouse) e deltaX (scroll horizontal em trackpads)
-      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-
-      if (delta > 20) {
-        // Scroll para baixo/direita -> Próximo slide
-        setIndex(prev => {
-          if (prev < (slides ? slides.length - 1 : 0)) {
-            lastScrollTime = now;
-            return prev + 1;
-          }
-          return prev;
-        });
-      } else if (delta < -20) {
-        // Scroll para cima/esquerda -> Slide anterior
-        setIndex(prev => {
-          if (prev > 0) {
-            lastScrollTime = now;
-            return prev - 1;
-          }
-          return prev;
-        });
-      }
+    const handleGlobalWheel = (e) => {
+      handleWheelAction(e);
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('wheel', handleWheel, { passive: true });
+    window.addEventListener('wheel', handleGlobalWheel, { passive: true });
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('wheel', handleGlobalWheel);
     };
-  }, [isOpen, slides, onClose]);
+  }, [isOpen, slides, index, onClose]);
 
   useEffect(() => {
     if (isOpen && carouselId && slides && slides[index]) {
@@ -186,7 +189,10 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
   };
 
   return (
-    <div className={`modal-overlay ${editMode && !isMaximized ? 'lb-editing' : 'lb-editor-hidden'} open`}>
+    <div 
+      className={`modal-overlay ${editMode && !isMaximized ? 'lb-editing' : 'lb-editor-hidden'} open`}
+      onWheel={handleWheelAction}
+    >
       <button className="modal-close" onClick={onClose}>✕</button>
 
       <div className="lb-container" style={isMaximized ? { maxHeight: '95vh', width: 'auto', display: 'block' } : {}}>
