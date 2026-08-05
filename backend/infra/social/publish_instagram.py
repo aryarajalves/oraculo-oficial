@@ -9,7 +9,7 @@ USO:
     python -X utf8 publish_instagram.py --list
 """
 
-import sys, json, argparse
+import sys, os, json, argparse
 from pathlib import Path
 from datetime import datetime
 
@@ -43,15 +43,40 @@ def read_dashboard():
 
 def update_status(carousel_id: str, status: str, media_id: str = ""):
     all_c = read_dashboard()
+    pub_at = datetime.now().strftime("%Y-%m-%d %H:%M")
     for c in all_c:
         if c["id"] == carousel_id:
             c["status"] = status
             if media_id:
                 c["instagramMediaId"] = str(media_id)
-            c["publishedAt"] = datetime.now().strftime("%Y-%m-%d %H:%M")
-    DATA_FILE.write_text(
-        json.dumps(all_c, indent=2, ensure_ascii=False), encoding="utf-8"
-    )
+            c["publishedAt"] = pub_at
+    if DATA_FILE.exists():
+        DATA_FILE.write_text(
+            json.dumps(all_c, indent=2, ensure_ascii=False), encoding="utf-8"
+        )
+
+    # Atualiza também o PostgreSQL se estiver rodando
+    try:
+        import psycopg2
+        db_url = os.getenv("DATABASE_URL")
+        if db_url:
+            conn = psycopg2.connect(db_url)
+            cur = conn.cursor()
+            if media_id:
+                cur.execute(
+                    "UPDATE carousels SET status = %s, instagram_media_id = %s, published_at = %s WHERE id = %s",
+                    (status, str(media_id), pub_at, carousel_id)
+                )
+            else:
+                cur.execute(
+                    "UPDATE carousels SET status = %s, published_at = %s WHERE id = %s",
+                    (status, pub_at, carousel_id)
+                )
+            conn.commit()
+            cur.close()
+            conn.close()
+    except Exception as e:
+        print(f"AVISO: Não foi possível atualizar BD PostgreSQL diretamente no publish_instagram: {e}")
 
 
 def get_slides(carousel: dict, resolved_dir: Path = None) -> list[Path]:

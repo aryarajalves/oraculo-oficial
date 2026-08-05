@@ -211,7 +211,7 @@ export default function Dashboard({
 
   const handleStatusChange = async (carouselId, status) => {
     try {
-      const res = await fetch(`/api/carousels/${carouselId}`, {
+      const res = await customFetch(`/api/carousels/${carouselId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -264,12 +264,18 @@ export default function Dashboard({
 
     setConfirmPublishCarousel(null);
     setPublishingId(carouselId);
-    if (!isScheduleMode) {
-      handleStatusChange(carouselId, 'publicando');
-    }
     showToast(isScheduleMode ? '⏳ Agendando postagem no Instagram...' : '⏳ Iniciando publicação no Instagram...', 'info');
 
     try {
+      if (!isScheduleMode) {
+        await customFetch(`/api/carousels/${carouselId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'publicando' })
+        }).catch(() => {});
+        onLoadCarousels();
+      }
+
       const res = await customFetch(`/api/carousels/${carouselId}/publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
