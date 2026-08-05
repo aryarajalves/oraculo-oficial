@@ -445,7 +445,19 @@ def add_film_grain(img, intensity=18):
 def _watermarks(draw, color, pos="top_left", x=None, y=None):
     if pos == "hidden":
         return
-    mark = "@afonteoculta"
+
+    # Tenta carregar a logomarca dinamicamente do branding.json
+    mark = "@HAUCACAU"
+    try:
+        branding_path = Path(__file__).parent.parent.parent / "dashboard" / "data" / "branding.json"
+        if branding_path.exists():
+            import json
+            with open(branding_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                mark = data.get("logoText", "@HAUCACAU")
+    except Exception:
+        pass
+
     fm   = load_font(F_MARK, 28)
     
     # Coordenadas padrão baseadas na posição
