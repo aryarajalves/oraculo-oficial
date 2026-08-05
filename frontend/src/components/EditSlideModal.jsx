@@ -737,7 +737,7 @@ export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, fi
                           }}>
                             LOGOMARCA
                           </span>
-                          @afonteoculta
+                          {slideMeta.watermark_text || '@HAUCACAU'}
                         </div>
                       )}
                     </div>
