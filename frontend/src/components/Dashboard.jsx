@@ -102,6 +102,7 @@ export default function Dashboard({
   const [scheduledDateTime, setScheduledDateTime] = useState('');
   const [publishResultModal, setPublishResultModal] = useState(null); // { success: true/false, carouselId, postId, log, error }
   const [publishingId, setPublishingId] = useState(null);
+  const [schedulingId, setSchedulingId] = useState(null); // carrossel sendo agendado (diferente de publicando)
 
   // Trava scroll do body quando qualquer modal estiver aberto
   const anyModalOpen = !!selectedDetailsCarousel || !!selectedPipelineCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized || !!publishErrorModal || !!confirmPublishCarousel || !!publishResultModal;
@@ -264,6 +265,7 @@ export default function Dashboard({
 
     setConfirmPublishCarousel(null);
     setPublishingId(carouselId);
+    if (isScheduleMode) setSchedulingId(carouselId);
     showToast(isScheduleMode ? '⏳ Agendando postagem no Instagram...' : '⏳ Iniciando publicação no Instagram...', 'info');
 
     try {
@@ -325,6 +327,7 @@ export default function Dashboard({
       });
     } finally {
       setPublishingId(null);
+      setSchedulingId(null);
     }
   };
 
@@ -743,7 +746,7 @@ export default function Dashboard({
                             disabled={c.status === 'publicado' || c.status === 'agendado' || publishingId === c.id}
                             onClick={() => handlePublish(c)}
                           >
-                            {c.status === 'publicado' ? '✓ Postado' : (c.status === 'agendado' ? '📅 Agendado' : (publishingId === c.id ? '⏳ Publicando...' : '✈ Postar'))}
+                            {c.status === 'publicado' ? '✓ Postado' : (c.status === 'agendado' ? '📅 Agendado' : (schedulingId === c.id ? '⏳ Agendando...' : (publishingId === c.id ? '⏳ Publicando...' : '✈ Postar')))}
                           </button>
                         )
                       )}

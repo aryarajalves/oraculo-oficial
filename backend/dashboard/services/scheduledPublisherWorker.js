@@ -103,17 +103,38 @@ export function initScheduledPublisherWorker(intervalMs = 60000) {
             broadcastSSE({ type: 'status_change', id: carousel.id, status: 'publicado' });
             broadcastSSE({ type: 'toast', message: `🎉 Carrossel "${carousel.title}" foi publicado automaticamente!`, toastType: 'success' });
           } catch (pubErr) {
-            logger.error('[ScheduledWorker]', `❌ Erro ao publicar carrossel agendado ${carousel.id}:`, pubErr.message || pubErr.stderr);
+            const stdoutStr = pubErr.stdout || '';
+            const wasPublished = stdoutStr.includes('PUBLICADO COM SUCESSO') || stdoutStr.includes('AGENDADO COM SUCESSO');
 
-            const freshAll = await readDataAsync();
-            const target = freshAll.find(x => x.id === carousel.id);
-            if (target) {
-              target.status = 'erro-publicacao';
-              await writeDataAsync(freshAll);
+            if (wasPublished) {
+              // Publicação confirmada no stdout mesmo com exit code != 0
+              logger.info('[ScheduledWorker]', `✅ Publicação confirmada no stdout para ${carousel.id} (exit code != 0). Atualizando status...`);
+              try {
+                const freshAll = await readDataAsync();
+                const target = freshAll.find(x => x.id === carousel.id);
+                if (target) {
+                  target.status = 'publicado';
+                  target.publishedAt = new Date().toISOString();
+                  await writeDataAsync(freshAll);
+                }
+                broadcastSSE({ type: 'status_change', id: carousel.id, status: 'publicado' });
+                broadcastSSE({ type: 'toast', message: `🎉 Carrossel "${carousel.title}" foi publicado automaticamente!`, toastType: 'success' });
+              } catch (updateErr) {
+                logger.error('[ScheduledWorker]', `Erro ao atualizar status após publicação confirmada ${carousel.id}:`, updateErr.message);
+              }
+            } else {
+              logger.error('[ScheduledWorker]', `❌ Erro ao publicar carrossel agendado ${carousel.id}:`, pubErr.message || pubErr.stderr);
+
+              const freshAll = await readDataAsync();
+              const target = freshAll.find(x => x.id === carousel.id);
+              if (target) {
+                target.status = 'erro-publicacao';
+                await writeDataAsync(freshAll);
+              }
+
+              broadcastSSE({ type: 'status_change', id: carousel.id, status: 'erro-publicacao' });
+              broadcastSSE({ type: 'toast', message: `⚠️ Falha na publicação agendada do carrossel "${carousel.title}"`, toastType: 'error' });
             }
-
-            broadcastSSE({ type: 'status_change', id: carousel.id, status: 'erro-publicacao' });
-            broadcastSSE({ type: 'toast', message: `⚠️ Falha na publicação agendada do carrossel "${carousel.title}"`, toastType: 'error' });
           }
         }
       }
