@@ -16,18 +16,53 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
   const openScheduleModal = (carouselId = null, dateStr = null) => {
-    setSelectedCarouselId(carouselId || '');
-    setScheduleDate(dateStr || new Date().toISOString().split('T')[0]);
-    if (carouselId) {
-      const c = allCarousels.find(x => x.id === carouselId);
+    const pendingsList = allCarousels.filter(c => c.status === 'agendado');
+    const targetId = carouselId || (pendingsList.length > 0 ? pendingsList[0].id : '');
+    setSelectedCarouselId(targetId);
+
+    if (targetId) {
+      const c = allCarousels.find(x => x.id === targetId);
       if (c) {
-        setScheduleDate(c.scheduledDate || new Date().toISOString().split('T')[0]);
-        setScheduleTime((c.scheduledTime || '09h00').replace('h', ':'));
+        populateModalDateTime(c, dateStr);
       }
     } else {
+      setScheduleDate(dateStr || new Date().toISOString().split('T')[0]);
       setScheduleTime('09:00');
     }
     setScheduleModalOpen(true);
+  };
+
+  const populateModalDateTime = (c, defaultDateStr = null) => {
+    if (c.scheduledTimestamp) {
+      const d = new Date(c.scheduledTimestamp * 1000);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      setScheduleDate(`${yyyy}-${mm}-${dd}`);
+      setScheduleTime(`${hh}:${min}`);
+    } else if (c.scheduledAt) {
+      const d = new Date(c.scheduledAt);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const min = String(d.getMinutes()).padStart(2, '0');
+      setScheduleDate(`${yyyy}-${mm}-${dd}`);
+      setScheduleTime(`${hh}:${min}`);
+    } else {
+      setScheduleDate(c.scheduledDate || defaultDateStr || new Date().toISOString().split('T')[0]);
+      setScheduleTime((c.scheduledTime || '09h00').replace('h', ':'));
+    }
+  };
+
+  const handleSelectCarouselInModal = (carouselId) => {
+    setSelectedCarouselId(carouselId);
+    const c = allCarousels.find(x => x.id === carouselId);
+    if (c) {
+      populateModalDateTime(c);
+    }
   };
 
   const handleSaveSchedule = async () => {
@@ -36,15 +71,27 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
       return;
     }
     setSaving(true);
-    const time = scheduleTime.replace(':', 'h');
+    const timeFormatted = scheduleTime.replace(':', 'h');
+    
+    // Calcula o novo Timestamp Unix e ISO string baseado nos inputs do usuário
+    const targetDateObj = new Date(`${scheduleDate}T${scheduleTime}:00`);
+    const newTimestamp = !isNaN(targetDateObj.getTime()) ? Math.floor(targetDateObj.getTime() / 1000) : null;
+    const newIsoDate = !isNaN(targetDateObj.getTime()) ? targetDateObj.toISOString() : null;
+
     try {
       const res = await fetch(`/api/carousels/${selectedCarouselId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scheduledDate: scheduleDate, scheduledTime: time, status: 'aprovado' })
+        body: JSON.stringify({ 
+          scheduledDate: scheduleDate, 
+          scheduledTime: timeFormatted,
+          scheduledTimestamp: newTimestamp,
+          scheduledAt: newIsoDate,
+          status: 'agendado' 
+        })
       });
       if (res.ok) {
-        showToast('Carrossel agendado com sucesso!');
+        showToast('Agendamento atualizado com sucesso!');
         setScheduleModalOpen(false);
         onLoadCarousels();
       }
@@ -155,7 +202,7 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
                     <div
                       key={c.id}
                       className="sch-item"
-                      onClick={() => setSelectedCarouselId(c.id)}
+                      onClick={() => handleSelectCarouselInModal(c.id)}
                       style={{
                         display: 'flex', gap: '10px', padding: '8px',
                         border: '1px solid',
