@@ -120,10 +120,13 @@ REGRA OBRIGATÓRIA DE LAYOUT E VISUAL:
 
 SLIDES:
 
+⚠️ REGRA INNEGOCIÁVEL DE FORMATO DE SLIDES:
+Cada slide DEVE ser obrigatoriamente estruturado com a tag exata `[SX — ESTADO | layout: TIPO]`, seguido das 3 chaves explicitadas abaixo (TÍTULO, CORPO e VISUAL):
+
 [S1 — DISRUPÇÃO | layout: fullbleed]
 TÍTULO: [CAIXA ALTA — máx 6 palavras por linha, máx 3 linhas]
 CORPO: [1-2 frases. Espaço é tensão. Número OU nome OU referente real obrigatório.]
-VISUAL: [descrição em inglês da imagem — metáfora visceral, nunca literal. 2-3 frases.]
+VISUAL: [descrição da imagem — metáfora visceral. 2-3 frases.]
 
 [S2 — DESCIDA | layout: dramatico]
 TÍTULO: ...
