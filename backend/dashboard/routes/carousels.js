@@ -815,9 +815,13 @@ const handlePublishInstagram = async (req, res) => {
   if (req.body?.stories) {
     args.push("--stories");
   }
-  if (req.body?.scheduled_publish_time || req.body?.schedule) {
-    const sched = req.body.scheduled_publish_time || req.body.schedule;
+  const sched = req.body?.scheduled_publish_time || req.body?.schedule;
+  if (sched) {
     args.push("--schedule", String(sched));
+    c.status = "agendado";
+    c.scheduledTimestamp = parseInt(sched, 10);
+    c.scheduledAt = new Date(parseInt(sched, 10) * 1000).toISOString();
+    await writeDataAsync(all);
   }
 
   try {

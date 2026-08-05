@@ -218,6 +218,8 @@ export async function initDb() {
     // Migração: adicionar colunas de duração se não existirem
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS generation_duration VARCHAR(100)");
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS generation_time_seconds INTEGER");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP DEFAULT NULL");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS scheduled_timestamp BIGINT DEFAULT NULL");
 
     // Resetar carrosséis que ficaram presos em "generating" (processo morreu com restart do container)
     const orphaned = await query(`UPDATE carousels SET status = 'rascunho' WHERE status = 'generating'`);

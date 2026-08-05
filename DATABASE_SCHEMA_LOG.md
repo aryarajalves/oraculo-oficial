@@ -2,6 +2,28 @@
 
 Este documento registra a evolução do esquema de banco de dados do projeto, garantindo a rastreabilidade e a reprodutibilidade das alterações em produção.
 
+## [2026-08-05] Adição de colunas de agendamento de publicação na tabela carousels
+
+### Motivação
+Suporte a agendamentos de publicação via worker de background. Permite armazenar a data/hora em ISO e em timestamp UNIX para verificação do disparo automático.
+
+### Tabela Afetada: `carousels`
+
+#### Novas Colunas
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `scheduled_at` | `TIMESTAMP` | Data e hora formatada em ISO do agendamento |
+| `scheduled_timestamp` | `BIGINT` | Timestamp UNIX (em segundos) do agendamento |
+
+#### Script de Migração
+Executado automaticamente pelo `initDb()` no arquivo `backend/dashboard/db.js`.
+
+**Para aplicar manualmente (se necessário):**
+```sql
+ALTER TABLE carousels ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP DEFAULT NULL;
+ALTER TABLE carousels ADD COLUMN IF NOT EXISTS scheduled_timestamp BIGINT DEFAULT NULL;
+```
+
 ---
 
 ## [2026-08-03] Adição de colunas de tempo de geração na tabela carousels
