@@ -438,12 +438,12 @@ export default function Dashboard({
             )}
           </div>
           <div className="filter-row">
-            {['all', 'rascunho', 'pronto', 'aprovado', 'agendado', 'publicado'].map(status => (
+            {['all', 'rascunho', 'pronto', 'aprovado', 'agendado', 'publicando', 'publicado'].map(status => (
               <button
                 key={status}
                 className={`btn btn-outline btn-sm ${filterStatus === status ? 'active' : ''}`}
                 onClick={() => { setFilterStatus(status); setCurrentPage(1); }}
-                style={status === 'agendado' ? { borderColor: 'var(--gold)', color: 'var(--gold)' } : {}}
+                style={status === 'agendado' ? { borderColor: 'var(--gold)', color: 'var(--gold)' } : (status === 'publicando' ? { borderColor: '#60a5fa', color: '#60a5fa' } : {})}
               >
                 {status === 'all' ? 'Todos' : status.toUpperCase()}
               </button>
