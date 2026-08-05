@@ -839,6 +839,18 @@ const handlePublishInstagram = async (req, res) => {
     logger.info('[Carousel]', "publish-instagram:", stdout.trim());
     if (stderr) logger.error('[Carousel]', "publish-instagram stderr:", stderr.trim());
 
+    if (!sched) {
+      c.status = "publicado";
+      c.publishedAt = new Date().toISOString().replace('T', ' ').slice(0, 16);
+      const allUpdated = await readDataAsync();
+      const target = allUpdated.find(x => x.id === req.params.id);
+      if (target) {
+        target.status = "publicado";
+        target.publishedAt = c.publishedAt;
+        await writeDataAsync(allUpdated);
+      }
+    }
+
     const updated = (await readDataAsync()).find(x => x.id === req.params.id);
     res.json({ ok: true, log: stdout, carousel: updated });
   } catch (e) {

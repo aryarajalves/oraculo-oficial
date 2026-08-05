@@ -295,7 +295,14 @@ export default function Dashboard({
           log: data.log || '',
           postId: data.carousel?.instagramMediaId || ''
         });
-        onLoadCarousels();
+        if (!isScheduleMode) {
+          await customFetch(`/api/carousels/${carouselId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'publicado' })
+          }).catch(() => {});
+        }
+        await onLoadCarousels();
       } else {
         const errorMsg = data.error || data.detail || (typeof data === 'string' ? data : 'Erro desconhecido ao tentar conectar ao Instagram.');
         showToast(isScheduleMode ? `Erro ao agendar no Instagram.` : `Erro ao publicar no Instagram.`, 'error');
