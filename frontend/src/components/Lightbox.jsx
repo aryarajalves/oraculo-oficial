@@ -64,14 +64,14 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
 
     if (Math.abs(delta) < 2) return; // Limiar bem baixo de sensibilidade
 
-    if (delta > 0) {
-      // Scroll para baixo / direita -> Próximo slide
+    if (delta < 0) {
+      // Scroll para cima -> Próximo slide (direita)
       if (index < (slides ? slides.length - 1 : 0)) {
         lastScrollTimeRef.current = now;
         setIndex(prev => Math.min(slides.length - 1, prev + 1));
       }
-    } else if (delta < 0) {
-      // Scroll para cima / esquerda -> Slide anterior
+    } else if (delta > 0) {
+      // Scroll para baixo -> Slide anterior (esquerda)
       if (index > 0) {
         lastScrollTimeRef.current = now;
         setIndex(prev => Math.max(0, prev - 1));
