@@ -55,13 +55,43 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
     }
   };
 
+  // ── Helpers para extrair data/hora local de cada sistema de agendamento ──────
+
+  /** Retorna a data local "YYYY-MM-DD" de um carrossel, independente do método de agendamento */
+  const getScheduledLocalDate = (c) => {
+    // Sistema novo: agendamento via botão "Agendar no Instagram" (usa scheduledTimestamp ou scheduledAt)
+    if (c.scheduledTimestamp) {
+      const d = new Date(c.scheduledTimestamp * 1000);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    if (c.scheduledAt) {
+      const d = new Date(c.scheduledAt);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    // Sistema legado: agendamento via modal do calendário (usa scheduledDate)
+    return c.scheduledDate || null;
+  };
+
+  /** Retorna o horário formatado "HH:MM" para exibição no calendário */
+  const getScheduledLocalTime = (c) => {
+    if (c.scheduledTimestamp) {
+      const d = new Date(c.scheduledTimestamp * 1000);
+      return `${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+    if (c.scheduledAt) {
+      const d = new Date(c.scheduledAt);
+      return `${String(d.getHours()).padStart(2, '0')}h${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+    return (c.scheduledTime || '00h00');
+  };
+
   // Days slots — usa grid-column-start no primeiro dia para evitar células vazias
   const days = [];
   const startCol = firstDay.getDay(); // 0=Dom ... 6=Sáb
 
   for (let i = 1; i <= lastDay.getDate(); i++) {
     const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-    const scheduled = allCarousels.filter(c => c.scheduledDate === dayStr);
+    const scheduled = allCarousels.filter(c => getScheduledLocalDate(c) === dayStr);
     const isToday = new Date().toISOString().split('T')[0] === dayStr;
 
     days.push(
@@ -74,7 +104,7 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
         <div className="cal-events">
           {scheduled.map(c => (
             <div className="cal-event" key={c.id} onClick={() => openScheduleModal(c.id)}>
-              <span className="cal-event-time">{c.scheduledTime || '00h00'}</span>
+              <span className="cal-event-time">{getScheduledLocalTime(c)}</span>
               <span className="cal-event-title" title={c.title}>{c.title}</span>
             </div>
           ))}
