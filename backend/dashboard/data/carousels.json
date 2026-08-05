@@ -323,7 +323,7 @@
     "praca": "SISTEMA",
     "format": "B",
     "preset": "cinematografico_crimson",
-    "status": "pronto",
+    "status": "erro-publicacao",
     "revisorScore": "—",
     "createdAt": "2026-03-26",
     "slidesDir": "b2://Publicacoes/carousels/carrossel-14",
@@ -342,7 +342,8 @@
       "slide-08.jpg",
       "slide-09.jpg",
       "slide-10.jpg"
-    ]
+    ],
+    "publishedAt": "2026-08-05 14:42"
   },
   {
     "id": "carrossel-15",

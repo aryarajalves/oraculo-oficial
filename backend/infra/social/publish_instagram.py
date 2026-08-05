@@ -54,10 +54,22 @@ def update_status(carousel_id: str, status: str, media_id: str = ""):
     )
 
 
-def get_slides(carousel: dict) -> list[Path]:
-    d      = Path(carousel["slidesDir"])
+def get_slides(carousel: dict, resolved_dir: Path = None) -> list[Path]:
+    d = resolved_dir
+    if not d or not d.exists():
+        raw_dir = str(carousel.get("slidesDir", ""))
+        d = Path(raw_dir)
+        if not d.exists():
+            cid = carousel.get("id", "")
+            storage_dir = BASE_DIR / "storage" / "carousels"
+            if storage_dir.exists() and cid:
+                for folder in storage_dir.iterdir():
+                    if folder.is_dir() and folder.name.startswith(cid):
+                        d = folder
+                        break
+
     prefix = carousel.get("slidePrefix", "slide-")
-    if not d.exists():
+    if not d or not d.exists():
         return []
     return sorted([
         f for f in d.iterdir()
@@ -91,12 +103,22 @@ def publish(carousel_id: str, custom_caption: str = "", stories: bool = False) -
         print(f"ERRO: Carrossel '{carousel_id}' nao encontrado no dashboard.")
         return False
 
-    slides_dir = Path(carousel["slidesDir"])
+    raw_dir = str(carousel.get("slidesDir", ""))
+    slides_dir = Path(raw_dir)
+    
+    if not slides_dir.exists():
+        storage_dir = BASE_DIR / "storage" / "carousels"
+        if storage_dir.exists():
+            for folder in storage_dir.iterdir():
+                if folder.is_dir() and folder.name.startswith(carousel_id):
+                    slides_dir = folder
+                    break
+
     if not slides_dir.exists():
         print(f"ERRO: Pasta de slides nao encontrada: {slides_dir}")
         return False
 
-    slides = get_slides(carousel)
+    slides = get_slides(carousel, slides_dir)
     if not slides:
         print(f"ERRO: Nenhum slide encontrado em: {slides_dir}")
         return False
