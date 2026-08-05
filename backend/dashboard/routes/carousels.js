@@ -802,7 +802,7 @@ const handlePublishInstagram = async (req, res) => {
   const c   = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
 
-  const PUBLISH_SCRIPT = path.join(__dirname, "..", "infra", "social", "publish_instagram.py");
+  const PUBLISH_SCRIPT = path.join(__dirname, "..", "..", "infra", "social", "publish_instagram.py");
   const caption = req.body?.caption || c.caption || "";
 
   const args = [
