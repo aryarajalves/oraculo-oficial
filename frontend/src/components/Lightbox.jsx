@@ -46,9 +46,13 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
     }
   }, [isOpen, carouselId, slides, imageVersion]);
 
-  // Navegação rápida via teclas de seta do teclado (Left/Right/Escape)
+  // Navegação rápida via teclas de seta do teclado (Left/Right/Escape) e roda do mouse (Scroll)
   useEffect(() => {
     if (!isOpen) return;
+
+    let lastScrollTime = 0;
+    const SCROLL_COOLDOWN = 280; // Cooldown de 280ms para evitar trocas excessivas durante um scroll contínuo
+
     const handleKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       if (e.key === 'ArrowLeft') {
@@ -59,8 +63,45 @@ export default function Lightbox({ isOpen, onClose, carouselId, slides = [], ini
         onClose();
       }
     };
+
+    const handleWheel = (e) => {
+      // Se o usuário estiver interagindo com campo de texto, ignora
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+      const now = Date.now();
+      if (now - lastScrollTime < SCROLL_COOLDOWN) return;
+
+      // Suporta deltaY (scroll padrão de mouse) e deltaX (scroll horizontal em trackpads)
+      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+
+      if (delta > 20) {
+        // Scroll para baixo/direita -> Próximo slide
+        setIndex(prev => {
+          if (prev < (slides ? slides.length - 1 : 0)) {
+            lastScrollTime = now;
+            return prev + 1;
+          }
+          return prev;
+        });
+      } else if (delta < -20) {
+        // Scroll para cima/esquerda -> Slide anterior
+        setIndex(prev => {
+          if (prev > 0) {
+            lastScrollTime = now;
+            return prev - 1;
+          }
+          return prev;
+        });
+      }
+    };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('wheel', handleWheel, { passive: true });
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('wheel', handleWheel);
+    };
   }, [isOpen, slides, onClose]);
 
   useEffect(() => {
