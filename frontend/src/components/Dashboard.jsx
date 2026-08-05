@@ -995,7 +995,7 @@ export default function Dashboard({
 
       {/* Modal Customizada de Erro de Publicação do Instagram */}
       {publishErrorModal && (
-        <div className="form-modal open" style={{ zIndex: 12000 }} onClick={() => setPublishErrorModal(null)}>
+        <div className="form-modal open" style={{ zIndex: 12000 }}>
           <div 
             className="form-box" 
             style={{ 
