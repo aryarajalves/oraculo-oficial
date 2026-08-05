@@ -27,16 +27,29 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 
 load_dotenv()
 
+B2_KEY_ID          = os.getenv("B2_KEY_ID")
+B2_APPLICATION_KEY  = os.getenv("B2_APPLICATION_KEY")
+B2_BUCKET_NAME      = os.getenv("B2_BUCKET_NAME")
+B2_ENDPOINT         = os.getenv("B2_ENDPOINT")
+
 MINIO_ENDPOINT      = os.getenv("MINIO_ENDPOINT")
 MINIO_ROOT_USER     = os.getenv("MINIO_ROOT_USER")
 MINIO_ROOT_PASSWORD = os.getenv("MINIO_ROOT_PASSWORD")
 MINIO_BUCKET        = os.getenv("MINIO_BUCKET", "oraculo-bucket")
-# URL pública para o Meta/Instagram acessar as imagens do MinIO se for diferente do endpoint interno
 MINIO_PUBLIC_URL    = os.getenv("MINIO_PUBLIC_URL") or MINIO_ENDPOINT
 
 
 def _client():
-    """Cria cliente boto3 apontando para o MinIO."""
+    """Cria cliente boto3 apontando para B2 ou MinIO."""
+    if B2_KEY_ID and B2_APPLICATION_KEY:
+        endpoint = B2_ENDPOINT or "https://s3.us-west-004.backblazeb2.com"
+        return boto3.client(
+            "s3",
+            endpoint_url        = endpoint,
+            aws_access_key_id   = B2_KEY_ID,
+            aws_secret_access_key = B2_APPLICATION_KEY,
+            config              = Config(signature_version="s3v4"),
+        )
     return boto3.client(
         "s3",
         endpoint_url        = MINIO_ENDPOINT,
@@ -48,20 +61,17 @@ def _client():
 
 def upload_image(path: Path | str, key: str = None) -> str:
     """
-    Faz upload de uma imagem para o MinIO.
-
-    Args:
-        path: Caminho local do arquivo (JPEG).
-        key:  Nome do arquivo no bucket. Se None, usa o nome original
-              prefixado com um UUID curto para evitar colisões.
-
+    Faz upload de uma imagem para o Backblaze B2 ou MinIO.
     Returns:
         URL pública da imagem
     """
-    if not all([MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]):
+    use_b2 = bool(B2_KEY_ID and B2_APPLICATION_KEY and B2_BUCKET_NAME)
+    bucket = B2_BUCKET_NAME if use_b2 else MINIO_BUCKET
+
+    if not use_b2 and not all([MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET]):
         raise ValueError(
-            "Credenciais MinIO não encontradas no .env. "
-            "Verifique: MINIO_ENDPOINT, MINIO_ROOT_USER, MINIO_ROOT_PASSWORD, MINIO_BUCKET"
+            "Credenciais MinIO ou B2 não encontradas no .env. "
+            "Verifique: B2_KEY_ID / B2_APPLICATION_KEY ou MINIO_ENDPOINT"
         )
 
     path = Path(path)
@@ -75,7 +85,7 @@ def upload_image(path: Path | str, key: str = None) -> str:
     client = _client()
     with open(path, "rb") as f:
         client.put_object(
-            Bucket      = MINIO_BUCKET,
+            Bucket      = bucket,
             Key         = key,
             Body        = f,
             ContentType = "image/jpeg",
@@ -83,8 +93,12 @@ def upload_image(path: Path | str, key: str = None) -> str:
 
     import urllib.parse
     safe_key = urllib.parse.quote(key)
-    base_url = MINIO_PUBLIC_URL.rstrip("/")
-    url = f"{base_url}/{MINIO_BUCKET}/{safe_key}"
+    if use_b2:
+        endpoint = (B2_ENDPOINT or "https://s3.us-west-004.backblazeb2.com").rstrip("/")
+        url = f"{endpoint}/{bucket}/{safe_key}"
+    else:
+        base_url = MINIO_PUBLIC_URL.rstrip("/")
+        url = f"{base_url}/{bucket}/{safe_key}"
     return url
 
 
