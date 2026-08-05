@@ -97,9 +97,12 @@ export default function Dashboard({
 
   const [publishErrorModal, setPublishErrorModal] = useState(null); // { carouselId, error }
   const [copiedError, setCopiedError] = useState(false);
+  const [confirmPublishCarousel, setConfirmPublishCarousel] = useState(null); // carrossel para confirmar
+  const [publishResultModal, setPublishResultModal] = useState(null); // { success: true/false, carouselId, postId, log, error }
+  const [publishingId, setPublishingId] = useState(null);
 
   // Trava scroll do body quando qualquer modal estiver aberto
-  const anyModalOpen = !!selectedDetailsCarousel || !!selectedPipelineCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized || !!publishErrorModal;
+  const anyModalOpen = !!selectedDetailsCarousel || !!selectedPipelineCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized || !!publishErrorModal || !!confirmPublishCarousel || !!publishResultModal;
   useScrollLock(anyModalOpen);
 
   const handleRetryGeneration = async (carouselId) => {
@@ -220,22 +223,51 @@ export default function Dashboard({
     }
   };
 
-  const handlePublish = async (carouselId) => {
+  const handlePublish = (carousel) => {
+    setConfirmPublishCarousel(carousel);
+  };
+
+  const executePublish = async () => {
+    if (!confirmPublishCarousel) return;
+    const carouselId = confirmPublishCarousel.id;
+    const carouselTitle = confirmPublishCarousel.title;
+    setConfirmPublishCarousel(null);
+    setPublishingId(carouselId);
+    showToast('⏳ Iniciando publicação no Instagram...', 'info');
+
     try {
       const res = await fetch(`/api/carousels/${carouselId}/publish`, { method: 'POST' });
-      const err = await res.json().catch(() => ({}));
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        showToast('✓ Publicado no Instagram!');
+        showToast('✓ Publicado com sucesso no Instagram!', 'success');
+        setPublishResultModal({
+          success: true,
+          carouselId,
+          title: carouselTitle,
+          log: data.log || '',
+          postId: data.carousel?.instagramMediaId || ''
+        });
         onLoadCarousels();
       } else {
         showToast(`Erro ao publicar no Instagram.`, 'error');
-        setPublishErrorModal({
+        setPublishResultModal({
+          success: false,
           carouselId,
-          error: err.error || err.detail || 'Erro desconhecido ao tentar conectar ao Instagram.'
+          title: carouselTitle,
+          error: data.error || data.detail || 'Erro desconhecido ao tentar conectar ao Instagram.',
+          log: data.log || ''
         });
       }
     } catch (e) {
       showToast('Erro ao conectar com o servidor.', 'error');
+      setPublishResultModal({
+        success: false,
+        carouselId,
+        title: carouselTitle,
+        error: 'Erro de conexão com o servidor. Verifique a internet e tente novamente.'
+      });
+    } finally {
+      setPublishingId(null);
     }
   };
 
@@ -627,10 +659,10 @@ export default function Dashboard({
                       {c.status !== 'generating' && c.status !== 'queued' && c.status !== 'failed' && c.slides && c.slides.length > 0 && (
                         <button
                           className="btn-instagram btn-sm"
-                          disabled={c.status === 'publicado'}
-                          onClick={() => handlePublish(c.id)}
+                          disabled={c.status === 'publicado' || publishingId === c.id}
+                          onClick={() => handlePublish(c)}
                         >
-                          {c.status === 'publicado' ? '✓ Postado' : '✈ Postar'}
+                          {c.status === 'publicado' ? '✓ Postado' : (publishingId === c.id ? '⏳ Postando...' : '✈ Postar')}
                         </button>
                       )}
                       {c.slides && c.slides.length > 0 && c.totalSlides > 0 && c.slides.length === c.totalSlides && (
@@ -985,95 +1017,167 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* Modal do Pipeline de Criação */}
-      {selectedPipelineCarousel && (
-        <PipelineModal
-          carousel={selectedPipelineCarousel}
-          onClose={() => setSelectedPipelineCarousel(null)}
-        />
-      )}
-
-      {/* Modal Customizada de Erro de Publicação do Instagram */}
-      {publishErrorModal && (
+      {/* Modal de Confirmação de Publicação */}
+      {confirmPublishCarousel && (
         <div className="form-modal open" style={{ zIndex: 12000 }}>
           <div 
             className="form-box" 
             style={{ 
-              maxWidth: '720px', 
+              maxWidth: '520px', 
               width: '90%', 
               padding: '24px', 
               background: '#0c0d12', 
-              border: '1px solid rgba(244, 63, 94, 0.4)', 
+              border: '1px solid rgba(201, 168, 76, 0.4)', 
               borderRadius: '16px',
-              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.95), 0 0 30px rgba(244, 63, 94, 0.15)'
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.95), 0 0 30px rgba(201, 168, 76, 0.15)'
             }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '16px' }}>
-              <h3 className="form-title" style={{ color: 'var(--red, #f43f5e)', fontSize: '18px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ⚠️ Erro ao Publicar no Instagram
+              <h3 className="form-title" style={{ color: 'var(--gold, #c9a84c)', fontSize: '18px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ✈️ Confirmar Publicação no Instagram
               </h3>
               <button 
                 type="button" 
-                onClick={() => setPublishErrorModal(null)} 
+                onClick={() => setConfirmPublishCarousel(null)} 
                 style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '18px', cursor: 'pointer' }}
               >
                 ✕
               </button>
             </div>
 
-            <p style={{ fontSize: '13px', color: '#a1a1aa', margin: '0 0 12px 0', lineHeight: '1.5' }}>
-              Ocorreu um erro retornado pelo servidor / API da Meta ao tentar postar o carrossel <strong>{publishErrorModal.carouselId}</strong>:
+            <p style={{ fontSize: '14px', color: '#e4e4e7', margin: '0 0 16px 0', lineHeight: '1.5' }}>
+              Tem certeza que deseja publicar o carrossel abaixo diretamente na sua conta do Instagram?
             </p>
 
-            <pre 
-              className="custom-pipeline-scroll" 
-              style={{ 
-                margin: '0 0 20px 0', 
-                padding: '16px', 
-                fontSize: '12px', 
-                lineHeight: '1.6', 
-                fontFamily: 'Consolas, Monaco, monospace', 
-                whiteSpace: 'pre-wrap', 
-                color: '#f87171', 
-                backgroundColor: '#090a0f', 
-                border: '1px solid rgba(244, 63, 94, 0.2)',
-                borderRadius: '8px', 
-                maxHeight: '320px', 
-                overflowY: 'auto',
-                userSelect: 'text'
-              }}
-            >
-              {publishErrorModal.error}
-            </pre>
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '14px', marginBottom: '20px' }}>
+              <div style={{ fontSize: '11px', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Carrossel Selecionado</div>
+              <div style={{ fontWeight: 'bold', color: '#ffffff', fontSize: '15px' }}>{confirmPublishCarousel.title}</div>
+              <div style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '6px' }}>
+                📷 <strong>{confirmPublishCarousel.slides ? confirmPublishCarousel.slides.length : 0} slides</strong> salvos • ID: <code>{confirmPublishCarousel.id}</code>
+              </div>
+            </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
               <button 
                 type="button" 
                 className="btn btn-outline" 
-                style={{ 
-                  padding: '8px 18px', 
-                  fontSize: '13px', 
-                  fontWeight: '600',
-                  borderColor: copiedError ? '#22c55e' : 'var(--gold, #c9a84c)', 
-                  color: copiedError ? '#22c55e' : 'var(--gold, #c9a84c)',
-                  backgroundColor: copiedError ? 'rgba(34, 197, 94, 0.1)' : 'rgba(201, 168, 76, 0.1)'
-                }} 
-                onClick={() => {
-                  navigator.clipboard.writeText(publishErrorModal.error);
-                  setCopiedError(true);
-                  showToast('✓ Erro completo copiado para a área de transferência!', 'success');
-                  setTimeout(() => setCopiedError(false), 3000);
-                }}
+                style={{ padding: '8px 20px', fontSize: '13px', borderColor: 'rgba(255,255,255,0.2)', color: '#ffffff' }} 
+                onClick={() => setConfirmPublishCarousel(null)}
               >
-                {copiedError ? '✓ Copiado!' : '📋 Copiar Erro Completo'}
+                Cancelar
               </button>
+              <button 
+                type="button" 
+                className="btn btn-gold" 
+                style={{ padding: '8px 22px', fontSize: '13px', fontWeight: 'bold' }} 
+                onClick={executePublish}
+              >
+                🚀 Confirmar e Publicar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
+      {/* Modal de Resultado Explicito da Publicacao */}
+      {publishResultModal && (
+        <div className="form-modal open" style={{ zIndex: 12000 }}>
+          <div 
+            className="form-box" 
+            style={{ 
+              maxWidth: '680px', 
+              width: '90%', 
+              padding: '24px', 
+              background: '#0c0d12', 
+              border: publishResultModal.success ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid rgba(244, 63, 94, 0.4)', 
+              borderRadius: '16px',
+              boxShadow: publishResultModal.success 
+                ? '0 20px 50px rgba(0, 0, 0, 0.95), 0 0 30px rgba(34, 197, 94, 0.15)'
+                : '0 20px 50px rgba(0, 0, 0, 0.95), 0 0 30px rgba(244, 63, 94, 0.15)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '16px' }}>
+              <h3 className="form-title" style={{ color: publishResultModal.success ? '#22c55e' : '#f43f5e', fontSize: '18px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {publishResultModal.success ? '🎉 Publicado com Sucesso!' : '⚠️ Erro na Publicação do Instagram'}
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setPublishResultModal(null)} 
+                style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '18px', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {publishResultModal.success ? (
+              <>
+                <p style={{ fontSize: '14px', color: '#e4e4e7', margin: '0 0 16px 0', lineHeight: '1.5' }}>
+                  O carrossel <strong>{publishResultModal.title}</strong> foi transmitido e publicado com sucesso no Instagram!
+                </p>
+                {publishResultModal.postId && (
+                  <div style={{ background: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: '#4ade80' }}>
+                    ✅ <strong>ID da Mídia Gerada no Instagram:</strong> <code>{publishResultModal.postId}</code>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: '13px', color: '#a1a1aa', margin: '0 0 12px 0', lineHeight: '1.5' }}>
+                  A tentativa de publicação do carrossel <strong>{publishResultModal.title}</strong> encontrou uma falha na comunicação com os servidores da Meta:
+                </p>
+                <pre 
+                  className="custom-pipeline-scroll" 
+                  style={{ 
+                    margin: '0 0 20px 0', 
+                    padding: '16px', 
+                    fontSize: '12px', 
+                    lineHeight: '1.6', 
+                    fontFamily: 'Consolas, Monaco, monospace', 
+                    whiteSpace: 'pre-wrap', 
+                    color: '#f87171', 
+                    backgroundColor: '#090a0f', 
+                    border: '1px solid rgba(244, 63, 94, 0.2)',
+                    borderRadius: '8px', 
+                    maxHeight: '280px', 
+                    overflowY: 'auto',
+                    userSelect: 'text'
+                  }}
+                >
+                  {publishResultModal.error || publishResultModal.log}
+                </pre>
+              </>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              {!publishResultModal.success && (
+                <button 
+                  type="button" 
+                  className="btn btn-outline" 
+                  style={{ 
+                    padding: '8px 18px', 
+                    fontSize: '13px', 
+                    fontWeight: '600',
+                    borderColor: copiedError ? '#22c55e' : 'var(--gold, #c9a84c)', 
+                    color: copiedError ? '#22c55e' : 'var(--gold, #c9a84c)',
+                    backgroundColor: copiedError ? 'rgba(34, 197, 94, 0.1)' : 'rgba(201, 168, 76, 0.1)'
+                  }} 
+                  onClick={() => {
+                    navigator.clipboard.writeText(publishResultModal.error || publishResultModal.log);
+                    setCopiedError(true);
+                    showToast('✓ Erro completo copiado para a área de transferência!', 'success');
+                    setTimeout(() => setCopiedError(false), 3000);
+                  }}
+                >
+                  {copiedError ? '✓ Copiado!' : '📋 Copiar Erro Completo'}
+                </button>
+              )}
               <button 
                 type="button" 
                 className="btn btn-outline" 
                 style={{ padding: '8px 20px', fontSize: '13px', borderColor: 'rgba(255,255,255,0.2)', color: '#ffffff' }} 
-                onClick={() => setPublishErrorModal(null)}
+                onClick={() => setPublishResultModal(null)}
               >
                 Fechar
               </button>

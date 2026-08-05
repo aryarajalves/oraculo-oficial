@@ -213,7 +213,7 @@
     "praca": "SISTEMA",
     "format": "B",
     "preset": "manuscrito_sagrado",
-    "status": "pronto",
+    "status": "publicado",
     "revisorScore": "15/15",
     "createdAt": "2026-03-23",
     "slidesDir": "b2://Publicacoes/carousels/carrossel-10",
@@ -232,7 +232,9 @@
       "slide-08-o-que-muda-quando.jpg",
       "slide-09-você-não-está-aqui.jpg",
       "slide-10-comente-fonte.jpg"
-    ]
+    ],
+    "instagramMediaId": "17934879273346711",
+    "publishedAt": "2026-08-05 16:12"
   },
   {
     "id": "carrossel-11",
@@ -323,7 +325,7 @@
     "praca": "SISTEMA",
     "format": "B",
     "preset": "cinematografico_crimson",
-    "status": "erro-publicacao",
+    "status": "publicado",
     "revisorScore": "—",
     "createdAt": "2026-03-26",
     "slidesDir": "b2://Publicacoes/carousels/carrossel-14",
@@ -343,7 +345,8 @@
       "slide-09.jpg",
       "slide-10.jpg"
     ],
-    "publishedAt": "2026-08-05 14:42"
+    "publishedAt": "2026-08-05 15:41",
+    "instagramMediaId": "18612220159003336"
   },
   {
     "id": "carrossel-15",
