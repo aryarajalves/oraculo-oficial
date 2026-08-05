@@ -11,7 +11,7 @@ export function parseCarouselText(text, fallbackData = null) {
   const pracaMatch = t.match(/PRA[ÇC]A:\s*(.+)/i);
   const bigIdea = t.match(/BIG IDEA:\s*(.+)/i);
   const revisorMatch = t.match(/TOTAL:\s*([\d]+\/15)/i);
-  const captionMatch = t.match(/CAPTION[^:\n]*:\s*\n([\s\S]+?)(?=\nCTA TRIBAL|━)/i);
+  const captionMatch = t.match(/CAPTION[^:\n]*:\s*\n([\s\S]+?)(?=\n━|\nCTA TRIBAL|\nREVISÃO AUTÔNOMA|\n---|$)/i);
   const ctaMatch = t.match(/CTA TRIBAL:\s*"([^"\n]+)"/i);
   
   // Se houver fallbackData, usamos o título original do formulário. Caso contrário, tenta do Match, senão fallback final.
@@ -19,7 +19,7 @@ export function parseCarouselText(text, fallbackData = null) {
     ? temaMatch[1].trim().slice(0, 80) 
     : (fallbackData?.title || 'Carrossel Fonte Oculta');
     
-  const caption = (captionMatch?.[1] || bigIdea?.[1] || '').trim();
+  let caption = (captionMatch?.[1] || '').trim();
 
   const slides = [];
   const lines = t.split('\n');
@@ -91,6 +91,18 @@ export function parseCarouselText(text, fallbackData = null) {
   const finalTitle = temaMatch 
     ? temaMatch[1].trim().slice(0, 80) 
     : (slides[0]?.title?.replace(/\n/g, ' ') || fallbackData?.title || 'Carrossel Fonte Oculta');
+
+  if (!caption) {
+    if (bigIdea?.[1]) {
+      caption = bigIdea[1].trim();
+    } else if (slides.length > 0) {
+      // Fallback: Concatena o corpo dos slides principais para gerar uma legenda rica em vez de uma única frase curta
+      caption = slides
+        .map(s => s.body)
+        .filter(Boolean)
+        .join('\n\n');
+    }
+  }
 
   return {
     title: finalTitle,
