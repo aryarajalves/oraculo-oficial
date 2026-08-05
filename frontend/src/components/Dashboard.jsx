@@ -264,6 +264,9 @@ export default function Dashboard({
 
     setConfirmPublishCarousel(null);
     setPublishingId(carouselId);
+    if (!isScheduleMode) {
+      handleStatusChange(carouselId, 'publicando');
+    }
     showToast(isScheduleMode ? '⏳ Agendando postagem no Instagram...' : '⏳ Iniciando publicação no Instagram...', 'info');
 
     try {
@@ -297,6 +300,7 @@ export default function Dashboard({
           error: errorMsg,
           log: data.log || ''
         });
+        onLoadCarousels();
       }
     } catch (e) {
       showToast('Erro ao conectar com o servidor.', 'error');
@@ -630,13 +634,14 @@ export default function Dashboard({
                     <select
                       className="status-select"
                       value={c.status}
-                      disabled={c.status === 'generating' || c.status === 'queued'}
+                      disabled={c.status === 'generating' || c.status === 'queued' || c.status === 'publicando'}
                       onChange={(e) => handleStatusChange(c.id, e.target.value)}
                     >
                       <option value="rascunho">Rascunho</option>
                       <option value="pronto">Pronto</option>
                       <option value="aprovado">Aprovado</option>
                       <option value="agendado">Agendado</option>
+                      <option value="publicando">Publicando</option>
                       <option value="publicado">Publicado</option>
                     </select>
 
@@ -700,10 +705,10 @@ export default function Dashboard({
                       {c.status !== 'generating' && c.status !== 'queued' && c.status !== 'failed' && c.slides && c.slides.length > 0 && (
                         <button
                           className="btn-instagram btn-sm"
-                          disabled={c.status === 'publicado' || c.status === 'agendado' || publishingId === c.id}
+                          disabled={c.status === 'publicado' || c.status === 'agendado' || c.status === 'publicando' || publishingId === c.id}
                           onClick={() => handlePublish(c)}
                         >
-                          {c.status === 'publicado' ? '✓ Postado' : (c.status === 'agendado' ? '📅 Agendado' : (publishingId === c.id ? '⏳ Processando...' : '✈ Postar'))}
+                          {c.status === 'publicado' ? '✓ Postado' : (c.status === 'agendado' ? '📅 Agendado' : (c.status === 'publicando' || publishingId === c.id ? '⏳ Publicando...' : '✈ Postar'))}
                         </button>
                       )}
                       {c.slides && c.slides.length > 0 && c.totalSlides > 0 && c.slides.length === c.totalSlides && (

@@ -358,7 +358,7 @@
     "praca": "SISTEMA",
     "format": "D",
     "preset": "manuscrito_sagrado",
-    "status": "pronto",
+    "status": "publicado",
     "revisorScore": "—",
     "createdAt": "2026-03-26",
     "slidesDir": "b2://Publicacoes/carousels/carrossel-15",
@@ -377,7 +377,9 @@
       "slide-08.jpg",
       "slide-09.jpg",
       "slide-10.jpg"
-    ]
+    ],
+    "instagramMediaId": "17940268242335308",
+    "publishedAt": "2026-08-05 17:24"
   },
   {
     "id": "carrossel-16",
