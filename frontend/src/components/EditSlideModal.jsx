@@ -45,9 +45,8 @@ export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, fi
 
   useEffect(() => {
     if (isOpen && carouselId && filename) {
-      const rawFname = filename.replace(/^slide-/, 'raw-');
       const token = encodeURIComponent(localStorage.getItem('fo_token') || '');
-      setPreviewImgUrl(`/api/carousels/${carouselId}/image/${rawFname}?token=${token}&t=${cacheBuster}`);
+      setPreviewImgUrl(`/api/carousels/${carouselId}/image/${filename}?token=${token}&t=${cacheBuster}`);
     }
   }, [isOpen, carouselId, filename, cacheBuster]);
 
