@@ -95,8 +95,11 @@ export default function Dashboard({
     }
   };
 
+  const [publishErrorModal, setPublishErrorModal] = useState(null); // { carouselId, error }
+  const [copiedError, setCopiedError] = useState(false);
+
   // Trava scroll do body quando qualquer modal estiver aberto
-  const anyModalOpen = !!selectedDetailsCarousel || !!selectedPipelineCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized;
+  const anyModalOpen = !!selectedDetailsCarousel || !!selectedPipelineCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized || !!publishErrorModal;
   useScrollLock(anyModalOpen);
 
   const handleRetryGeneration = async (carouselId) => {
@@ -225,8 +228,11 @@ export default function Dashboard({
         showToast('✓ Publicado no Instagram!');
         onLoadCarousels();
       } else {
-        showToast(`Erro ao publicar: ${err.error || 'Falha na conexão com Instagram'}`, 'error');
-        alert(`Erro ao publicar no Instagram:\n\n${err.error || err.detail || 'Verifique as credenciais no .env'}`);
+        showToast(`Erro ao publicar no Instagram.`, 'error');
+        setPublishErrorModal({
+          carouselId,
+          error: err.error || err.detail || 'Erro desconhecido ao tentar conectar ao Instagram.'
+        });
       }
     } catch (e) {
       showToast('Erro ao conectar com o servidor.', 'error');
@@ -985,6 +991,95 @@ export default function Dashboard({
           carousel={selectedPipelineCarousel}
           onClose={() => setSelectedPipelineCarousel(null)}
         />
+      )}
+
+      {/* Modal Customizada de Erro de Publicação do Instagram */}
+      {publishErrorModal && (
+        <div className="form-modal open" style={{ zIndex: 12000 }} onClick={() => setPublishErrorModal(null)}>
+          <div 
+            className="form-box" 
+            style={{ 
+              maxWidth: '720px', 
+              width: '90%', 
+              padding: '24px', 
+              background: '#0c0d12', 
+              border: '1px solid rgba(244, 63, 94, 0.4)', 
+              borderRadius: '16px',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.95), 0 0 30px rgba(244, 63, 94, 0.15)'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', marginBottom: '16px' }}>
+              <h3 className="form-title" style={{ color: 'var(--red, #f43f5e)', fontSize: '18px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ⚠️ Erro ao Publicar no Instagram
+              </h3>
+              <button 
+                type="button" 
+                onClick={() => setPublishErrorModal(null)} 
+                style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '18px', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: '13px', color: '#a1a1aa', margin: '0 0 12px 0', lineHeight: '1.5' }}>
+              Ocorreu um erro retornado pelo servidor / API da Meta ao tentar postar o carrossel <strong>{publishErrorModal.carouselId}</strong>:
+            </p>
+
+            <pre 
+              className="custom-pipeline-scroll" 
+              style={{ 
+                margin: '0 0 20px 0', 
+                padding: '16px', 
+                fontSize: '12px', 
+                lineHeight: '1.6', 
+                fontFamily: 'Consolas, Monaco, monospace', 
+                whiteSpace: 'pre-wrap', 
+                color: '#f87171', 
+                backgroundColor: '#090a0f', 
+                border: '1px solid rgba(244, 63, 94, 0.2)',
+                borderRadius: '8px', 
+                maxHeight: '320px', 
+                overflowY: 'auto',
+                userSelect: 'text'
+              }}
+            >
+              {publishErrorModal.error}
+            </pre>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                type="button" 
+                className="btn btn-outline" 
+                style={{ 
+                  padding: '8px 18px', 
+                  fontSize: '13px', 
+                  fontWeight: '600',
+                  borderColor: copiedError ? '#22c55e' : 'var(--gold, #c9a84c)', 
+                  color: copiedError ? '#22c55e' : 'var(--gold, #c9a84c)',
+                  backgroundColor: copiedError ? 'rgba(34, 197, 94, 0.1)' : 'rgba(201, 168, 76, 0.1)'
+                }} 
+                onClick={() => {
+                  navigator.clipboard.writeText(publishErrorModal.error);
+                  setCopiedError(true);
+                  showToast('✓ Erro completo copiado para a área de transferência!', 'success');
+                  setTimeout(() => setCopiedError(false), 3000);
+                }}
+              >
+                {copiedError ? '✓ Copiado!' : '📋 Copiar Erro Completo'}
+              </button>
+
+              <button 
+                type="button" 
+                className="btn btn-outline" 
+                style={{ padding: '8px 20px', fontSize: '13px', borderColor: 'rgba(255,255,255,0.2)', color: '#ffffff' }} 
+                onClick={() => setPublishErrorModal(null)}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
