@@ -1103,14 +1103,17 @@ router.post('/api/criador/stream', async (req, res) => {
     system = `IMPORTANTE: Para esta geração, o usuário configurou e deseja estritamente um carrossel de exatamente ${numSlides} slides. Adapte o Método Jordânico de Curva Dramática e sintetize as etapas para caberem exatamente em ${numSlides} slides (S1 até S${numSlides}), garantindo que o slide final S${numSlides} seja o CTA FIXO.\n\n` + system;
   }
 
-  const numNoImage = Number(noImageSlidesCount) || 0;
-  if (numNoImage > 0) {
-    if (numNoImage >= numSlides) {
-      system = `IMPORTANTE: O usuário configurou no formulário que TODOS os ${numSlides} slides devem ter fundo preto puro (layout "text_only") SEM NENHUMA imagem gerada por IA. Defina o layout de TODOS os slides (S1 até S${numSlides}) obrigatoriamente como "text_only" e com a linha VISUAL escrita como "Fundo escuro".\n\n` + system;
-    } else {
-      system = `IMPORTANTE: O usuário configurou no formulário que exatamente ${numNoImage} slide(s) devem ter fundo preto puro (layout "text_only") SEM imagem de IA. Defina exatamente ${numNoImage} slides com layout "text_only" e com a linha VISUAL escrita obrigatoriamente como "Fundo escuro" (sem descrever imagens reais).\n\n` + system;
-    }
-  }
+  // Injeta automaticamente a regra innegociável de formato para garangir a estrutura de TÍTULO, CORPO e VISUAL
+  const mandatoryFormatInstruction = `\n\n⚠️ REGRA INNEGOCIÁVEL DE FORMATO DE SAÍDA DE SLIDES (APLICAR SEMPRE QUE GERAR ROTEIRO DE SLIDES):
+Ao gerar o roteiro final de slides, cada slide DEVE ser obrigatoriamente estruturado usando a tag exata:
+[SX — ESTADO | layout: TIPO]
+TÍTULO: [conteúdo do título do slide]
+CORPO: [conteúdo do texto/copy do slide]
+VISUAL: [descrição da imagem visual do slide]
+
+Jamais entregue os slides apenas como texto corrido ou apenas **SX:** sem as chaves TÍTULO:, CORPO: e VISUAL:.\n\n`;
+
+  system = system + mandatoryFormatInstruction;
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: 'messages é obrigatório' });
