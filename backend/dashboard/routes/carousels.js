@@ -837,7 +837,7 @@ const handlePublishInstagram = async (req, res) => {
       }
     });
     logger.info('[Carousel]', "publish-instagram:", stdout.trim());
-    if (stderr) logger.error('[Carousel]', "publish-instagram stderr:", stderr.trim());
+    if (stderr) logger.warn('[Carousel]', "publish-instagram stderr:", stderr.trim());
 
     if (!sched) {
       c.status = "publicado";
@@ -854,9 +854,38 @@ const handlePublishInstagram = async (req, res) => {
     const updated = (await readDataAsync()).find(x => x.id === req.params.id);
     res.json({ ok: true, log: stdout, carousel: updated });
   } catch (e) {
+    const stdoutStr = e.stdout || "";
+    const stderrStr = e.stderr || "";
+    const wasPublished = stdoutStr.includes("PUBLICADO COM SUCESSO") || stdoutStr.includes("AGENDADO COM SUCESSO");
+
     logger.error('[Carousel]', "publish-instagram error:", e.message);
-    const errOutput = (e.stdout || "") + " " + (e.stderr || "") + " " + e.message;
-    res.status(500).json({ error: errOutput.trim() || e.message, log: e.stdout || "" });
+    if (stderrStr) logger.error('[Carousel]', "publish-instagram stderr:", stderrStr.trim());
+
+    // Mesmo com exit code != 0, se o post foi confirmado como publicado no stdout,
+    // tratamos como sucesso e atualizamos o status no banco via Node.js
+    if (wasPublished) {
+      logger.info('[Carousel]', "Publicação confirmada no stdout apesar de exit code != 0. Atualizando status...");
+      try {
+        if (!sched) {
+          c.status = "publicado";
+          c.publishedAt = new Date().toISOString().replace('T', ' ').slice(0, 16);
+          const allUpdated = await readDataAsync();
+          const target = allUpdated.find(x => x.id === req.params.id);
+          if (target) {
+            target.status = "publicado";
+            target.publishedAt = c.publishedAt;
+            await writeDataAsync(allUpdated);
+          }
+        }
+        const updated = (await readDataAsync()).find(x => x.id === req.params.id);
+        return res.json({ ok: true, log: stdoutStr, carousel: updated });
+      } catch (updateErr) {
+        logger.error('[Carousel]', "Erro ao atualizar status após publicação confirmada:", updateErr.message);
+      }
+    }
+
+    const errOutput = stdoutStr + " " + stderrStr + " " + e.message;
+    res.status(500).json({ error: errOutput.trim() || e.message, log: stdoutStr });
   }
 };
 

@@ -163,8 +163,12 @@ def publish(carousel_id: str, custom_caption: str = "", stories: bool = False, s
             story_ids = publicar_stories(
                 slides_dir = slides_dir,
             )
-            update_status(carousel_id, "publicado", ",".join(story_ids))
-            print(f"\nDashboard atualizado -> publicado (Stories)")
+            print(f"\nPUBLICADO COM SUCESSO (Stories)")
+            try:
+                update_status(carousel_id, "publicado", ",".join(story_ids))
+                print(f"Dashboard atualizado -> publicado (Stories)")
+            except Exception as ue:
+                print(f"AVISO: Nao foi possivel atualizar status local apos publicacao Stories: {ue}")
         else:
             post_id = publicar_carrossel(
                 slides_dir = slides_dir,
@@ -172,14 +176,22 @@ def publish(carousel_id: str, custom_caption: str = "", stories: bool = False, s
                 scheduled_publish_time = scheduled_time
             )
             new_status = "agendado" if scheduled_time else "publicado"
-            update_status(carousel_id, new_status, str(post_id))
-            print(f"\nDashboard atualizado -> {new_status} (Feed)")
+            print(f"\nPUBLICADO COM SUCESSO" if not scheduled_time else f"\nAGENDADO COM SUCESSO")
+            print(f"Post ID: {post_id}")
+            try:
+                update_status(carousel_id, new_status, str(post_id))
+                print(f"Dashboard atualizado -> {new_status} (Feed)")
+            except Exception as ue:
+                print(f"AVISO: Nao foi possivel atualizar status local apos publicacao: {ue}")
         return True
 
     except Exception as e:
         print(f"\nERRO ao publicar: {e}")
         import traceback; traceback.print_exc()
-        update_status(carousel_id, "erro-publicacao")
+        try:
+            update_status(carousel_id, "erro-publicacao")
+        except Exception:
+            pass
         return False
 
 
