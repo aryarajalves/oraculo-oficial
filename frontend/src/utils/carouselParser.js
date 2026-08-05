@@ -90,7 +90,7 @@ export function parseCarouselText(text, fallbackData = null) {
 
   const finalTitle = temaMatch 
     ? temaMatch[1].trim().slice(0, 80) 
-    : (slides[0]?.title?.replace(/\n/g, ' ') || fallbackData?.title || 'Carrossel Fonte Oculta');
+    : (fallbackData?.title || slides[0]?.title?.replace(/\n/g, ' ') || 'Carrossel Fonte Oculta');
 
   if (!caption) {
     if (bigIdea?.[1]) {
@@ -104,11 +104,15 @@ export function parseCarouselText(text, fallbackData = null) {
     }
   }
 
+  const rawTheme = temaMatch
+    ? temaMatch[1].trim()
+    : (fallbackData?.theme || fallbackData?.title || finalTitle);
+
+  const cleanTheme = rawTheme.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48);
+
   return {
     title: finalTitle,
-    theme: temaMatch 
-      ? finalTitle.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48)
-      : (fallbackData?.theme || finalTitle.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, '-').slice(0, 48)),
+    theme: cleanTheme || 'novo-carrossel',
     format: pracaMatch?.[1]?.trim().slice(0, 20) || (fallbackData?.format || 'B'),
     caption: caption || (fallbackData?.caption || ''),
     notes: ctaMatch?.[1]?.trim() || (fallbackData?.notes || ''),
