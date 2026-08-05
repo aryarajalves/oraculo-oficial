@@ -138,7 +138,7 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
 
   for (let i = 1; i <= lastDay.getDate(); i++) {
     const dayStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-    const scheduled = allCarousels.filter(c => getScheduledLocalDate(c) === dayStr);
+    const scheduled = allCarousels.filter(c => c.status !== 'publicado' && getScheduledLocalDate(c) === dayStr);
     const isToday = new Date().toISOString().split('T')[0] === dayStr;
 
     days.push(
