@@ -267,7 +267,7 @@ export default function Dashboard({
     showToast(isScheduleMode ? '⏳ Agendando postagem no Instagram...' : '⏳ Iniciando publicação no Instagram...', 'info');
 
     try {
-      const res = await fetch(`/api/carousels/${carouselId}/publish`, {
+      const res = await customFetch(`/api/carousels/${carouselId}/publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -288,12 +288,13 @@ export default function Dashboard({
         });
         onLoadCarousels();
       } else {
+        const errorMsg = data.error || data.detail || (typeof data === 'string' ? data : 'Erro desconhecido ao tentar conectar ao Instagram.');
         showToast(isScheduleMode ? `Erro ao agendar no Instagram.` : `Erro ao publicar no Instagram.`, 'error');
         setPublishResultModal({
           success: false,
           carouselId,
           title: carouselTitle,
-          error: data.error || data.detail || 'Erro desconhecido ao tentar conectar ao Instagram.',
+          error: errorMsg,
           log: data.log || ''
         });
       }
@@ -303,7 +304,7 @@ export default function Dashboard({
         success: false,
         carouselId,
         title: carouselTitle,
-        error: 'Erro de conexão com o servidor. Verifique a internet e tente novamente.'
+        error: e.message || 'Erro de conexão com o servidor. Verifique a internet e tente novamente.'
       });
     } finally {
       setPublishingId(null);

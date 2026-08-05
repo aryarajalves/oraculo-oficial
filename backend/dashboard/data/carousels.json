@@ -189,7 +189,7 @@
     "status": "publicado",
     "revisorScore": "15/15",
     "createdAt": "2026-03-22",
-    "publishedAt": "2026-03-22",
+    "publishedAt": "2026-08-05 16:56",
     "slidesDir": "b2://Publicacoes/carousels/carrossel-09",
     "slidePrefix": "slide-",
     "totalSlides": 10,
@@ -206,7 +206,8 @@
       "slide-08-três-linguagens.jpg",
       "slide-09-o-deus-que-te-ensinaram.jpg",
       "slide-10-a-separação-que-te-ensinaram.jpg"
-    ]
+    ],
+    "instagramMediaId": "18089703494139444"
   },
   {
     "id": "carrossel-10",
