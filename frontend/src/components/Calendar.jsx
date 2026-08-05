@@ -114,14 +114,14 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
     );
   }
 
-  const pendings = allCarousels.filter(c => c.status === 'pronto' || c.status === 'aprovado');
+  const pendings = allCarousels.filter(c => c.status === 'agendado');
 
   return (
     <div>
       <div className="oraculo-header">
         <div>
           <div className="oraculo-title">CALENDÁRIO DE PUBLICAÇÃO</div>
-          <div className="oraculo-subtitle">Organize os carrosséis aprovados nos horários de publicação (09h, 13h, 20h)</div>
+          <div className="oraculo-subtitle">Organize os carrosséis agendados nos horários de publicação (09h, 13h, 20h)</div>
         </div>
       </div>
 
@@ -144,12 +144,12 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
       {scheduleModalOpen && (
         <div className="form-modal open">
           <div className="form-box" style={{ maxWidth: '550px' }}>
-            <div className="form-title">Agendar Carrossel</div>
+            <div className="form-title">Editar Agendamento do Carrossel</div>
             <div className="form-group">
-              <label className="form-label">Carrossel Disponível (Clique para selecionar)</label>
+              <label className="form-label">Carrosséis Agendados (Clique para selecionar e alterar o horário)</label>
               <div style={{ maxHeight: '250px', overflowY: 'auto', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {pendings.length === 0 ? (
-                  <div style={{ color: 'var(--text-3)', fontSize: '12px' }}>Nenhum carrossel pendente</div>
+                  <div style={{ color: 'var(--text-3)', fontSize: '12px' }}>Nenhum carrossel agendado no momento</div>
                 ) : (
                   pendings.map(c => (
                     <div
