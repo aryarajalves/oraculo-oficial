@@ -39,6 +39,28 @@ const PYTHON = process.platform === "win32" ? "python" : "python3";
 const router = express.Router();
 const AGENT_SYSTEM_PROMPTS = buildAgentPrompts(CLIENT);
 
+async function getAgentPromptAsync(agentId) {
+  try {
+    const dbRes = await query('SELECT content FROM agent_prompts WHERE id = $1', [agentId]);
+    if (dbRes && dbRes.rows && dbRes.rows.length > 0 && dbRes.rows[0].content) {
+      return dbRes.rows[0].content;
+    }
+  } catch (err) {
+    logger.error('[Carousels]', `Erro ao buscar prompt '${agentId}' do BD: ${err.message}`);
+  }
+
+  const agentFilePath = path.join(__dirname, '..', '..', 'agents', `${agentId}.md`);
+  if (fs.existsSync(agentFilePath)) {
+    try {
+      return fs.readFileSync(agentFilePath, 'utf-8');
+    } catch (err) {
+      logger.error('[Carousels]', `Erro ao ler arquivo de prompt ${agentFilePath}: ${err.message}`);
+    }
+  }
+
+  return AGENT_SYSTEM_PROMPTS[agentId] || null;
+}
+
 // ── API: List all carousels ──────────────────────────────────────────────────
 router.get("/api/carousels", async (req, res) => {
   const all = await readDataAsync();
@@ -1060,7 +1082,7 @@ router.get('/api/debug-jobs', (req, res) => {
 // ── API: Criador — Chat unificado com streaming SSE ──────────────────────────
 router.post('/api/criador/stream', async (req, res) => {
   const { messages, totalSlides, noImageSlidesCount } = req.body;
-  let system = AGENT_SYSTEM_PROMPTS['criador'];
+  let system = await getAgentPromptAsync('criador');
   if (!system) return res.status(500).json({ error: 'Agente criador não configurado' });
 
   // Injeta dinamicamente a quantidade de slides configurada no formulário dentro do System Prompt
