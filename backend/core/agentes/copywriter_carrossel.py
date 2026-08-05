@@ -397,7 +397,7 @@ JSON puro. Sem markdown fora do JSON. Sem comentários antes ou depois.
       "layout": "fullbleed",
       "title": "TÍTULO\\nEM CAIXA ALTA\\nCOM QUEBRAS",
       "body": "Corpo do slide.",
-      "visual": "Descrição cinematográfica em inglês para o gerador de imagem.",
+      "visual": "Descrição em inglês para gerador de imagem: SEMPRE fotografia cinematográfica hiper-realista, lente 35mm, iluminação natural dramática/chiaroscuro, texturas de pele/ambiente reais, expressão humana profunda, sem estilo 3D ou ilustração digital.",
       "sensacao_corporal": "peito — batimento acelerado"
     }
   ],

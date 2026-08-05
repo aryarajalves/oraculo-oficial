@@ -93,26 +93,20 @@ class SlideData:
 # ── ATMOSFERA E ENERGIA POR CONTEXTO ──────────────────────────────────────────
 PRESET_ATMOSPHERE = {
     "revelacao": (
-        "Cinematic esoteric-painterly atmosphere. Rich visible brushwork. "
-        "Each scene has its own living color palette — from deep indigo to electric gold "
-        "to sacred crimson, guided by the emotional state of the image. "
-        "High color saturation, painterly oil technique, vibrant and alive."
+        "Cinematic moody photograph. High-contrast lighting, 35mm film grain, "
+        "dramatic chiaroscuro atmosphere. Expressive human portrait with deep emotion and realistic textures."
     ),
     "sagrado": (
-        "Sacred luminous atmosphere. Warm celestial gold, soft amber, heavenly ivory. "
-        "Ancient mystical energy with radiant light sources. Painterly oil texture, "
-        "visible brushwork, colors that feel alive and divine."
+        "Cinematic portrait photography. Warm golden hour lighting, volumetric light rays, "
+        "dramatic shadow contrast, authentic human features and natural skin texture."
     ),
     "cosmico": (
-        "Vivid cosmic-esoteric atmosphere. Electric purple, deep indigo, neon teal, "
-        "violet nebula tones. Van Gogh-inspired swirling energy meets quantum mysticism. "
-        "Explosive color, painterly cosmic texture, luminous and alive."
+        "Cinematic dark photography. Deep atmospheric lighting, subtle teal and warm amber contrast, "
+        "mysterious moody aura, realistic 35mm photograph."
     ),
     "esoterico": (
-        "Vibrant esoteric-cinematic atmosphere. Electric purples, deep blues, sacred golds, "
-        "cosmic teals, vivid magentas. Van Gogh-inspired visible brushwork meets cinematic "
-        "spirituality. Each scene breathes with its own luminous color — alive, magnetic, "
-        "scroll-stopping. High saturation, painterly oil, rich texture."
+        "Cinematic realistic photograph. Deep shadow transitions, dramatic single light source, "
+        "high emotional intensity, natural grain and cinematic color grading."
     ),
 }
 
