@@ -797,13 +797,13 @@ router.get("/api/download-all", async (req, res) => {
 });
 
 // ── API: Publicar no Instagram ───────────────────────────────────────────────
-router.post("/api/carousels/:id/publish-instagram", async (req, res) => {
+const handlePublishInstagram = async (req, res) => {
   const all = await readDataAsync();
   const c   = all.find(x => x.id === req.params.id);
   if (!c) return res.status(404).json({ error: "Carrossel não encontrado" });
 
   const PUBLISH_SCRIPT = path.join(__dirname, "..", "infra", "social", "publish_instagram.py");
-  const caption = req.body.caption || c.caption || "";
+  const caption = req.body?.caption || c.caption || "";
 
   const args = [
     "-X", "utf8", PUBLISH_SCRIPT,
@@ -812,7 +812,7 @@ router.post("/api/carousels/:id/publish-instagram", async (req, res) => {
   if (caption) {
     args.push("--caption", caption);
   }
-  if (req.body.stories) {
+  if (req.body?.stories) {
     args.push("--stories");
   }
 
@@ -825,9 +825,13 @@ router.post("/api/carousels/:id/publish-instagram", async (req, res) => {
     res.json({ ok: true, log: stdout, carousel: updated });
   } catch (e) {
     logger.error('[Carousel]', "publish-instagram error:", e.message);
-    res.status(500).json({ error: e.message, log: e.stdout || "" });
+    const errOutput = (e.stdout || "") + " " + (e.stderr || "") + " " + e.message;
+    res.status(500).json({ error: errOutput.trim() || e.message, log: e.stdout || "" });
   }
-});
+};
+
+router.post("/api/carousels/:id/publish-instagram", handlePublishInstagram);
+router.post("/api/carousels/:id/publish", handlePublishInstagram);
 
 // ── API: Criador — Capacidades do ambiente ────────────────────────────────────
 router.get('/api/criador/capabilities', (req, res) => {

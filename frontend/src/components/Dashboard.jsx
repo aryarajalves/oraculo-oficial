@@ -220,15 +220,16 @@ export default function Dashboard({
   const handlePublish = async (carouselId) => {
     try {
       const res = await fetch(`/api/carousels/${carouselId}/publish`, { method: 'POST' });
+      const err = await res.json().catch(() => ({}));
       if (res.ok) {
         showToast('✓ Publicado no Instagram!');
         onLoadCarousels();
       } else {
-        const err = await res.json();
-        alert('Erro: ' + (err.error || 'Falha ao publicar'));
+        showToast(`Erro ao publicar: ${err.error || 'Falha na conexão com Instagram'}`, 'error');
+        alert(`Erro ao publicar no Instagram:\n\n${err.error || err.detail || 'Verifique as credenciais no .env'}`);
       }
     } catch (e) {
-      showToast('Erro ao conectar ao Instagram.');
+      showToast('Erro ao conectar com o servidor.', 'error');
     }
   };
 
