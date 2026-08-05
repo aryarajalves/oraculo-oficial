@@ -114,7 +114,7 @@ export default function Calendar({ allCarousels, onLoadCarousels, showToast, ima
     );
   }
 
-  const pendings = allCarousels.filter(c => c.status !== 'publicado');
+  const pendings = allCarousels.filter(c => c.status === 'pronto' || c.status === 'aprovado');
 
   return (
     <div>
