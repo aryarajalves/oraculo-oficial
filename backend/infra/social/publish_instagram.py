@@ -17,12 +17,19 @@ from datetime import datetime
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
-sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+# Adiciona o próprio diretório infra/social ao sys.path para import de instagram_publisher
+SOCIAL_DIR = Path(__file__).resolve().parent
+if str(SOCIAL_DIR) not in sys.path:
+    sys.path.insert(0, str(SOCIAL_DIR))
 
 from dotenv import load_dotenv
 load_dotenv()
 
-DATA_FILE = Path("C:/Users/julia/nano-banana-mcp/dashboard/data/carousels.json")
+DATA_FILE = BASE_DIR / "dashboard" / "data" / "carousels.json"
 
 
 # ── Dashboard helpers ─────────────────────────────────────────────────────────
