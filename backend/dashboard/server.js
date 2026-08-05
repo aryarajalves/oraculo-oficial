@@ -27,7 +27,6 @@ import backupsRouter from "./routes/backups.js";
 import { resetBackupScheduler } from "./backupManager.js";
 
 import { initCarouselQueueWorker } from "./services/carouselQueueWorker.js";
-import { initScheduledPublisherWorker } from "./services/scheduledPublisherWorker.js";
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -171,7 +170,6 @@ setInterval(async () => {
 initDb().then(() => {
   resetBackupScheduler();
   initCarouselQueueWorker();
-  initScheduledPublisherWorker();
   app.listen(PORT, () => {
     const env = process.env.NODE_ENV || 'development';
     logger.info('[SERVER]', `✅ Oráculo Dashboard iniciado — porta: ${PORT} | ambiente: ${env}`);

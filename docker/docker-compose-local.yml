@@ -49,6 +49,38 @@ services:
       - ../backend:/app/backend
       - ../frontend:/app/frontend
 
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/worker.Dockerfile
+    container_name: oraculo_worker
+    restart: always
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-123456}
+      - DB_NAME=${DB_NAME:-oracle_manager}
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_PUBLIC_URL=http://localhost:9000
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER:-oraculo_admin}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD:-oraculo_secret_123}
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-oraculo_user}
+      - RABBITMQ_PASS=${RABBITMQ_PASS:-oraculo_pass_123}
+    env_file:
+      - path: ../backend/.env
+        required: false
+    depends_on:
+      - db
+      - minio
+      - rabbitmq
+      - backend
+    volumes:
+      - ../backend:/app/backend
+
   frontend:
     build:
       context: ..
