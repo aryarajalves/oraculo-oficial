@@ -50,6 +50,10 @@ export function parseCarouselText(text, fallbackData = null) {
       let layout = (hm[3] || 'fullbleed').trim().toLowerCase();
       // Remove acentos para compatibilidade com o backend (ex: "dramático" -> "dramatico")
       layout = layout.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const validLayouts = ['fullbleed', 'dramatico', 'etereo', 'card', 'text_only'];
+      if (!validLayouts.includes(layout)) {
+        layout = 'fullbleed';
+      }
       current = {
         num,
         estado,

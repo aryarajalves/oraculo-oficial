@@ -521,7 +521,7 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
   // Buscar a imagem limpa do Raw Cache se disponível
   const baseImgPath = fs.existsSync(rawPath) ? rawPath : imgPath;
 
-  const { 
+  let { 
     title, 
     body, 
     layout = "fullbleed",
@@ -534,6 +534,11 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
     title_px,
     body_px
   } = req.body;
+
+  const validLayouts = ["fullbleed", "dramatico", "etereo", "card", "text_only"];
+  if (!validLayouts.includes(String(layout).toLowerCase())) {
+    layout = "fullbleed";
+  }
   
   if (!title || !body) return res.status(400).json({ error: "title e body são obrigatórios" });
   
@@ -1110,8 +1115,8 @@ router.post('/api/criador/stream', async (req, res) => {
 
   // Injeta automaticamente a regra innegociável de formato para garangir a estrutura de TÍTULO, CORPO e VISUAL
   const mandatoryFormatInstruction = `\n\n⚠️ REGRA INNEGOCIÁVEL DE FORMATO DE SAÍDA DE SLIDES (APLICAR SEMPRE QUE GERAR ROTEIRO DE SLIDES):
-Ao gerar o roteiro final de slides, cada slide DEVE ser obrigatoriamente estruturado usando a tag exata:
-[SX — ESTADO | layout: TIPO]
+Ao gerar o roteiro final de slides, cada slide DEVE ser obrigatoriamente estruturado usando a tag exata (substituindo LAYOUT pelo tipo exato: fullbleed, dramatico, etereo, card ou text_only):
+[SX — ESTADO | layout: LAYOUT]
 TÍTULO: [conteúdo do título do slide]
 CORPO: [conteúdo do texto/copy do slide]
 VISUAL: [descrição da imagem visual do slide]
