@@ -39,7 +39,7 @@ services:
       - RABBITMQ_USER=${RABBITMQ_USER:-oraculo_user}
       - RABBITMQ_PASS=${RABBITMQ_PASS:-oraculo_pass_123}
     env_file:
-      - path: ../.env
+      - path: ../backend/.env
         required: false
     depends_on:
       - db
