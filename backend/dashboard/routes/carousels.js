@@ -817,7 +817,17 @@ const handlePublishInstagram = async (req, res) => {
   }
 
   try {
-    const { stdout, stderr } = await execFileAsync("python", args, { timeout: 300000 });
+    const { stdout, stderr } = await execFileAsync(PYTHON, args, { 
+      timeout: 300000,
+      cwd: path.join(__dirname, '..', '..'),
+      env: {
+        ...process.env,
+        PYTHONPATH: [
+          path.join(__dirname, '..', '..'),
+          path.join(__dirname, '..', '..', 'python_packages'),
+        ].join(process.platform === 'win32' ? ';' : ':'),
+      }
+    });
     logger.info('[Carousel]', "publish-instagram:", stdout.trim());
     if (stderr) logger.error('[Carousel]', "publish-instagram stderr:", stderr.trim());
 
