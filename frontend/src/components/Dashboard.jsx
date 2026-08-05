@@ -647,7 +647,7 @@ export default function Dashboard({
                     <select
                       className="status-select"
                       value={c.status}
-                      disabled={c.status === 'generating' || c.status === 'queued' || c.status === 'publicando'}
+                      disabled={c.status === 'generating' || c.status === 'queued'}
                       onChange={(e) => handleStatusChange(c.id, e.target.value)}
                     >
                       <option value="rascunho">Rascunho</option>
@@ -715,14 +715,37 @@ export default function Dashboard({
                         </button>
                       )}
 
-                      {c.status !== 'generating' && c.status !== 'queued' && c.status !== 'failed' && c.slides && c.slides.length > 0 && (
-                        <button
-                          className="btn-instagram btn-sm"
-                          disabled={c.status === 'publicado' || c.status === 'agendado' || c.status === 'publicando' || publishingId === c.id}
-                          onClick={() => handlePublish(c)}
-                        >
-                          {c.status === 'publicado' ? '✓ Postado' : (c.status === 'agendado' ? '📅 Agendado' : (c.status === 'publicando' || publishingId === c.id ? '⏳ Publicando...' : '✈ Postar'))}
-                        </button>
+                      {c.status === 'publicando' ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button
+                            className="btn-instagram btn-sm"
+                            disabled={true}
+                            style={{ opacity: 0.8 }}
+                          >
+                            ⏳ Publicando...
+                          </button>
+                          <button
+                            className="btn btn-outline btn-sm"
+                            style={{ borderColor: '#ef4444', color: '#ef4444', padding: '4px 8px' }}
+                            title="Cancelar modo de publicação e voltar para pronto"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStatusChange(c.id, 'pronto');
+                            }}
+                          >
+                            ✕ Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        c.status !== 'generating' && c.status !== 'queued' && c.status !== 'failed' && c.slides && c.slides.length > 0 && (
+                          <button
+                            className="btn-instagram btn-sm"
+                            disabled={c.status === 'publicado' || c.status === 'agendado' || publishingId === c.id}
+                            onClick={() => handlePublish(c)}
+                          >
+                            {c.status === 'publicado' ? '✓ Postado' : (c.status === 'agendado' ? '📅 Agendado' : (publishingId === c.id ? '⏳ Publicando...' : '✈ Postar'))}
+                          </button>
+                        )
                       )}
                       {c.slides && c.slides.length > 0 && c.totalSlides > 0 && c.slides.length === c.totalSlides && (
                         <button 
