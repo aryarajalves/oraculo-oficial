@@ -815,6 +815,10 @@ const handlePublishInstagram = async (req, res) => {
   if (req.body?.stories) {
     args.push("--stories");
   }
+  if (req.body?.scheduled_publish_time || req.body?.schedule) {
+    const sched = req.body.scheduled_publish_time || req.body.schedule;
+    args.push("--schedule", String(sched));
+  }
 
   try {
     const { stdout, stderr } = await execFileAsync(PYTHON, args, { 

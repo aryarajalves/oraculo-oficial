@@ -105,7 +105,7 @@ def _criar_containers_individuais(urls: list[str]) -> list[str]:
 # ETAPA 3 — Container de carrossel
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _criar_container_carrossel(container_ids: list[str], caption: str) -> str:
+def _criar_container_carrossel(container_ids: list[str], caption: str, scheduled_publish_time: int = None) -> str:
     """
     Cria o container do carrossel com todos os itens.
     Retorna o carousel container ID.
@@ -117,6 +117,9 @@ def _criar_container_carrossel(container_ids: list[str], caption: str) -> str:
         "caption":       caption,
         "access_token":  ACCESS_TOKEN,
     }
+    if scheduled_publish_time:
+        payload["scheduled_publish_time"] = scheduled_publish_time
+
     r = requests.post(endpoint, data=payload, timeout=30)
     data = r.json()
 
@@ -176,17 +179,19 @@ def publicar_carrossel(
     slides_dir: Path | str,
     caption:    str,
     max_slides: int = 10,
+    scheduled_publish_time: int = None,
 ) -> str:
     """
-    Pipeline completo: upload → containers → carrossel → publicação.
+    Pipeline completo: upload → containers → carrossel → publicação (ou agendamento).
 
     Args:
         slides_dir: Pasta com slide-01.jpg a slide-10.jpg
         caption:    Caption completo do post (com hashtags, etc.)
         max_slides: Máximo de slides a usar (padrão 10 — limite da API)
+        scheduled_publish_time: Timestamp UNIX para agendamento (entre 15 min e 75 dias)
 
     Returns:
-        Post ID do carrossel publicado no Instagram.
+        Post ID / Container ID do carrossel no Instagram.
     """
     if not ACCESS_TOKEN or not IG_USER_ID:
         raise ValueError(
@@ -209,7 +214,7 @@ def publicar_carrossel(
 
     # 3. Container de carrossel
     print("[3/3] Criando container do carrossel...")
-    carousel_id = _criar_container_carrossel(container_ids, caption)
+    carousel_id = _criar_container_carrossel(container_ids, caption, scheduled_publish_time=scheduled_publish_time)
     print(f"      Carousel container ID: {carousel_id}\n")
 
     # 4. Aguarda ficar pronto
@@ -218,13 +223,17 @@ def publicar_carrossel(
     if not pronto:
         raise RuntimeError("Timeout: container não ficou pronto a tempo.")
 
-    # 5. Publica
-    print("\n  Publicando no Instagram...")
-    post_id = _publicar_container(carousel_id)
+    # 5. Publica imediatamente ou confirma agendamento nativo do Instagram
+    if scheduled_publish_time:
+        print(f"\n  Carrossel AGENDADO com sucesso para o timestamp {scheduled_publish_time}!")
+        post_id = carousel_id
+    else:
+        print("\n  Publicando no Instagram...")
+        post_id = _publicar_container(carousel_id)
 
     print(f"\n{line}")
-    print(f"  PUBLICADO COM SUCESSO!")
-    print(f"  Post ID: {post_id}")
+    print(f"  {'AGENDADO' if scheduled_publish_time else 'PUBLICADO'} COM SUCESSO!")
+    print(f"  ID: {post_id}")
     print(f"  @afonteoculta — instagram.com/afonteoculta")
     print(f"{line}\n")
 

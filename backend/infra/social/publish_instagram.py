@@ -93,7 +93,7 @@ def list_carousels():
 
 # ── Publicação via Meta Graph API ─────────────────────────────────────────────
 
-def publish(carousel_id: str, custom_caption: str = "", stories: bool = False) -> bool:
+def publish(carousel_id: str, custom_caption: str = "", stories: bool = False, scheduled_time: int = None) -> bool:
     from instagram_publisher import publicar_carrossel
 
     all_c    = read_dashboard()
@@ -130,7 +130,7 @@ def publish(carousel_id: str, custom_caption: str = "", stories: bool = False) -
     print(f"\nCarrossel    : {carousel['title'][:55]}")
     print(f"Slides       : {len(slides)}")
     print(f"Pasta        : {slides_dir}")
-    print(f"Tipo         : {'STORIES' if stories else 'FEED/CARROSSEL'}")
+    print(f"Tipo         : {'STORIES' if stories else ('AGENDAMENTO' if scheduled_time else 'FEED/CARROSSEL')}")
 
     try:
         if stories:
@@ -144,9 +144,11 @@ def publish(carousel_id: str, custom_caption: str = "", stories: bool = False) -
             post_id = publicar_carrossel(
                 slides_dir = slides_dir,
                 caption    = caption,
+                scheduled_publish_time = scheduled_time
             )
-            update_status(carousel_id, "publicado", str(post_id))
-            print(f"\nDashboard atualizado -> publicado (Feed)")
+            new_status = "agendado" if scheduled_time else "publicado"
+            update_status(carousel_id, new_status, str(post_id))
+            print(f"\nDashboard atualizado -> {new_status} (Feed)")
         return True
 
     except Exception as e:
@@ -160,16 +162,17 @@ def publish(carousel_id: str, custom_caption: str = "", stories: bool = False) -
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Publica carrossel/stories no Instagram via Meta API")
-    parser.add_argument("--id",      help="ID do carrossel (ex: carrossel-04)")
-    parser.add_argument("--caption", help="Caption customizado", default="")
-    parser.add_argument("--stories", action="store_true", help="Publicar como Stories em vez de Feed")
-    parser.add_argument("--list",    action="store_true", help="Listar carrosseis")
+    parser.add_argument("--id",       help="ID do carrossel (ex: carrossel-04)")
+    parser.add_argument("--caption",  help="Caption customizado", default="")
+    parser.add_argument("--stories",  action="store_true", help="Publicar como Stories em vez de Feed")
+    parser.add_argument("--schedule", type=int, default=None, help="Timestamp UNIX para agendamento")
+    parser.add_argument("--list",     action="store_true", help="Listar carrosseis")
     args = parser.parse_args()
 
     if args.list:
         list_carousels()
     elif args.id:
-        ok = publish(args.id, args.caption, args.stories)
+        ok = publish(args.id, args.caption, args.stories, args.schedule)
         sys.exit(0 if ok else 1)
     else:
         parser.print_help()

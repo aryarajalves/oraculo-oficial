@@ -98,6 +98,8 @@ export default function Dashboard({
   const [publishErrorModal, setPublishErrorModal] = useState(null); // { carouselId, error }
   const [copiedError, setCopiedError] = useState(false);
   const [confirmPublishCarousel, setConfirmPublishCarousel] = useState(null); // carrossel para confirmar
+  const [isScheduleMode, setIsScheduleMode] = useState(false);
+  const [scheduledDateTime, setScheduledDateTime] = useState('');
   const [publishResultModal, setPublishResultModal] = useState(null); // { success: true/false, carouselId, postId, log, error }
   const [publishingId, setPublishingId] = useState(null);
 
@@ -224,6 +226,12 @@ export default function Dashboard({
   };
 
   const handlePublish = (carousel) => {
+    setIsScheduleMode(false);
+    // Padrão de 1 hora a partir de agora para agendamento
+    const defaultDate = new Date(Date.now() + 3600 * 1000);
+    const tzOffset = defaultDate.getTimezoneOffset() * 60000;
+    const localISOTime = new Date(defaultDate.getTime() - tzOffset).toISOString().slice(0, 16);
+    setScheduledDateTime(localISOTime);
     setConfirmPublishCarousel(carousel);
   };
 
@@ -231,17 +239,48 @@ export default function Dashboard({
     if (!confirmPublishCarousel) return;
     const carouselId = confirmPublishCarousel.id;
     const carouselTitle = confirmPublishCarousel.title;
+
+    let unixTimestamp = null;
+    if (isScheduleMode) {
+      if (!scheduledDateTime) {
+        showToast('Selecione a data e hora do agendamento.', 'error');
+        return;
+      }
+      const targetMs = new Date(scheduledDateTime).getTime();
+      const nowMs = Date.now();
+      const minMs = nowMs + 15 * 60 * 1000; // Mínimo 15 min no futuro exigido pela Meta API
+      const maxMs = nowMs + 75 * 24 * 3600 * 1000; // Máximo 75 dias
+
+      if (targetMs < minMs) {
+        showToast('A Meta exige que o agendamento seja com no mínimo 15 minutos de antecedência.', 'error');
+        return;
+      }
+      if (targetMs > maxMs) {
+        showToast('O agendamento não pode exceder 75 dias no futuro.', 'error');
+        return;
+      }
+      unixTimestamp = Math.floor(targetMs / 1000);
+    }
+
     setConfirmPublishCarousel(null);
     setPublishingId(carouselId);
-    showToast('⏳ Iniciando publicação no Instagram...', 'info');
+    showToast(isScheduleMode ? '⏳ Agendando postagem no Instagram...' : '⏳ Iniciando publicação no Instagram...', 'info');
 
     try {
-      const res = await fetch(`/api/carousels/${carouselId}/publish`, { method: 'POST' });
+      const res = await fetch(`/api/carousels/${carouselId}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...(unixTimestamp ? { scheduled_publish_time: unixTimestamp } : {})
+        })
+      });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        showToast('✓ Publicado com sucesso no Instagram!', 'success');
+        showToast(isScheduleMode ? '✓ Carrossel agendado com sucesso no Instagram!' : '✓ Publicado com sucesso no Instagram!', 'success');
         setPublishResultModal({
           success: true,
+          isScheduled: isScheduleMode,
+          scheduledDate: scheduledDateTime,
           carouselId,
           title: carouselTitle,
           log: data.log || '',
@@ -249,7 +288,7 @@ export default function Dashboard({
         });
         onLoadCarousels();
       } else {
-        showToast(`Erro ao publicar no Instagram.`, 'error');
+        showToast(isScheduleMode ? `Erro ao agendar no Instagram.` : `Erro ao publicar no Instagram.`, 'error');
         setPublishResultModal({
           success: false,
           carouselId,
@@ -1050,12 +1089,78 @@ export default function Dashboard({
               Tem certeza que deseja publicar o carrossel abaixo diretamente na sua conta do Instagram?
             </p>
 
-            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '14px', marginBottom: '20px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
               <div style={{ fontSize: '11px', color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Carrossel Selecionado</div>
               <div style={{ fontWeight: 'bold', color: '#ffffff', fontSize: '15px' }}>{confirmPublishCarousel.title}</div>
               <div style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '6px' }}>
                 📷 <strong>{confirmPublishCarousel.slides ? confirmPublishCarousel.slides.length : 0} slides</strong> salvos • ID: <code>{confirmPublishCarousel.id}</code>
               </div>
+            </div>
+
+            {/* Opções de Envio: Agora vs Agendado */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '14px' }}>
+                <button
+                  type="button"
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    border: !isScheduleMode ? '1px solid var(--gold, #c9a84c)' : '1px solid rgba(255,255,255,0.1)',
+                    backgroundColor: !isScheduleMode ? 'rgba(201, 168, 76, 0.15)' : 'rgba(255,255,255,0.03)',
+                    color: !isScheduleMode ? 'var(--gold, #c9a84c)' : '#a1a1aa'
+                  }}
+                  onClick={() => setIsScheduleMode(false)}
+                >
+                  🚀 Publicar Agora
+                </button>
+                <button
+                  type="button"
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    border: isScheduleMode ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                    backgroundColor: isScheduleMode ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255,255,255,0.03)',
+                    color: isScheduleMode ? '#60a5fa' : '#a1a1aa'
+                  }}
+                  onClick={() => setIsScheduleMode(true)}
+                >
+                  📅 Agendar Publicação
+                </button>
+              </div>
+
+              {isScheduleMode && (
+                <div style={{ background: 'rgba(59, 130, 246, 0.05)', border: '1px solid rgba(59, 130, 246, 0.3)', borderRadius: '10px', padding: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', color: '#93c5fd', fontWeight: 'bold', marginBottom: '6px' }}>
+                    Data e Hora do Disparo (Horário Local):
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={scheduledDateTime}
+                    onChange={(e) => setScheduledDateTime(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      backgroundColor: '#090a0f',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '6px',
+                      color: '#ffffff',
+                      fontSize: '14px',
+                      outline: 'none'
+                    }}
+                  />
+                  <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '6px', lineHeight: '1.4' }}>
+                    ℹ️ A Meta exige que postagens agendadas fiquem com no mínimo <strong>15 minutos</strong> de antecedência e no máximo <strong>75 dias</strong> no futuro.
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
@@ -1069,11 +1174,16 @@ export default function Dashboard({
               </button>
               <button 
                 type="button" 
-                className="btn btn-gold" 
-                style={{ padding: '8px 22px', fontSize: '13px', fontWeight: 'bold' }} 
+                className={isScheduleMode ? "btn btn-outline" : "btn btn-gold"} 
+                style={{
+                  padding: '8px 22px',
+                  fontSize: '13px',
+                  fontWeight: 'bold',
+                  ...(isScheduleMode ? { borderColor: '#3b82f6', color: '#60a5fa', backgroundColor: 'rgba(59, 130, 246, 0.15)' } : {})
+                }} 
                 onClick={executePublish}
               >
-                🚀 Confirmar e Publicar
+                {isScheduleMode ? '📅 Agendar no Instagram' : '🚀 Confirmar e Publicar'}
               </button>
             </div>
           </div>
