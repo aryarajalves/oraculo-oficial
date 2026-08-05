@@ -32,6 +32,7 @@ export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, fi
     watermark_pos: 'top_left',
     watermark_x: '',
     watermark_y: '',
+    watermark_text: '',
     title_px: '',
     body_px: '',
     preset: 'sagrado'
@@ -177,6 +178,7 @@ export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, fi
           watermark_pos: data.watermark_pos || 'top_left',
           watermark_x: data.watermark_x !== undefined && data.watermark_x !== null ? data.watermark_x : '',
           watermark_y: data.watermark_y !== undefined && data.watermark_y !== null ? data.watermark_y : '',
+          watermark_text: data.watermark_text !== undefined && data.watermark_text !== null ? data.watermark_text : '',
           title_px: data.title_px !== undefined && data.title_px !== null ? data.title_px : '',
           body_px: data.body_px !== undefined && data.body_px !== null ? data.body_px : '',
           preset: data.preset || 'sagrado'
@@ -452,6 +454,18 @@ export default function EditSlideModal({ isOpen, onClose, onSave, carouselId, fi
                       onChange={e => setSlideMeta(prev => ({ ...prev, body_px: e.target.value }))} 
                     />
                   </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Texto da Logomarca (Marca d'água)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ex: @HAUCACAU" 
+                    className="form-input" 
+                    style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
+                    value={slideMeta.watermark_text} 
+                    onChange={e => setSlideMeta(prev => ({ ...prev, watermark_text: e.target.value }))} 
+                  />
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '16px' }}>

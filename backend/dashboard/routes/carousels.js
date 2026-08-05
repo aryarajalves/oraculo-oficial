@@ -530,6 +530,7 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
     watermark_pos = "top_left",
     watermark_x,
     watermark_y,
+    watermark_text,
     title_px,
     body_px
   } = req.body;
@@ -577,6 +578,9 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
     if (watermark_y !== undefined && watermark_y !== null && String(watermark_y).trim() !== "") {
       pythonArgs.push("--watermark_y", String(watermark_y));
     }
+    if (watermark_text !== undefined && watermark_text !== null && String(watermark_text).trim() !== "") {
+      pythonArgs.push("--watermark_text", String(watermark_text));
+    }
     if (title_px !== undefined && title_px !== null && String(title_px).trim() !== "") {
       pythonArgs.push("--title_px", String(title_px));
     }
@@ -607,6 +611,7 @@ router.post("/api/carousels/:id/slide/:filename/recompose", async (req, res) => 
       watermark_pos,
       watermark_x,
       watermark_y,
+      watermark_text,
       title_px,
       body_px
     }, null, 2));

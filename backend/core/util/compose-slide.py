@@ -21,6 +21,7 @@ def main():
     p.add_argument("--watermark_pos", default="top_left", choices=["top_left", "top_right", "bottom_left", "bottom_right", "hidden"])
     p.add_argument("--watermark_x", type=str, default=None)
     p.add_argument("--watermark_y", type=str, default=None)
+    p.add_argument("--watermark_text", type=str, default=None)
     p.add_argument("--title_px", type=str, default=None)
     p.add_argument("--body_px", type=str, default=None)
     args = p.parse_args()
@@ -38,6 +39,7 @@ def main():
     wy = int(args.watermark_y) if args.watermark_y is not None and args.watermark_y.strip() != "" else None
     t_px = int(args.title_px) if args.title_px is not None and args.title_px.strip() != "" else None
     b_px = int(args.body_px) if args.body_px is not None and args.body_px.strip() != "" else None
+    w_txt = args.watermark_text if args.watermark_text is not None and args.watermark_text.strip() != "" else None
 
     img_bytes = Path(args.image).read_bytes() if args.layout != "text_only" else None
     result = compose(
@@ -52,7 +54,8 @@ def main():
         watermark_x=wx,
         watermark_y=wy,
         title_px=t_px,
-        body_px=b_px
+        body_px=b_px,
+        watermark_text=w_txt
     )
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)

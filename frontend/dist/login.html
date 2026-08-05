@@ -232,10 +232,66 @@
 </div>
 
 <script>
-  // Show error if redirected with ?error=1
-  if (window.location.search.includes('error=1')) {
-    document.getElementById('errorMsg').classList.add('visible');
-  }
+  // Carrega dinamicamente a identidade visual (nome da empresa)
+  fetch('/api/settings/branding')
+    .then(res => res.json())
+    .then(data => {
+      const companyName = (data && (data.companyName || data.logoText)) || "Oraculo";
+      const brandEl = document.querySelector('.brand');
+      if (brandEl) {
+        const words = companyName.trim().split(/\s+/);
+        if (words.length > 1) {
+          const lastWord = words.pop();
+          const firstPart = words.join(' ');
+          brandEl.innerHTML = `${firstPart}<br><em>${lastWord}</em>`;
+        } else {
+          brandEl.innerHTML = `<em>${companyName}</em>`;
+        }
+      }
+    })
+    .catch(err => console.error('Erro ao carregar branding:', err));
+
+  // Handle form submission via AJAX (fetch) to get JWT
+  const loginForm = document.getElementById('loginForm');
+  const errorMsg = document.getElementById('errorMsg');
+
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.classList.remove('visible');
+
+    const formData = new FormData(loginForm);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+      const response = await fetch('/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({ detail: 'Credenciais inválidas. Tente novamente.' }));
+        errorMsg.textContent = errData.detail || 'Credenciais inválidas. Tente novamente.';
+        errorMsg.classList.add('visible');
+        return;
+      }
+
+      const resJson = await response.json();
+      if (resJson.token) {
+        localStorage.setItem('fo_token', resJson.token);
+        window.location.href = '/';
+      } else {
+        errorMsg.textContent = 'Erro ao obter token de acesso.';
+        errorMsg.classList.add('visible');
+      }
+    } catch (err) {
+      console.error('Erro na requisição de login:', err);
+      errorMsg.textContent = 'Erro ao conectar ao servidor. Tente novamente mais tarde.';
+      errorMsg.classList.add('visible');
+    }
+  });
 
   // Toggle password visibility
   const passwordInput = document.getElementById('passwordInput');
