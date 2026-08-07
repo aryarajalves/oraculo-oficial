@@ -58,3 +58,7 @@ typing_inspection/
 
 # Astrology third-party library
 kerykeion/
+
+# Docker produção com credenciais
+docker/docker-compose-producao.yml
+
