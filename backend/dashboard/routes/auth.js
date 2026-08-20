@@ -2,7 +2,7 @@ import express from "express";
 import { query } from "../db.js";
 import {
   hashPassword,
-  hashPasswordLegacy,
+  verifyPassword,
   getSuperAdminEmail,
   isUserSuperAdmin,
   generateToken
@@ -42,34 +42,46 @@ router.post('/auth/login', async (req, res) => {
     });
   }
 
-  // 2. Verifica contra o banco de dados (tabela dashboard_users)
-  // Tenta primeiro o hash novo (HMAC), depois o legado (SHA-256 puro) para migração transparente
+  // 2. Verifica contra o banco de dados (tabela dashboard_users) com Argon2id + Pepper e rehash automático
   try {
-    const hashedPassword = hashPassword(password);
-    const hashedPasswordLegacy = hashPasswordLegacy(password);
     const dbUserRes = await query(
-      "SELECT * FROM dashboard_users WHERE email = $1 AND (password = $2 OR password = $3)",
-      [username, hashedPassword, hashedPasswordLegacy]
+      "SELECT * FROM dashboard_users WHERE email = $1",
+      [username]
     );
 
     if (dbUserRes.rows.length > 0) {
       const u = dbUserRes.rows[0];
-      const payload = {
-        user: u.email,
-        userName: u.name,
-        email: u.email,
-        role: u.role
-      };
-      const token = generateToken(payload);
-      return res.json({
-        token,
-        user: {
-          name: u.name,
-          email: u.email,
-          role: u.role,
-          isSuperAdmin: false
+      const { valid, needsRehash } = await verifyPassword(u.password, password);
+
+      if (valid) {
+        // Se a senha foi autenticada via formato legado, migra de forma transparente para Argon2id + Pepper
+        if (needsRehash) {
+          try {
+            const upgradedHash = await hashPassword(password);
+            await query("UPDATE dashboard_users SET password = $1 WHERE id = $2", [upgradedHash, u.id]);
+            logger.info('[Auth]', `Senha do usuário ${u.email} atualizada automaticamente para Argon2id + Pepper.`);
+          } catch (rehashErr) {
+            logger.error('[Auth]', `Erro ao rehashear senha legada para Argon2id:`, rehashErr?.message);
+          }
         }
-      });
+
+        const payload = {
+          user: u.email,
+          userName: u.name,
+          email: u.email,
+          role: u.role
+        };
+        const token = generateToken(payload);
+        return res.json({
+          token,
+          user: {
+            name: u.name,
+            email: u.email,
+            role: u.role,
+            isSuperAdmin: false
+          }
+        });
+      }
     }
   } catch (err) {
     logger.error('[Auth]', "Erro ao validar login no banco:", err);
@@ -96,6 +108,7 @@ router.get('/api/me', async (req, res) => {
       carrosseis: 'liberado',
       criador: 'liberado',
       calendario: 'liberado',
+      biblioteca: 'liberado',
       reels: 'liberado',
       fabrica: 'liberado',
       oraculo: 'liberado',

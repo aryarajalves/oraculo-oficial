@@ -67,17 +67,14 @@ export const ZIP_SCRIPT = path.join(__dirname, "..", "zip-carousels.py");
 export const generationJobs = new Map();
 export const sseClients = new Set();
 
-// Hash helper para senhas — HMAC-SHA256 com JWT_SECRET como salt
-// Resistente a rainbow tables. Novos usuários criados já usam este formato.
-// Usuários antigos (SHA-256 puro) continuarão funcionando via fallback no login.
-export function hashPassword(password) {
-  return crypto.createHmac('sha256', JWT_SECRET).update(password).digest('hex');
-}
-
-// Fallback para verificar senhas legadas (SHA-256 sem salt) durante a migração
-export function hashPasswordLegacy(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
+// Re-exporta funções de segurança e hashing de senhas (Argon2id + Pepper + Validação)
+export { 
+  hashPassword, 
+  verifyPassword, 
+  validatePasswordComplexity, 
+  hashPasswordLegacy,
+  getPepper
+} from "./passwordSecurity.js";
 
 // Helper para obter e-mail do Super Admin
 export function getSuperAdminEmail() {
@@ -102,6 +99,11 @@ export function requireAuth(req, res, next) {
   if (publicPaths.includes(req.path)) return next();
 
   if (req.path.startsWith('/api/users/invitations/') && req.path.endsWith('/verify')) {
+    return next();
+  }
+
+  // Permite acesso a imagens da biblioteca e geradas
+  if (req.path.match(/^\/api\/library\/\d+\/image/) || req.path.startsWith('/api/library/generated/')) {
     return next();
   }
 

@@ -4,7 +4,8 @@ import { query } from "../db.js";
 import { 
   requireSuperAdmin, 
   getSuperAdminEmail, 
-  hashPassword 
+  hashPassword,
+  validatePasswordComplexity
 } from "../state.js";
 import { logger } from '../logger.js';
 
@@ -27,6 +28,7 @@ router.get('/api/users', requireSuperAdmin, async (req, res) => {
         carrosseis: 'liberado',
         criador: 'liberado',
         calendario: 'liberado',
+        biblioteca: 'liberado',
         reels: 'liberado',
         fabrica: 'liberado',
         oraculo: 'liberado',
@@ -160,6 +162,12 @@ router.post('/api/users/register', async (req, res) => {
   if (!inviteId || !name || !email || !password) {
     return res.status(400).json({ error: 'Preencha todos os campos obrigatórios.' });
   }
+
+  // Validação dos requisitos de senha (mínimo 10 caracteres, 1 letra, 1 número, 1 caractere especial)
+  const passwordValidation = validatePasswordComplexity(password);
+  if (!passwordValidation.valid) {
+    return res.status(400).json({ error: passwordValidation.error });
+  }
   
   try {
     // 1. Verifica convite
@@ -179,8 +187,8 @@ router.post('/api/users/register', async (req, res) => {
       return res.status(400).json({ error: 'Este e-mail já está cadastrado no sistema.' });
     }
     
-    // 3. Cadastra o novo usuário
-    const hashedPassword = hashPassword(password);
+    // 3. Cadastra o novo usuário com Argon2id + Pepper
+    const hashedPassword = await hashPassword(password);
     await query(
       "INSERT INTO dashboard_users (name, email, password, role, permissions) VALUES ($1, $2, $3, $4, $5)",
       [name, email, hashedPassword, invite.role, invite.permissions || {}]

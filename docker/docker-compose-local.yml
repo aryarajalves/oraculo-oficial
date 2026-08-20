@@ -47,7 +47,9 @@ services:
       - rabbitmq
     volumes:
       - ../backend:/app/backend
+      - /app/backend/node_modules
       - ../frontend:/app/frontend
+      - /app/frontend/node_modules
 
   worker:
     build:
@@ -80,6 +82,7 @@ services:
       - backend
     volumes:
       - ../backend:/app/backend
+      - /app/backend/node_modules
 
   frontend:
     build:

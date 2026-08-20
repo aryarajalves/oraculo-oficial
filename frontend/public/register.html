@@ -241,6 +241,10 @@
   .toggle-password:hover {
     opacity: 1;
   }
+
+  .pwd-reqs { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .req-tag { font-size: 10px; padding: 2px 6px; border-radius: 3px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: var(--text-dim); transition: all 0.2s; }
+  .req-tag.valid { border-color: rgba(58, 204, 122, 0.4); color: #3acc7a; background: rgba(58, 204, 122, 0.08); }
 </style>
 </head>
 <body>
@@ -296,6 +300,12 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
           </svg>
         </button>
+      </div>
+      <div class="pwd-reqs">
+        <span class="req-tag" id="reqLen">10+ caracteres</span>
+        <span class="req-tag" id="reqLetter">1 letra</span>
+        <span class="req-tag" id="reqNum">1 número</span>
+        <span class="req-tag" id="reqSpecial">1 especial (@#$%)</span>
       </div>
     </div>
 
@@ -393,6 +403,16 @@
     }
   }
 
+  // Validação em tempo real dos requisitos de senha
+  const passwordInputEl = document.getElementById('passwordInput');
+  passwordInputEl.addEventListener('input', function () {
+    const v = passwordInputEl.value;
+    document.getElementById('reqLen').classList.toggle('valid', v.length >= 10);
+    document.getElementById('reqLetter').classList.toggle('valid', /[a-zA-Z]/.test(v));
+    document.getElementById('reqNum').classList.toggle('valid', /[0-9]/.test(v));
+    document.getElementById('reqSpecial').classList.toggle('valid', /[^a-zA-Z0-9]/.test(v));
+  });
+
   // 3. Submissão do formulário
   const form = document.getElementById('registerForm');
   const formError = document.getElementById('formError');
@@ -407,13 +427,28 @@
     const password = document.getElementById('passwordInput').value;
     const confirmPassword = document.getElementById('confirmPasswordInput').value;
 
-    if (password !== confirmPassword) {
-      showFormError('As senhas não coincidem.');
+    if (password.length < 10) {
+      showFormError('A senha deve conter no mínimo 10 caracteres.');
       return;
     }
 
-    if (password.length < 6) {
-      showFormError('A senha deve conter no mínimo 6 caracteres.');
+    if (!/[a-zA-Z]/.test(password)) {
+      showFormError('A senha deve conter pelo menos uma letra.');
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      showFormError('A senha deve conter pelo menos um número.');
+      return;
+    }
+
+    if (!/[^a-zA-Z0-9]/.test(password)) {
+      showFormError('A senha deve conter pelo menos um caractere especial (ex: !@#$%&*).');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showFormError('As senhas não coincidem.');
       return;
     }
 

@@ -37,7 +37,7 @@ async function run() {
   // Limpa o usuário anterior se ele de alguma forma existisse
   await query('DELETE FROM dashboard_users WHERE email = $1', [email]);
 
-  const hashed = hashPassword(rawPassword);
+  const hashed = await hashPassword(rawPassword);
   await query(
     'INSERT INTO dashboard_users (name, email, password, role, permissions) VALUES ($1, $2, $3, $4, $5)',
     [name, email, hashed, role, JSON.stringify({
