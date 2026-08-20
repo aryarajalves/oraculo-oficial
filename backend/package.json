@@ -1,6 +1,6 @@
 {
   "name": "nano-banana-mcp",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "MCP Server para geração de imagens com Gemini (Nano Banana) — Fonte Oculta",
   "type": "module",
   "main": "index.js",
