@@ -3,7 +3,7 @@ numpy>=1.24.0
 openai>=1.30.0
 python-dotenv>=1.0.0
 # Cliente HTTP para integração com Meta Graph API e serviços de publicação
-requests>=2.31.0
+requests>=2.34.2
 # Cliente AWS S3 / MinIO para upload de imagens públicas para a Meta API
 boto3>=1.28.0
 # Linter e formatador de código rápido para Python
