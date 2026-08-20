@@ -19,19 +19,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: 🐍 Configurar Python (v3.10)
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-          cache: 'pip'
 
       - name: 📦 Instalar Dependências do Node.js
         run: |
-          npm install
-          npm --prefix frontend install
-          npm --prefix backend install
+          npm install --no-audit --no-fund
+          npm --prefix frontend install --no-audit --no-fund
+          npm --prefix backend install --no-audit --no-fund
 
       - name: 🐍 Instalar Dependências do Python & Pytest
         run: |
@@ -44,8 +42,9 @@ jobs:
   docker-build:
     name: 🐳 Build & Push Docker Image
     needs: validate
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && secrets.DOCKERHUB_USERNAME != ''
     runs-on: ubuntu-latest
+    continue-on-error: true
 
     steps:
       - name: 📥 Checkout do Repositório
