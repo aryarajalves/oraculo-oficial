@@ -40,7 +40,7 @@ jobs:
         run: npm run test:all
 
   docker-build:
-    name: 🐳 Build & Push Docker Image
+    name: 🐳 Build, Push & Auto-Deploy Portainer
     needs: validate
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
@@ -72,3 +72,35 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/oraculo:${{ steps.pkg_version.outputs.version }}
+
+      - name: 🚀 Acionar Webhooks do Portainer (Auto-Deploy)
+        env:
+          ALL_SECRETS_JSON: ${{ toJson(secrets) }}
+        run: |
+          node -e "
+            const secrets = JSON.parse(process.env.ALL_SECRETS_JSON || '{}');
+            const webhookKeys = Object.keys(secrets).filter(k => k.startsWith('WEBHOOK_'));
+            const { execSync } = require('child_process');
+
+            if (webhookKeys.length === 0) {
+              console.log('ℹ️ Nenhum secret com prefixo WEBHOOK_ cadastrado.');
+              process.exit(0);
+            }
+
+            console.log('🚀 Disparando atualização automática para ' + webhookKeys.length + ' servidor(es)...\n');
+
+            for (const key of webhookKeys) {
+              const serverName = key.replace('WEBHOOK_', '');
+              const url = secrets[key];
+              if (!url || !url.startsWith('http')) continue;
+
+              console.log('📡 Notificando Portainer de [ ' + serverName + ' ]...');
+              try {
+                const cmd = 'curl -s -o /dev/null -w \"%{http_code}\" -X POST \"' + url + '\"';
+                const statusCode = execSync(cmd).toString().trim();
+                console.log('✅ [ ' + serverName + ' ] Resposta do Portainer: HTTP ' + statusCode);
+              } catch (err) {
+                console.error('⚠️ Falha ao acionar ' + serverName + ':', err.message);
+              }
+            }
+          "
