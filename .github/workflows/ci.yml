@@ -27,9 +27,9 @@ jobs:
 
       - name: 📦 Instalar Dependências do Node.js
         run: |
-          npm install --no-audit --no-fund
-          npm --prefix frontend install --no-audit --no-fund
-          npm --prefix backend install --no-audit --no-fund
+          npm install --no-audit --no-fund --legacy-peer-deps
+          npm --prefix frontend install --no-audit --no-fund --legacy-peer-deps
+          npm --prefix backend install --no-audit --no-fund --legacy-peer-deps
 
       - name: 🐍 Instalar Dependências do Python & Pytest
         run: |

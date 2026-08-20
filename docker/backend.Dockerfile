@@ -15,7 +15,7 @@ WORKDIR /app
 
 # ── Dependências do Backend ───────────────────────────────────────────────────
 COPY backend/package*.json ./backend/
-RUN npm --prefix backend install
+RUN npm --prefix backend install --legacy-peer-deps
 
 # ── Dependências do Python ────────────────────────────────────────────────────
 COPY backend/requirements.txt ./backend/
@@ -25,7 +25,7 @@ RUN pip3 install --break-system-packages -r backend/requirements.txt
 # Instala dependências e compila o frontend para /app/frontend/dist
 # O Express serve este diretório estático em produção
 COPY frontend/package*.json ./frontend/
-RUN npm --prefix frontend install
+RUN npm --prefix frontend install --legacy-peer-deps
 COPY frontend/ ./frontend/
 RUN npm --prefix frontend run build
 
