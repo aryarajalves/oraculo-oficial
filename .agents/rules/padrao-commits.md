@@ -73,4 +73,6 @@ Antes de realizar qualquer commit e, obrigatoriamente, antes de atualizar o repo
 
 - O agente **NUNCA** deve executar comandos de envio para o repositório remoto (ex: `git push`) de forma automática ou autônoma.
 - O `git push` só é permitido se o usuário pedir explicitamente para enviar as alterações para o GitHub (ex: "envie para o github", "faça push no master", "suba as atualizações"). Caso contrário, limite-se a commitar localmente.
+- **Versionamento da Imagem Docker:** Antes de realizar qualquer `git push` que acione o build de imagem Docker, o agente **DEVE OBRIGATORIAMENTE** perguntar ao usuário qual será o número da versão da imagem (conforme regra `versao-docker-hub.md`), atualizar o `package.json` com essa versão e só então realizar o envio.
 - **Importante:** A validação dos linters e a varredura de vulnerabilidades de segurança (`npm run security:check`) listados acima devem estar 100% livres de erros antes de qualquer envio. O hook pre-push do Git bloqueará automaticamente o push caso existam vulnerabilidades críticas/altas.
+
