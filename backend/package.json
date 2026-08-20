@@ -31,5 +31,8 @@
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "eslint": "^8.56.0"
+  },
+  "overrides": {
+    "image-size": "^2.0.0"
   }
 }
