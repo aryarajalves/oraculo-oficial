@@ -53,7 +53,24 @@ wip
 3. Se a mudança for grande, adicione um corpo explicativo após uma linha em branco, também em português.
 4. Nunca use "WIP" como commit final — finalize antes de commitar.
 
+## Validação de Qualidade e Testes (Obrigatório)
+
+Antes de realizar qualquer commit e, obrigatoriamente, antes de atualizar o repositório no GitHub (Push):
+1. **Sempre rodar os linters** para identificar bugs, variáveis mortas ou código quebrado.
+2. **Ao realizar refatorações de código (`refactor:`)**, você deve obrigatoriamente rodar a suíte de testes E2E para confirmar que a integridade e funcionamento do sistema não foram afetados.
+3. **Ao criar novas mecânicas, código novo ou atualizar trechos existentes**, você deve executar a verificação de linting e rodar os testes correspondentes.
+
+**Comandos de Validação:**
+- **Varredura de Vulnerabilidades (Frontend & Backend):** `npm run security:check`
+- **Linter Python (Backend):** `docker exec oraculo_backend ruff check .`
+- **Linter Node.js (Backend):** `docker exec oraculo_backend npm --prefix backend run lint`
+- **Linter React (Frontend):** `npm --prefix frontend run lint`
+- **Testes E2E (Dashboard):** `docker exec oraculo_backend npm --prefix backend run test:e2e`
+
+---
+
 ## Envio para o GitHub (Git Push)
 
 - O agente **NUNCA** deve executar comandos de envio para o repositório remoto (ex: `git push`) de forma automática ou autônoma.
 - O `git push` só é permitido se o usuário pedir explicitamente para enviar as alterações para o GitHub (ex: "envie para o github", "faça push no master", "suba as atualizações"). Caso contrário, limite-se a commitar localmente.
+- **Importante:** A validação dos linters e a varredura de vulnerabilidades de segurança (`npm run security:check`) listados acima devem estar 100% livres de erros antes de qualquer envio. O hook pre-push do Git bloqueará automaticamente o push caso existam vulnerabilidades críticas/altas.

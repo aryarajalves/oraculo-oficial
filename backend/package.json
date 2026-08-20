@@ -8,7 +8,10 @@
     "start": "node index.js",
     "dashboard": "node dashboard/server.js",
     "sync": "node sync-b2.js",
-    "lint": "eslint . --ignore-pattern node_modules/"
+    "lint": "eslint . --ignore-pattern node_modules/",
+    "test:e2e": "playwright test",
+    "security:check": "npm audit",
+    "security:fix": "npm audit fix"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1067.0",
@@ -26,6 +29,7 @@
     "zod": "^3.25.28"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "eslint": "^8.56.0"
   }
 }

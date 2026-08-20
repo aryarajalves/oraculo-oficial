@@ -2,9 +2,13 @@
   "name": "nano-banana-mcp-root",
   "version": "1.0.0",
   "description": "Root delegator for nano-banana-mcp",
+  "type": "module",
   "scripts": {
     "start": "npm --prefix backend run start",
     "dashboard": "npm --prefix backend run dashboard",
-    "sync": "npm --prefix backend run sync"
+    "sync": "npm --prefix backend run sync",
+    "security:check": "node scripts/security_audit.mjs",
+    "security:fix": "node scripts/security_audit.mjs --fix",
+    "setup:hooks": "node scripts/setup-git-hooks.js"
   }
 }
