@@ -33,6 +33,9 @@
     "eslint": "^8.56.0"
   },
   "overrides": {
-    "image-size": "^2.0.0"
+    "image-size": "2.0.2",
+    "pptxgenjs": {
+      "image-size": "2.0.2"
+    }
   }
 }
