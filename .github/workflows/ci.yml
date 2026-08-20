@@ -64,7 +64,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: 📦 Build & Push — Oráculo (App Unificada)
+      - name: 📦 Build & Push — Oráculo (App Oficial)
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -72,14 +72,3 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/oraculo:${{ steps.pkg_version.outputs.version }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/oraculo:${{ github.sha }}
-
-      - name: 📦 Build & Push — Oráculo Worker
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./docker/worker.Dockerfile
-          push: true
-          tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/oraculo-worker:${{ steps.pkg_version.outputs.version }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/oraculo-worker:${{ github.sha }}
