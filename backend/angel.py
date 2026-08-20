@@ -9,14 +9,12 @@ Responsabilidades:
 - Reportar status para Claude atualizar o Notion
 """
 
-import os
-import sys
 import json
+import re
 import shutil
-import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
-import re
 
 # ─── Configuração ─────────────────────────────────────────────────────────────
 
@@ -354,9 +352,9 @@ def executar_pipeline_completa(carousel_data: dict) -> dict:
         "log_notion": "\n".join(logs),
     })
 
-    log(f"Pipeline concluída com sucesso!", "OK")
+    log("Pipeline concluída com sucesso!", "OK")
     log(f"Staging em: {drive_result['folder_path']}", "OK")
-    log(f"Próximo passo: fazer upload do staging para o Google Drive", "INFO")
+    log("Próximo passo: fazer upload do staging para o Google Drive", "INFO")
 
     return resultado
 

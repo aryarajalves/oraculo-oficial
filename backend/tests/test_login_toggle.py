@@ -1,12 +1,13 @@
 import unittest
 from pathlib import Path
 
+
 class TestLoginPageTogglePassword(unittest.TestCase):
     def setUp(self):
         # Localiza o arquivo login.html a partir do diretório do teste
         self.login_html_path = Path(__file__).resolve().parents[2] / 'frontend' / 'public' / 'login.html'
         self.assertTrue(self.login_html_path.exists(), f"login.html não encontrado em {self.login_html_path}")
-        with open(self.login_html_path, 'r', encoding='utf-8') as f:
+        with open(self.login_html_path, encoding='utf-8') as f:
             self.content = f.read()
 
     def test_password_input_exists(self):

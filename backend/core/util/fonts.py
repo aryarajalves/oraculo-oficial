@@ -6,9 +6,10 @@ Linux:   baixa Inter + Oswald Bold via Google Fonts na primeira execução,
          salva em .fonts/ na raiz do projeto (fora do git, no .gitignore)
 """
 
-import sys, re, os
-from pathlib import Path
+import re
+import sys
 import urllib.request
+from pathlib import Path
 
 IS_WIN   = sys.platform == "win32"
 ROOT_DIR = Path(__file__).parent.parent.parent          # raiz do projeto

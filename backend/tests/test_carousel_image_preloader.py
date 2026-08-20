@@ -4,13 +4,14 @@ Teste unitário para pré-carregamento de imagens de capa dos carrosséis antes 
 import unittest
 from pathlib import Path
 
+
 class TestCarouselImagePreloader(unittest.TestCase):
     def setUp(self):
         self.app_path = (
             Path(__file__).resolve().parents[2] / "frontend" / "src" / "App.jsx"
         )
         self.assertTrue(self.app_path.exists(), f"App.jsx não encontrado em {self.app_path}")
-        with open(self.app_path, "r", encoding="utf-8") as f:
+        with open(self.app_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_image_promises_preloading_implemented(self):

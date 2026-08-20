@@ -1,10 +1,12 @@
-import sys, io
+import io
+import sys
 from pathlib import Path
+
 from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
-from core.util.gen_image_openai import gen_openai
 from core.agentes.register_carousel import register as reg
+from core.util.gen_image_openai import gen_openai
 
 # Constants
 W, H = 1080, 1080
@@ -61,11 +63,11 @@ def draw_text_wrapped(draw, text, font, max_width, x_center, start_y, fill="whit
             current_line = [w]
     if current_line:
         lines.append(" ".join(current_line))
-        
+
     y = start_y
     dummy_bbox = draw.textbbox((0,0), "Ag", font=font)
     line_h = dummy_bbox[3] - dummy_bbox[1]
-    
+
     total_height = 0
     for line in lines:
         w = font.getlength(line)
@@ -75,7 +77,7 @@ def draw_text_wrapped(draw, text, font, max_width, x_center, start_y, fill="whit
         draw.text((x, y), line, font=font, fill=fill)
         y += int(line_h * line_spacing)
         total_height += int(line_h * line_spacing)
-        
+
     return total_height
 
 def process_criativo(data):
@@ -83,7 +85,7 @@ def process_criativo(data):
     # 1. Gen Image (1024x1024 for DALL-E/GPT square)
     raw_fname = OUT_DIR / f"raw_{data['id']}.jpg"
     img_bytes = None
-    
+
     if raw_fname.exists():
         print("  Carregando RAW do cache...")
         img_bytes = raw_fname.read_bytes()
@@ -91,20 +93,20 @@ def process_criativo(data):
         img_bytes = gen_openai(data["prompt"], size="1024x1024")
         if img_bytes:
             raw_fname.write_bytes(img_bytes)
-            
+
     if not img_bytes:
         print("Falha ao gerar imagem.")
         return
-        
+
     # 2. Open and Resize to exactly 1080x1080
     img = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
     img = img.resize((W, H), Image.LANCZOS)
-    
+
     # 3. Create Overlay (Dark vignette in the center to make text legible)
     # We create a dark mask over the entire image, slightly lighter on the edges
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 140)) # 55% opacity black
     img = Image.alpha_composite(img, overlay)
-    
+
     # 4. Draw Text
     draw = ImageDraw.Draw(img)
     try:
@@ -113,49 +115,49 @@ def process_criativo(data):
     except Exception as e:
         print("Erro ao carregar fontes:", e)
         return
-        
+
     # Calulate total height to center perfectly
     dummy_draw = ImageDraw.Draw(Image.new("RGB", (1,1)))
     h1 = draw_text_wrapped(dummy_draw, data["headline"], f_head, W - 160, W//2, 0)
     h2 = draw_text_wrapped(dummy_draw, data["sub"], f_sub, W - 200, W//2, 0)
     total_text_h = h1 + 50 + h2
-    
+
     start_y = (H - total_text_h) // 2
-    
+
     y_pos = start_y
     h_used = draw_text_wrapped(draw, data["headline"], f_head, W - 160, W//2, y_pos, fill="white")
-    
+
     y_pos += h_used + 50
     draw_text_wrapped(draw, data["sub"], f_sub, W - 200, W//2, y_pos, fill=(210,210,210))
-    
+
     # --- DRAW CTA BUTTON ---
     cta_text = "CLIQUE EM SAIBA MAIS"
     try:
         f_cta = ImageFont.truetype(FONT_MAIN, 28)
     except:
         f_cta = f_sub
-        
+
     cta_w = f_cta.getlength(cta_text)
     # create dummy box to get height
     dummy_bbox = draw.textbbox((0,0), "Ag", font=f_cta)
     cta_h = dummy_bbox[3] - dummy_bbox[1]
-    
+
     pad_x, pad_y = 40, 20
     box_w = cta_w + pad_x * 2
     box_h = cta_h + pad_y * 2
-    
+
     box_x = (W - box_w) // 2
     box_y = H - 150 # fixed near the bottom
-    
+
     # Draw rounded rectangle (black background, white border)
     draw.rounded_rectangle([box_x, box_y, box_x + box_w, box_y + box_h], radius=15, fill=(0,0,0,200), outline=(255,255,255,100), width=2)
     # Draw text centered in the box
     draw.text((W//2 - cta_w//2, box_y + pad_y), cta_text, font=f_cta, fill=(255,255,255))
-    
+
     out_path = OUT_DIR / f"{data['id']}.jpg"
     img.convert("RGB").save(out_path, quality=95)
     print(f"Salvo: {out_path}\n")
-    
+
     # Registra no dashboard
     reg(
         title = f"Pílula: {data['headline'][:20]}...",

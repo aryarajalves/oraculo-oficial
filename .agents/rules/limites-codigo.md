@@ -8,7 +8,7 @@ Para garantir que o projeto permaneça manutenível e que o agente consiga proce
 
 **Limites Obrigatórios:**
 1. **Backend (Python):** Nenhum arquivo deve ultrapassar **1.000 linhas**.
-2. **Frontend (React/JSX):** Nenhum arquivo deve ultrapassar **500 linhas**.
+2. **Frontend (React, JSX, JS, TS, TSX e CSS):** Nenhum arquivo deve ultrapassar **500 linhas**.
 
 **Ações ao atingir o limite:**
 - Se uma nova funcionalidade for fazer um arquivo ultrapassar esses limites, você **DEVE** realizar a modularização (quebra do arquivo) antes de prosseguir com a implementação.

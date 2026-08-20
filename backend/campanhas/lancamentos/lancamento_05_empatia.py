@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 from diretor_artistico import SlideData, gerar_carrossel
 
@@ -8,46 +9,46 @@ preset_name = "A"
 
 slides = [
     SlideData(
-        1, "DISRUPÇÃO", 
-        "A empatia que a mídia te ensinou é uma armadilha financeira.", 
+        1, "DISRUPÇÃO",
+        "A empatia que a mídia te ensinou é uma armadilha financeira.",
         "Toda vez que você sente pena do mundo, o sistema lucra e você empobrece.",
         mode="image", cover=True,
         prompt="A person drowning in a sea of thick black liquid, surrounded by floating glowing TV screens showing chaos and wars. Dark, dystopian, hyper-realistic."
     ),
     SlideData(
-        2, "DESCIDA", 
-        "Te ensinaram que sofrer com as tragédias do jornal é um sinal de que você é 'bom'.", 
+        2, "DESCIDA",
+        "Te ensinaram que sofrer com as tragédias do jornal é um sinal de que você é 'bom'.",
         "Mas o que a neurociência prova é brutal.",
         mode="text"
     ),
     SlideData(
-        3, "NOMEAÇÃO", 
-        "A empatia sem blindagem é suicídio vibracional.", 
+        3, "NOMEAÇÃO",
+        "A empatia sem blindagem é suicídio vibracional.",
         "Você não está ajudando ninguém, você só está afundando junto.",
         mode="text"
     ),
     SlideData(
-        4, "PROFUNDIDADE", 
-        "Ao sentir a dor coletiva das guerras e crises, o seu cérebro entra no modo Luta ou Fuga.", 
+        4, "PROFUNDIDADE",
+        "Ao sentir a dor coletiva das guerras e crises, o seu cérebro entra no modo Luta ou Fuga.",
         "Você literalmente desliga a área responsável por criar soluções e dinheiro.",
         mode="image", cover=False,
         prompt="A glowing human heart being drained of its light by invisible dark leeches and shadowy wires connected to smartphones. Neon teal and amber lighting."
     ),
     SlideData(
-        5, "QUEDA FUNDA", 
-        "Você não pode salvar alguém que está se afogando...", 
+        5, "QUEDA FUNDA",
+        "Você não pode salvar alguém que está se afogando...",
         "Se você pular na água sem saber nadar.",
         mode="text"
     ),
     SlideData(
-        6, "ESPELHO", 
-        "Enquanto você entra em ressonância com o medo do rebanho...", 
+        6, "ESPELHO",
+        "Enquanto você entra em ressonância com o medo do rebanho...",
         "Uma pequena minoria continua enriquecendo. Porque eles protegem a própria frequência.",
         mode="text"
     ),
     SlideData(
-        7, "ASCENSÃO", 
-        "Ajudar o mundo não é sobre chorar com ele.", 
+        7, "ASCENSÃO",
+        "Ajudar o mundo não é sobre chorar com ele.",
         "É sobre ficar tão absurdamente forte, que a sua luz puxa os outros para cima.",
         mode="image", cover=False,
         prompt="A powerful figure standing on a glowing golden boat, pulling desperate hands out of the dark water. Radiant, heroic, epic lighting."
@@ -55,8 +56,8 @@ slides = [
     SlideData(8, "CRISTALIZAÇÃO", "O caos não é seu. A crise não é sua.", "Desligue a televisão e ligue o Modo Desenvolvedor da sua mente.", mode="text"),
     SlideData(9, "SETUP CTA", "Se você não blindar o seu sistema nervoso agora...", "Vai continuar pagando a conta emocional do planeta.", mode="text"),
     SlideData(
-        10, "CTA FIXO", 
-        "COMENTE\n75", 
+        10, "CTA FIXO",
+        "COMENTE\n75",
         "E receba o convite VIP para os Engenheiros da Realidade. O protocolo definitivo que destrava seu código financeiro, amoroso e físico.",
         mode="image", cover=False,
         prompt="A massive glowing golden portal in a dark room. Ancient symbols of hermeticism floating softly around it."

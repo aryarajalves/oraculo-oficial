@@ -5,18 +5,15 @@ import Oraculo from './components/Oraculo';
 import Criador from './components/Criador';
 import ReelsCloner from './components/ReelsCloner';
 import Calendar from './components/Calendar';
+import Biblioteca from './components/Biblioteca';
 import Settings from './components/Settings';
 import VideoFactory from './components/VideoFactory';
 import Radar from './components/Radar';
-import Lightbox from './components/Lightbox';
-import NewCarouselModal from './components/NewCarouselModal';
-import EditSlideModal from './components/EditSlideModal';
-import LiveGenPanel from './components/LiveGenPanel';
 import UsersManagement from './components/UsersManagement';
 import BackupManagement from './components/BackupManagement';
-import GenerationHistoryModal from './components/GenerationHistoryModal';
 import InProgressPage from './components/InProgressPage';
-import LogoutModal from './components/LogoutModal';
+import InitialLoader from './components/InitialLoader';
+import AppModals from './components/AppModals';
 import { parseCarouselText } from './utils/carouselParser';
 import { customFetch } from './utils/customFetch';
 
@@ -368,63 +365,12 @@ export default function App() {
     }
   };
 
-  const formatSize = (val) => {
-    if (!val) return '';
-    const clean = val.trim();
-    if (/^\d+$/.test(clean)) return `${clean}px`;
-    return clean;
-  };
-
   const activeEditCarousel = allCarousels.find(x => x.id === editCarouselId);
   const editSlides = activeEditCarousel ? activeEditCarousel.slides : [];
 
   return (
     <div className="app-shell">
-      {initialLoading && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: '#09090b',
-          zIndex: 99999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'opacity 0.5s ease',
-        }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid rgba(201, 168, 76, 0.15)',
-            borderTopColor: '#C9A84C',
-            borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite',
-            marginBottom: '20px'
-          }} />
-          <div style={{
-            fontSize: '11px',
-            color: 'rgba(237, 232, 223, 0.4)',
-            letterSpacing: '3px',
-            textTransform: 'uppercase',
-            fontFamily: 'sans-serif'
-          }}>
-            Carregando Estúdio...
-          </div>
-        </div>
-      )}
-      <style>{`
-        .brand-name {
-          font-size: ${formatSize(branding.logoSize)} !important;
-          color: ${branding.logoColor} !important;
-        }
-        .carousel-card-title, .carousel-title, .slide-text, .lb-editor-textarea, .meta-textarea, .slide-preview-text {
-          font-size: ${formatSize(branding.carouselTextSize)} !important;
-          color: ${branding.carouselTextColor} !important;
-        }
-      `}</style>
+      <InitialLoader loading={initialLoading} branding={branding} />
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -479,6 +425,12 @@ export default function App() {
               />
             )}
 
+            {activeTab === 'biblioteca' && (
+              <Biblioteca
+                showToast={showToast}
+              />
+            )}
+
             {activeTab === 'reels' && (
               <ReelsCloner
                 onOpenNewModal={(defaults) => {
@@ -522,63 +474,22 @@ export default function App() {
         )}
       </div>
 
-      <Lightbox
-        isOpen={lightboxOpen}
-        onClose={() => { setLightboxOpen(false); loadCarousels(); }}
-        carouselId={lightboxCarouselId}
-        slides={lightboxSlides}
-        initialIndex={lightboxIndex}
-        onOpenEditModal={(id, filename) => {
-          setEditCarouselId(id);
-          setEditFilename(filename);
-          setEditModalOpen(true);
-        }}
-        showToast={showToast}
+      <AppModals
+        lightboxOpen={lightboxOpen} setLightboxOpen={setLightboxOpen}
+        lightboxCarouselId={lightboxCarouselId} lightboxSlides={lightboxSlides} lightboxIndex={lightboxIndex}
+        setEditCarouselId={setEditCarouselId} setEditFilename={setEditFilename} setEditModalOpen={setEditModalOpen}
+        loadCarousels={loadCarousels} showToast={showToast}
+        newModalOpen={newModalOpen} setNewModalOpen={setNewModalOpen}
+        handleCreateCarousel={handleCreateCarousel} newModalDefaults={newModalDefaults}
+        setShouldAddFormMessage={setShouldAddFormMessage} setActiveTab={setActiveTab}
+        editModalOpen={editModalOpen} editCarouselId={editCarouselId}
+        editFilename={editFilename} editSlides={editSlides}
+        setImageVersion={setImageVersion} handleOpenLightbox={handleOpenLightbox}
+        liveSession={liveSession} setLiveSession={setLiveSession}
+        historyModalOpen={historyModalOpen} setHistoryModalOpen={setHistoryModalOpen}
+        historyCarouselId={historyCarouselId} logoutModalOpen={logoutModalOpen}
+        setLogoutModalOpen={setLogoutModalOpen} toastShow={toastShow} toastMessage={toastMessage}
       />
-
-      <NewCarouselModal
-        isOpen={newModalOpen}
-        onClose={() => setNewModalOpen(false)}
-        onCreate={handleCreateCarousel}
-        defaults={newModalDefaults}
-        onSendToChat={(briefing) => {
-          setShouldAddFormMessage(true);
-          setActiveTab('criador');
-        }}
-      />
-
-      <EditSlideModal
-        isOpen={editModalOpen}
-        onClose={() => { setEditModalOpen(false); loadCarousels(); }}
-        onSave={() => { loadCarousels(); setImageVersion(Date.now()); }}
-        carouselId={editCarouselId}
-        filename={editFilename}
-        onChangeFilename={(newFilename) => setEditFilename(newFilename)}
-        slides={editSlides}
-        showToast={showToast}
-        onOpenLightbox={handleOpenLightbox}
-      />
-
-      <LiveGenPanel
-        liveSession={liveSession}
-        setLiveSession={setLiveSession}
-        onOpenLightbox={handleOpenLightbox}
-      />
-
-      <GenerationHistoryModal
-        isOpen={historyModalOpen}
-        onClose={() => { setHistoryModalOpen(false); loadCarousels(); }}
-        carouselId={historyCarouselId}
-      />
-
-      <LogoutModal
-        logoutModalOpen={logoutModalOpen}
-        setLogoutModalOpen={setLogoutModalOpen}
-      />
-
-      <div className={`toast ${toastShow ? 'show' : ''}`} id="toast">
-        {toastMessage}
-      </div>
     </div>
   );
 }

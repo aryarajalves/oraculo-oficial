@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 diretor_de_cena.py — Agente Diretor de Cena (Visual)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -24,9 +23,12 @@ Saída JSON:
 }
 """
 
-import os, sys, json
-from openai import OpenAI
+import json
+import os
+import sys
+
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 

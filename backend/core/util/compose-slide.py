@@ -2,11 +2,13 @@
 """compose-slide.py — CLI para recompor um slide com novo texto.
 Uso: python compose-slide.py --image <path> --title <txt> --body <txt> --layout fullbleed --output <path>
 """
-import sys, argparse
+import argparse
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 from core.util.compose_util import compose
+
 
 def main():
     p = argparse.ArgumentParser()

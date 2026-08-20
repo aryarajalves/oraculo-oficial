@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import sys
-import json
 
 # Força o encoding correto no Windows
 if sys.platform == "win32":
@@ -23,8 +21,8 @@ if __name__ == "__main__":
         entrada = " ".join(sys.argv[1:])
     else:
         entrada = "A person holding a glowing smartphone in the dark, but their physical face and skin are stretching and being violently sucked into the phone's screen like a digital black hole."
-    
+
     prompt_final = build_kling_prompt(entrada)
-    
+
     print("\n[Diretor de Fotografia] Aplicando DNA Visual Ultra High-End...")
     print(f"\nPROMPT FINAL GERADO PARA KLING:\n\n{prompt_final}\n")

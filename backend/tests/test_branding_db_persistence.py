@@ -4,19 +4,20 @@ Teste unitário para a persistência de Branding no banco de dados (DB-First).
 import unittest
 from pathlib import Path
 
+
 class TestBrandingDbPersistence(unittest.TestCase):
     def setUp(self):
         self.services_path = (
             Path(__file__).resolve().parents[2] / "backend" / "dashboard" / "routes" / "services.js"
         )
         self.assertTrue(self.services_path.exists(), f"services.js não encontrado em {self.services_path}")
-        with open(self.services_path, "r", encoding="utf-8") as f:
+        with open(self.services_path, encoding="utf-8") as f:
             self.services_content = f.read()
 
         self.carousels_path = (
             Path(__file__).resolve().parents[2] / "backend" / "dashboard" / "routes" / "carousels.js"
         )
-        with open(self.carousels_path, "r", encoding="utf-8") as f:
+        with open(self.carousels_path, encoding="utf-8") as f:
             self.carousels_content = f.read()
 
     def test_read_branding_queries_db(self):

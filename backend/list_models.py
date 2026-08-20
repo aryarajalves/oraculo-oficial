@@ -1,7 +1,8 @@
-import os
 import json
-import urllib.request
+import os
 import urllib.error
+import urllib.request
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,7 +18,7 @@ try:
     print("Fetching available Gemini models...")
     with urllib.request.urlopen(url, timeout=30) as r:
         response = json.loads(r.read().decode("utf-8"))
-    
+
     models = response.get("models", [])
     print(f"Found {len(models)} models:")
     for m in models:

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 publicar.py — Publicador Unificado — Fonte Oculta
 Lê o dashboard (carousels.json) e publica no Instagram.
@@ -14,10 +13,18 @@ USO:
     python publicar.py --renovar-token         # instruções para renovar token Meta
 """
 
-import os, json, sys, argparse, time, base64, urllib.request, urllib.parse
-from pathlib import Path
+import argparse
+import json
+import os
+import sys
+import time
+import urllib.parse
+import urllib.request
 from datetime import datetime
+from pathlib import Path
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
 if sys.platform == "win32":
@@ -245,13 +252,13 @@ def publicar(carousel: dict, dry_run: bool = False, forcar_metodo: str = "") -> 
                 return True
             media_id = publicar_instagrapi(slides, caption)
 
-        print(f"\n  ✅ Publicado com sucesso!")
+        print("\n  ✅ Publicado com sucesso!")
         print(f"  Media ID: {media_id}")
         print(f"  @afonteoculta · {len(slides)} slides")
 
         if not dry_run:
             update_status(cid, sdir, "publicado", media_id)
-            print(f"  Dashboard → publicado ✅")
+            print("  Dashboard → publicado ✅")
 
         print(f"{'='*60}\n")
         return True
@@ -278,7 +285,7 @@ def cmd_list():
         pub_at = f" [{c['publishedAt']}]" if s == "publicado" and c.get("publishedAt") else ""
         print(f"  {c['id']:<16} {icon} {s:<10} {len(slides):<8} {c['title'][:38]}{pub_at}")
     print(f"{'─'*68}")
-    print(f"\n  CREDENCIAIS:")
+    print("\n  CREDENCIAIS:")
     print(f"    Meta Graph API : {'✅ Token válido' if meta_ok else '❌ Expirado — ver python publicar.py --renovar-token'}")
     print(f"    instagrapi     : {'✅ Sessão salva' if sessao_ok else '⚠️  Execute: python instagram_login.py'}")
     print(f"    Método atual   : {'Meta API' if meta_ok else 'instagrapi (fallback)'}")

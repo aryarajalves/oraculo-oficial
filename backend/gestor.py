@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 gestor.py — Gestor de Projetos da Fonte Oculta
 Orquestra o calendário editorial, rotação de Praças e status da produção.
@@ -12,10 +11,11 @@ USO:
     python gestor.py atribuir SEG 09 carrossel-08  → atribui manualmente
 """
 
-import json, sys
-from pathlib import Path
-from datetime import datetime, timedelta
+import json
+import sys
 from collections import defaultdict
+from datetime import datetime, timedelta
+from pathlib import Path
 
 DATA_FILE  = Path("C:/Users/julia/nano-banana-mcp/dashboard/data/carousels.json")
 HORARIOS   = ["09", "13", "20"]
@@ -201,7 +201,7 @@ def cmd_grade():
                 if c["id"] not in usados_ids
                 and c.get("format") in formatos_ok
                 and c.get("praca") not in usados_dia[dia]
-                and not (c.get("praca"), dia, hora) in [r for r in RESTRICOES]
+                and (c.get("praca"), dia, hora) not in [r for r in RESTRICOES]
             ]
 
             # Fallback sem restrição de formato se não houver candidatos

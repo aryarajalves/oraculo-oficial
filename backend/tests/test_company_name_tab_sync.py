@@ -4,13 +4,14 @@ Teste unitário para a sincronização imediata do Nome da Empresa (companyName)
 import unittest
 from pathlib import Path
 
+
 class TestCompanyNameTabSync(unittest.TestCase):
     def setUp(self):
         self.app_path = (
             Path(__file__).resolve().parents[2] / "frontend" / "src" / "App.jsx"
         )
         self.assertTrue(self.app_path.exists(), f"App.jsx não encontrado em {self.app_path}")
-        with open(self.app_path, "r", encoding="utf-8") as f:
+        with open(self.app_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_localstorage_branding_cache(self):

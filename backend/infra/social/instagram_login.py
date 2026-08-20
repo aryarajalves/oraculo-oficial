@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 instagram_login.py — Faz login no Instagram e salva a sessao.
 Execute este script UMA VEZ no terminal. Depois a publicacao e automatica.
@@ -10,6 +9,7 @@ COMO USAR:
 import time
 from pathlib import Path
 from uuid import uuid4
+
 from instagrapi import Client
 from instagrapi.exceptions import TwoFactorRequired
 

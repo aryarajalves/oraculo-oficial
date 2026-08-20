@@ -18,7 +18,7 @@ class TestCriadorSalvarRascunho(unittest.TestCase):
             / "frontend" / "src" / "components" / "Criador.jsx"
         )
         self.assertTrue(self.criador_path.exists(), f"Criador.jsx não encontrado em {self.criador_path}")
-        with open(self.criador_path, "r", encoding="utf-8") as f:
+        with open(self.criador_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_salvar_rascunho_button_removed(self):
@@ -79,7 +79,7 @@ class TestAgentPromptsSlidesBriefing(unittest.TestCase):
             / "backend" / "dashboard" / "agentPrompts.js"
         )
         self.assertTrue(self.prompts_path.exists(), f"agentPrompts.js não encontrado em {self.prompts_path}")
-        with open(self.prompts_path, "r", encoding="utf-8") as f:
+        with open(self.prompts_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_slides_quantity_question_removed(self):

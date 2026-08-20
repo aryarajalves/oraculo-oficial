@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 pipeline_haucacau.py — Pipeline completo HauCacau
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -17,9 +16,15 @@ Saída (JSON lines para stdout):
     {"type":"error",  "msg":"..."}
 """
 
-import os, sys, json, argparse, re, time, random
-from pathlib import Path
+import argparse
+import json
+import os
+import random
+import re
+import sys
+import time
 from datetime import date
+from pathlib import Path
 
 ROOT = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(ROOT))
@@ -182,8 +187,9 @@ def _gerar_imagem(prompt: str, w: int, h: int):
     """Gera imagem via OpenAI DALL-E 3."""
     import base64
     from io import BytesIO
-    from PIL import Image
+
     from openai import OpenAI
+    from PIL import Image
 
     key = os.getenv("OPENAI_API_KEY")
     if not key:
@@ -225,7 +231,6 @@ def _find_font(fd: Path, names: list[str]):
 
 def _registrar(carousel_id: str, titulo: str, data: dict, out_dir: Path):
     """Registra o carrossel no carousels.json do dashboard."""
-    import uuid
     carousel_file = ROOT / "dashboard" / "data" / "carousels.json"
     try:
         carousels = json.loads(carousel_file.read_text(encoding="utf-8"))

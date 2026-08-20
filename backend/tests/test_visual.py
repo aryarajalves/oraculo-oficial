@@ -1,9 +1,10 @@
 import sys
-import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from core.util.compose_util_v3 import _fit_title, _line_h, _wrap, W, H, MARGIN_L, MARGIN_R, MAX_TW, _font, F_HEAVY, F_REGULAR
 from PIL import Image, ImageDraw
+
+from core.util.compose_util_v3 import MAX_TW, _fit_title, _line_h, _wrap
 
 bg = Image.new("RGBA", (1080, 1350), (0,0,0,0))
 draw = ImageDraw.Draw(bg)

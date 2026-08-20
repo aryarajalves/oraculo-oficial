@@ -3,12 +3,13 @@
 zip-carousels.py — Empacota slides de um ou mais carrosséis em um arquivo ZIP.
 Uso: python zip-carousels.py --data '[{...}]' --output caminho/saida.zip
 """
-import sys
-import json
-import zipfile
-import os
 import argparse
+import json
+import os
 import re
+import sys
+import zipfile
+
 
 def sanitize(name: str, max_len: int = 40) -> str:
     """Remove caracteres inválidos para nome de pasta no ZIP."""

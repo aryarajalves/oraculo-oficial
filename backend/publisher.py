@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 publisher.py — Publicador Automático de Carrosseis
 Roda 3x/dia (09h, 13h, 20h) via Windows Task Scheduler.
@@ -11,10 +10,16 @@ USO:
     python publisher.py --data 2026-04-10 --horario 13h00
     python publisher.py --dry-run    → simula sem publicar
 """
-import os, json, sys, argparse, time, base64, urllib.request, urllib.error
-from datetime import datetime, date
+import argparse
+import json
+import os
+import sys
+import time
+from datetime import date, datetime
 from pathlib import Path
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Fix Windows console encoding
@@ -41,14 +46,14 @@ def salvar_banco(dados):
 def proximo_slot_local(data_str=None, horario=None):
     todos = carregar_banco()
     agora = datetime.now()
-    
+
     # Se recebermos data e horario, busca exato (modo legado)
     if data_str and horario:
         for c in todos:
             if c.get("scheduledDate") == data_str and c.get("scheduledTime") == horario and c.get("status") in ["pronto", "aprovado"]:
                 return c
         return None
-    
+
     # Modo Cron (Busca qualquer post pendente cujo horário já passou)
     for c in todos:
         if c.get("status") in ["pronto", "aprovado"] and c.get("scheduledDate") and c.get("scheduledTime"):
@@ -58,7 +63,7 @@ def proximo_slot_local(data_str=None, horario=None):
                 t_str = c["scheduledTime"].replace('h', ':')
                 dt_str = f"{c['scheduledDate']} {t_str}"
                 dt_agendado = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
-                
+
                 if agora >= dt_agendado:
                     return c
             except Exception as e:
@@ -228,10 +233,10 @@ def main():
         data_str = None
 
     print(f"\n{'='*56}")
-    print(f"  PUBLISHER — Fonte Oculta")
+    print("  PUBLISHER — Fonte Oculta")
     print(f"  Data: {data_str} | Horário: {horario}")
     if args.dry_run:
-        print(f"  [DRY RUN ativado]")
+        print("  [DRY RUN ativado]")
     print(f"{'='*56}\n")
 
     # Buscar slot local (Dashboard)
@@ -240,8 +245,8 @@ def main():
         if horario:
             print(f"  Nenhum carrossel agendado para {data_str} às {horario}.")
         else:
-            print(f"  Nenhum carrossel pendente e atrasado/no horário encontrado.")
-        print(f"  Agende no dashboard local.\n")
+            print("  Nenhum carrossel pendente e atrasado/no horário encontrado.")
+        print("  Agende no dashboard local.\n")
         sys.exit(0)
 
     props = {
@@ -275,7 +280,7 @@ def main():
 
         if not args.dry_run:
             atualizar_status_local(props["carousel_id"], "publicado")
-            print(f"  ✅ Banco local atualizado → Publicado")
+            print("  ✅ Banco local atualizado → Publicado")
 
     except Exception as e:
         print(f"\n  ❌ Erro: {e}")
@@ -286,5 +291,4 @@ def main():
     print(f"\n{'='*56}\n")
 
 if __name__ == "__main__":
-    import urllib.parse  # garantir disponibilidade
     main()

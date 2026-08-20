@@ -1,6 +1,7 @@
+import json
 import unittest
 import urllib.request
-import json
+
 
 class TestCopyModelAPI(unittest.TestCase):
     def setUp(self):
@@ -13,10 +14,10 @@ class TestCopyModelAPI(unittest.TestCase):
             "username": "aryarajmarketing@gmail.com",
             "password": "123456"
         }).encode("utf-8")
-        
+
         login_req = urllib.request.Request(
-            self.login_url, 
-            data=login_payload, 
+            self.login_url,
+            data=login_payload,
             headers={"Content-Type": "application/json"},
             method="POST"
         )
@@ -29,10 +30,10 @@ class TestCopyModelAPI(unittest.TestCase):
 
     def test_copy_model_persistence(self):
         """Valida que o activeCopyModel pode ser lido e atualizado via API"""
-        
+
         # 1. GET inicial das configurações
         get_req = urllib.request.Request(
-            self.keys_url, 
+            self.keys_url,
             headers={"Authorization": f"Bearer {self.token}"},
             method="GET"
         )
@@ -65,7 +66,7 @@ class TestCopyModelAPI(unittest.TestCase):
                 self.assertEqual(confirm_resp.status, 200)
                 confirm_data = json.loads(confirm_resp.read().decode("utf-8"))
                 self.assertEqual(confirm_data["activeCopyModel"], test_model)
-        
+
         finally:
             # 4. Restaura o modelo original no banco/env
             restore_payload = json.dumps({"COPY_GENERATION_MODEL": original_model}).encode("utf-8")
@@ -80,7 +81,7 @@ class TestCopyModelAPI(unittest.TestCase):
             )
             with urllib.request.urlopen(restore_req, timeout=5) as restore_resp:
                 pass
-        
+
         print("\n[OK] Teste de API do Modelo de Copy passou com sucesso!")
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 popular_notion_30dias.py — Popula o Calendário Editorial com 30 dias / 30 carrosseis
 Cria 90 slots no Notion (3/dia × 10 dias) com copy, caption e metadata completos.
@@ -17,9 +16,13 @@ USO:
     python popular_notion_30dias.py --dia 3   → criar apenas o dia 3 (1-10)
 """
 
-import sys, os, argparse, time
+import argparse
+import sys
+import time
 from pathlib import Path
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
 if sys.platform == "win32":
@@ -829,10 +832,10 @@ def main():
     args = parser.parse_args()
 
     print(f"\n{'='*62}")
-    print(f"  POPULAR NOTION — 30 Carrosseis / 10 Dias")
+    print("  POPULAR NOTION — 30 Carrosseis / 10 Dias")
     print(f"  Total de slots: {len(CARROSSEIS)}")
     if args.dry_run:
-        print(f"  [DRY RUN ativado — nada será criado]")
+        print("  [DRY RUN ativado — nada será criado]")
     print(f"{'='*62}\n")
 
     # Filtrar por dia se especificado
@@ -885,7 +888,7 @@ def main():
     else:
         print(f"  Concluído: {criados} criados | {erros} erros")
         if criados > 0:
-            print(f"  Acesse o calendário em: https://notion.so")
+            print("  Acesse o calendário em: https://notion.so")
     print(f"{'='*62}\n")
 
 if __name__ == "__main__":

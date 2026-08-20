@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import os
 import sys
-import requests
 from pathlib import Path
+
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,15 +29,15 @@ def gerar_voz_cinematografica(
         return ""
 
     print("\n[Agente de Voz] Conjurando voz na ElevenLabs...")
-    
+
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}"
-    
+
     headers = {
         "Accept": "audio/mpeg",
         "Content-Type": "application/json",
         "xi-api-key": ELEVENLABS_API_KEY
     }
-    
+
     data = {
         "text": texto,
         "model_id": "eleven_multilingual_v2",
@@ -46,24 +46,24 @@ def gerar_voz_cinematografica(
             "similarity_boost": 0.8 # Alta similaridade para manter o peso da voz original
         }
     }
-    
+
     try:
         response = requests.post(url, json=data, headers=headers)
-        
+
         if response.status_code != 200:
             print(f"Erro na ElevenLabs: {response.text}")
             return ""
-            
+
         pasta_saida = Path(output_dir)
         pasta_saida.mkdir(parents=True, exist_ok=True)
         caminho_final = pasta_saida / nome_arquivo
-        
+
         with open(caminho_final, "wb") as f:
             f.write(response.content)
-            
+
         print(f"[Agente de Voz] Áudio gerado com sucesso: {caminho_final}")
         return str(caminho_final)
-        
+
     except Exception as e:
         print(f"[Agente de Voz] Falha na conjuração: {e}")
         return ""

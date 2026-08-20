@@ -171,6 +171,33 @@ export async function initDb() {
     );
   `;
 
+  const createLibraryImagesTable = `
+    CREATE TABLE IF NOT EXISTS library_images (
+      id SERIAL PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      category VARCHAR(100) DEFAULT 'Geral',
+      notes TEXT,
+      filename VARCHAR(255) NOT NULL,
+      storage_path TEXT NOT NULL,
+      mime_type VARCHAR(100) DEFAULT 'image/jpeg',
+      size_bytes BIGINT DEFAULT 0,
+      width INTEGER DEFAULT 0,
+      height INTEGER DEFAULT 0,
+      created_by VARCHAR(255),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  const createLibraryChatsTable = `
+    CREATE TABLE IF NOT EXISTS library_chats (
+      id SERIAL PRIMARY KEY,
+      user_email VARCHAR(255) UNIQUE NOT NULL,
+      messages JSONB DEFAULT '[]'::jsonb,
+      generated_images JSONB DEFAULT '[]'::jsonb,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
   try {
     await query(createCarouselsTable);
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS image_quality VARCHAR(100) DEFAULT 'high'");
@@ -189,6 +216,8 @@ export async function initDb() {
     await query(createAgentPromptsTable);
     await query(createBrandingTable);
     await query(createApiKeysTable);
+    await query(createLibraryImagesTable);
+    await query(createLibraryChatsTable);
 
     // Inicializa a linha de configuração única se não existir
     const checkConfig = await query("SELECT * FROM backup_config WHERE id = 1");
@@ -227,7 +256,7 @@ export async function initDb() {
       logger.warn('[DB]', `⚠️ ${orphaned.rowCount} carrossel(is) órfão(s) em "generating" resetados para "rascunho".`);
     }
 
-    logger.info('[DB]', '✅ Tabelas validadas/criadas com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs, agent_prompts, branding, api_keys.');
+    logger.info('[DB]', '✅ Tabelas validadas/criadas com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs, agent_prompts, branding, api_keys, library_images, library_chats.');
   } catch (err) {
     logger.error('[DB]', '❌ Erro ao inicializar tabelas do banco de dados:', err);
     throw err;

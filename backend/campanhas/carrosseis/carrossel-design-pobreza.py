@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-design-pobreza.py — O Design da Pobreza
 Tema: SELIC como mecanismo de transferência / arquitetura da pobreza
@@ -7,9 +6,10 @@ Preset: REVELACAO | 10 slides | Formato A
 """
 
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
-from diretor_artistico import gerar_carrossel, SlideData
+from diretor_artistico import SlideData, gerar_carrossel
 
 TEMA      = "O Design da Pobreza"
 TEMA_SLUG = "design-pobreza"

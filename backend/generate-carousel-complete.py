@@ -8,13 +8,19 @@ Design: Python + Pillow — texto + imagem compostos
 
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import os, sys, json, base64, time, textwrap
-import urllib.request, urllib.error
-from pathlib import Path
+import base64
+import json
+import time
+import urllib.error
+import urllib.request
 from io import BytesIO
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
 
 # ── Config ─────────────────────────────────────────────────────────────────────
 API_KEY  = os.getenv("GEMINI_API_KEY")
@@ -101,7 +107,7 @@ slides = [
 
 # ── API call ────────────────────────────────────────────────────────────────────
 def generate_image(prompt, slide_num):
-    print(f"  🎨 Gerando imagem Nano Banana 2...")
+    print("  🎨 Gerando imagem Nano Banana 2...")
     data = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"responseModalities": ["IMAGE"]},
@@ -271,7 +277,7 @@ def compose_card(img_bytes, slide):
 
 # ── Main ────────────────────────────────────────────────────────────────────────
 def main():
-    print(f"\nNANO BANANA 2 -- Carrossel Completo")
+    print("\nNANO BANANA 2 -- Carrossel Completo")
     print(f"Canvas: {W}x{H} | Modelo: {MODEL}")
     print(f"Saida: {OUT_DIR}\n")
 

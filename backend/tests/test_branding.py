@@ -1,6 +1,6 @@
+import json
 import unittest
 import urllib.request
-import json
 
 BASE = "http://localhost:3131"
 
@@ -22,7 +22,7 @@ class TestBrandingAPI(unittest.TestCase):
     def test_get_and_post_branding(self):
         """Valida que podemos salvar e ler a configuração de identidade visual com o novo campo companyName"""
         headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
-        
+
         # 1. Obter a configuração atual (para restaurar depois)
         get_req = urllib.request.Request(self.branding_url, headers=headers, method="GET")
         with urllib.request.urlopen(get_req, timeout=5) as get_resp:

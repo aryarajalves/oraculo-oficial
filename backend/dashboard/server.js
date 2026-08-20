@@ -24,6 +24,7 @@ import usersRouter from "./routes/users.js";
 import carouselsRouter from "./routes/carousels.js";
 import servicesRouter from "./routes/services.js";
 import backupsRouter from "./routes/backups.js";
+import libraryRouter from "./routes/library.js";
 import { resetBackupScheduler } from "./backupManager.js";
 
 import { initCarouselQueueWorker } from "./services/carouselQueueWorker.js";
@@ -34,8 +35,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3131;
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Garante a existência da pasta persistente de carrosséis
 const storageDir = path.join(__dirname, "..", "storage", "carousels");
@@ -95,6 +96,7 @@ app.use('/api/carousels', (req, res, next) => {
 });
 app.use('/api/services', rateLimiter(100, 60000));
 app.use('/api/backups', rateLimiter(100, 60000));
+app.use('/api/library', rateLimiter(150, 60000));
 
 // 3. Outras rotas gerais do dashboard (ex: users, etc): 100 requisições por minuto
 app.use('/api/users', rateLimiter(100, 60000));
@@ -116,6 +118,7 @@ app.use(usersRouter);
 app.use(carouselsRouter);
 app.use(servicesRouter);
 app.use(backupsRouter);
+app.use(libraryRouter);
 
 app.use(express.static(PUBLIC_DIR, { extensions: ['html', 'htm'] }));
 

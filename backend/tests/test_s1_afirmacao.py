@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Teste — S1 do Carrossel #01: Afirmação Positiva É Golpe
 Gera apenas o primeiro slide para aprovação visual.
@@ -9,14 +8,16 @@ Pipeline correto:
 """
 
 import sys
-import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from pathlib import Path
+
 from core.agentes.diretor_artistico import SlideData, _generate_slide
 
 OUT = Path("C:/Users/julia/nano-banana-mcp/carousels/afirmacao-positiva")

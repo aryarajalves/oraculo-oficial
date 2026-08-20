@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 regen_slide01.py
 Regenera o slide 01 de carrossel-frequencia-corpo com prompt cinematográfico otimizado.
@@ -7,12 +6,21 @@ Design Squad optimized prompt — Fonte Oculta visual identity.
 """
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import json, base64, time, urllib.request, urllib.error, sys
+import base64
+import json
+import sys
+import time
+import urllib.error
+import urllib.request
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from pathlib import Path
+
 from core.util.compose_util import compose
 
 API_KEY  = os.getenv("GEMINI_API_KEY")

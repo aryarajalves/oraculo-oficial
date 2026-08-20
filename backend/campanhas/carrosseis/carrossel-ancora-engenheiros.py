@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 from diretor_artistico import SlideData, gerar_carrossel
 

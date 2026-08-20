@@ -4,18 +4,19 @@ Teste unitário para a remoção do piscar do título da aba do navegador (docum
 import unittest
 from pathlib import Path
 
+
 class TestTabTitleFix(unittest.TestCase):
     def setUp(self):
         self.index_path = (
             Path(__file__).resolve().parents[2] / "frontend" / "index.html"
         )
-        with open(self.index_path, "r", encoding="utf-8") as f:
+        with open(self.index_path, encoding="utf-8") as f:
             self.index_content = f.read()
 
         self.app_path = (
             Path(__file__).resolve().parents[2] / "frontend" / "src" / "App.jsx"
         )
-        with open(self.app_path, "r", encoding="utf-8") as f:
+        with open(self.app_path, encoding="utf-8") as f:
             self.app_content = f.read()
 
     def test_static_index_title(self):

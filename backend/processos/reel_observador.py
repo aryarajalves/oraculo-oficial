@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 reel_observador.py — Reel 02: O Observador
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -12,14 +11,16 @@ Para ver em tempo real:
   Terminal 2 → python processos/reel_observador.py
 """
 
-import os, sys
+import os
+import sys
 from pathlib import Path
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.agentes.voz_misteriosa import gerar_voz_cinematografica
-from core.agentes.sonoplasta import gerar_sfx
 from core.agentes.musico import gerar_musica_fundo
+from core.agentes.sonoplasta import gerar_sfx
 from core.agentes.video_prompt_builder import build_kling_prompt
+from core.agentes.voz_misteriosa import gerar_voz_cinematografica
 from infra.video.kling_pro_manager import gerar_video_kling_pro
 
 REEL_DIR = Path("campanhas/reels/o-observador")
@@ -147,7 +148,7 @@ TRILHA_PROMPT = (
 def run():
     print(f"\n{C.GOLD}{C.BOLD}{'═'*60}")
     print("   REEL: O OBSERVADOR — Fonte Oculta")
-    print(f"   Motor de vídeo: Kling v2.1 Pro")
+    print("   Motor de vídeo: Kling v2.1 Pro")
     print(f"   Pasta: {REEL_DIR}")
     print(f"{'═'*60}{C.RST}\n")
 

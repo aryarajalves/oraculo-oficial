@@ -4,13 +4,14 @@ Teste unitário para validação da atualização do modelo de imagem em regen-s
 import unittest
 from pathlib import Path
 
+
 class TestRegenSlideScript(unittest.TestCase):
     def setUp(self):
         self.script_path = (
             Path(__file__).resolve().parents[2] / "backend" / "regen-slide.py"
         )
         self.assertTrue(self.script_path.exists(), f"regen-slide.py não encontrado em {self.script_path}")
-        with open(self.script_path, "r", encoding="utf-8") as f:
+        with open(self.script_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_uses_imagen_3_model(self):

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 kling_pro_manager.py — Kling Video v2.1 Pro (motor mais avançado)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -13,8 +12,12 @@ Diferença do seedance_manager (Kling O3 Standard):
   - Tempo de geração: ~3-8 min por clip de 5s
 """
 
-import os, sys, time, requests
+import os
+import sys
+import time
 from pathlib import Path
+
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -51,7 +54,7 @@ def gerar_video_kling_pro(
         print("[Kling Pro] ❌ FAL_KEY não encontrada no .env")
         return ""
 
-    print(f"\n[Kling Pro] Enviando para Kling v2.1 Pro...")
+    print("\n[Kling Pro] Enviando para Kling v2.1 Pro...")
     print(f"  Prompt: {prompt[:90]}...")
 
     headers = {
@@ -74,11 +77,11 @@ def gerar_video_kling_pro(
 
         status_url = resp.json().get("status_url")
         if not status_url:
-            print(f"[Kling Pro] ❌ status_url não retornada.")
+            print("[Kling Pro] ❌ status_url não retornada.")
             return ""
 
         # 2. Polling
-        print(f"[Kling Pro] Renderizando... (pode levar 3-8 min)")
+        print("[Kling Pro] Renderizando... (pode levar 3-8 min)")
         tentativas = 0
         while True:
             try:
@@ -112,7 +115,7 @@ def gerar_video_kling_pro(
             time.sleep(10)
 
         # 3. Download
-        print(f"[Kling Pro] ✅ Pronto! Baixando vídeo...")
+        print("[Kling Pro] ✅ Pronto! Baixando vídeo...")
         video_data = requests.get(video_url, timeout=120).content
 
         pasta = Path(output_dir)

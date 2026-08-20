@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 imgur_uploader.py — Upload de imagens para o Imgur (URL pública)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -13,10 +12,11 @@ Uso:
     print(url)  # https://i.imgur.com/AbCdEfG.jpg
 """
 
-import os
 import base64
-import requests
+import os
 from pathlib import Path
+
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()

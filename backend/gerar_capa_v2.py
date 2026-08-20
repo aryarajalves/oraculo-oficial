@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 gerar_capa_v2.py
 Capa do carrossel "Frequência do Corpo" — Diretor de Arte v2
@@ -7,15 +6,26 @@ Arquitetura de 7 camadas + 3 variações + avaliação automática.
 """
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import json, base64, time, urllib.request, urllib.error, sys
+import base64
+import json
+import sys
+import time
+import urllib.error
+import urllib.request
+
 import numpy as np
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
-from pathlib import Path
-from PIL import Image
 from io import BytesIO
+from pathlib import Path
+
+from PIL import Image
+
 from core.util.compose_util import compose
 
 API_KEY  = os.getenv("GEMINI_API_KEY")
@@ -305,7 +315,7 @@ for v in VARIATIONS:
 
     img = gen(v["prompt"])
     if not img:
-        print(f"    FALHOU\n")
+        print("    FALHOU\n")
         continue
 
     # Avaliar
@@ -345,7 +355,7 @@ final_best.save(str(final_path), "JPEG", quality=96)
 
 print("="*62)
 print(f"  CONCLUÍDO — {len(results)}/3 variações")
-print(f"  Ranking:")
+print("  Ranking:")
 for r in results:
     flag = " ★ MELHOR" if r == best else ""
     print(f"    {r['id']} ({r['name']}): {r['score']:.0%}{flag}")

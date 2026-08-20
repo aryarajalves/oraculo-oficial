@@ -1,8 +1,8 @@
-import unittest
-import urllib.request
-import urllib.parse
-import http.cookiejar
 import json
+import unittest
+import urllib.parse
+import urllib.request
+
 
 class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
     def http_error_302(self, req, fp, code, msg, headers):
@@ -27,8 +27,8 @@ class TestBackups(unittest.TestCase):
             "password": "123456"
         }).encode("utf-8")
         login_req = urllib.request.Request(
-            self.login_url, 
-            data=login_data, 
+            self.login_url,
+            data=login_data,
             headers={"Content-Type": "application/json"},
             method="POST"
         )

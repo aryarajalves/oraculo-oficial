@@ -1,24 +1,32 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-trauma-somatico.py — CORPO | Formato B | Score 15/15
 Big Idea: "Você reprogramou a mente. Seu corpo ainda vive no trauma de 20 anos atrás."
 Refs: Bessel van der Kolk (Harvard), HeartMath Institute, Rachel Yehuda (Mount Sinai 2016), Peter Levine
 """
 
-import os, sys
+import os
+import sys
+
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
+
 load_dotenv()
-import json, base64, time, urllib.request, urllib.error
+import base64
+import json
+import time
+import urllib.error
+import urllib.request
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from pathlib import Path
+
+from core.agentes.register_carousel import register
 from core.util.compose_util import compose
 from core.util.prompt_builder import build_prompt
-from core.agentes.register_carousel import register
 
 # ── CONFIGURACAO ──────────────────────────────────────────────────────────────
 API_KEY  = os.getenv("GEMINI_API_KEY")

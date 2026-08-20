@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 download_reel.py — Baixa um reel/vídeo via yt-dlp e imprime o caminho do arquivo.
 Uso: python download_reel.py <url> <output_template>
 """
-import sys, json, os
+import json
+import os
+import sys
+
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 import yt_dlp
+
 
 class SilentLogger:
     def debug(self, msg): pass

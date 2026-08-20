@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Teste visual: regenera S1 de Ganhadores de Loteria com novo prompt_builder v4."""
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import json, base64, time, urllib.request, urllib.error
+import base64
+import json
 import sys
+import time
+import urllib.error
+import urllib.request
+
 sys.stdout.reconfigure(encoding="utf-8")
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from pathlib import Path
+
 from core.util.compose_util import compose
 from core.util.prompt_builder import build_prompt
 

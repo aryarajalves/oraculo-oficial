@@ -1,12 +1,13 @@
 import unittest
 from pathlib import Path
 
+
 class TestReelsClonerTabs(unittest.TestCase):
     def setUp(self):
         # Localiza o arquivo ReelsCloner.jsx a partir do diretório do teste
         self.reels_cloner_path = Path(__file__).resolve().parents[2] / 'frontend' / 'src' / 'components' / 'ReelsCloner.jsx'
         self.assertTrue(self.reels_cloner_path.exists(), f"ReelsCloner.jsx não encontrado em {self.reels_cloner_path}")
-        with open(self.reels_cloner_path, 'r', encoding='utf-8') as f:
+        with open(self.reels_cloner_path, encoding='utf-8') as f:
             self.content = f.read()
 
     def test_active_section_state_exists(self):

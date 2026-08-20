@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 planner.py — Planejador Mensal da Grade Editorial
 Popula o Calendário Editorial no Notion com 30 dias de slots,
@@ -10,10 +9,14 @@ USO:
     python planner.py --dias 14    → planejar próximos 14 dias
     python planner.py --inicio 2026-05-01 --dias 30
 """
-import os, json, sys, argparse
+import argparse
+import json
+import sys
 from datetime import date, timedelta
 from pathlib import Path
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # Fix Windows console encoding
@@ -22,7 +25,7 @@ if sys.platform == "win32":
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 sys.path.insert(0, str(Path(__file__).parent))
-from notion_calendar import criar_slot, extrair_props, slots_do_dia
+from notion_calendar import criar_slot, slots_do_dia
 
 # ── REGRAS DE ROTAÇÃO ─────────────────────────────────────────────────────────
 PRACAS = ["MENTE", "SISTEMA", "CORPO", "ESPÍRITO", "ALAVANCA"]
@@ -90,7 +93,7 @@ def main():
     usado  = {p: 0 for p in PRACAS}  # controle de qual carrossel usar por praça
 
     print(f"\n{'='*62}")
-    print(f"  PLANEJADOR EDITORIAL — FONTE OCULTA")
+    print("  PLANEJADOR EDITORIAL — FONTE OCULTA")
     print(f"  Início: {inicio} | {args.dias} dias | {args.dias * 3} slots")
     print(f"{'='*62}\n")
 
@@ -145,11 +148,11 @@ def main():
         print()
 
     if args.dry_run:
-        print(f"  [DRY RUN] Nada criado. Remova --dry-run para criar no Notion.")
+        print("  [DRY RUN] Nada criado. Remova --dry-run para criar no Notion.")
     else:
         print(f"  {'='*58}")
         print(f"  {criados} slots criados no Notion.")
-        print(f"  Acesse: https://notion.so")
+        print("  Acesse: https://notion.so")
         print(f"  {'='*58}\n")
 
 if __name__ == "__main__":

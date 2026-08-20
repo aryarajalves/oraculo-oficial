@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Regenera apenas as cenas 06 e 07 do Reel O Observador.
 Voz e SFX já existem — só renderiza os vídeos.
 """
 
-import os, sys
+import os
+import sys
 from pathlib import Path
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.agentes.video_prompt_builder import build_kling_prompt

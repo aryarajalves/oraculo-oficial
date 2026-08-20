@@ -1,6 +1,6 @@
+import glob
 import os
 import shutil
-import glob
 from pathlib import Path
 
 ROOT_DIR = Path("C:/Users/julia/nano-banana-mcp")
@@ -27,7 +27,7 @@ FILE_MOVES = {
     "planner.py": "core/agentes/",
     "reels_engineer.py": "core/agentes/",
     "register_carousel.py": "core/agentes/",
-    
+
     # Utils
     "compose_util.py": "core/util/",
     "compose_util_v3.py": "core/util/",
@@ -36,12 +36,12 @@ FILE_MOVES = {
     "sanitize_keys.py": "core/util/",
     "retry-missing.py": "core/util/",
     "gen_image_openai.py": "core/util/",
-    
+
     # Uploaders
     "minio_uploader.py": "infra/uploaders/",
     "catbox_uploader.py": "infra/uploaders/",
     "imgur_uploader.py": "infra/uploaders/",
-    
+
     # Social
     "instagram_publisher.py": "infra/social/",
     "publish_instagram.py": "infra/social/",
@@ -83,15 +83,15 @@ REPLACEMENTS = {
 
 def process_file(filepath):
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, encoding='utf-8') as f:
             content = f.read()
-            
+
         modified = False
         for old_str, new_str in REPLACEMENTS.items():
             if old_str in content:
                 content = content.replace(old_str, new_str)
                 modified = True
-                
+
         if modified:
             with open(filepath, 'w', encoding='utf-8') as f:
                 f.write(content)

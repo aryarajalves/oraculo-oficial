@@ -1,9 +1,10 @@
-import sys, os
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from pathlib import Path
+
 from core.util.gen_image_openai import gen_openai as gen
 from core.util.prompt_builder import build_prompt
 

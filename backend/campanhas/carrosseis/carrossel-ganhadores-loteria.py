@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-ganhadores-loteria.py — Ganhadores de Loteria
 Método Jordânico | Praça: ALAVANCA | Formato B
@@ -8,17 +7,25 @@ Modelo: OpenAI gpt-image-2
 """
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import json, base64, time, urllib.request, urllib.error
+import base64
+import json
 import sys
+import time
+import urllib.error
+import urllib.request
+
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from pathlib import Path
+
+from core.agentes.register_carousel import register
 from core.util.compose_util import compose
 from core.util.prompt_builder import build_prompt
-from core.agentes.register_carousel import register
 
 # ── CONFIGURACAO ───────────────────────────────────────────────────────────────
 OPENAI_KEY = os.getenv("OPENAI_API_KEY")

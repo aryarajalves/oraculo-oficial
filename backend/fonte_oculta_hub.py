@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import os
 import sys
-import subprocess
 from pathlib import Path
+
 
 # Configuração de Cores para o Terminal (Estética Dark/Mística)
 class Colors:
@@ -37,7 +36,7 @@ def menu_principal():
         print(f"{Colors.OKCYAN}[5]{Colors.ENDC} 📊 Abrir Dashboard Interface")
         print(f"{Colors.OKCYAN}[0]{Colors.ENDC} Sair")
         print("\n" + "-"*57)
-        
+
         escolha = input(f"Selecione o módulo de operação: {Colors.GOLD}")
         print(f"{Colors.ENDC}", end="")
 

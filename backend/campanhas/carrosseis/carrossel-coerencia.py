@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-coerencia.py
 Campanha: O que o Evangelho chama de Fé, a Física chama de Coerência (Tema 10)
@@ -14,10 +13,11 @@ sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from core.agentes.diretor_artistico import SlideData, gerar_carrossel
 
+
 def main():
     tema = "O que o Evangelho chama de Fé, a Física chama de Coerência"
     tema_slug = "coerencia-cardiaca-fe"
-    
+
     # ── DEFINIÇÃO DOS SLIDES ──────────────────────────────────────────────────
     slides = [
         SlideData(
@@ -98,7 +98,7 @@ def main():
             mode="image"
         )
     ]
-    
+
     # ── LEGENDA DO INSTAGRAM (CAPTION) ─────────────────────────────────────────
     caption = (
         "O que chamamos de milagre nada mais é do que uma lei da física que ainda não compreendemos.\n\n"
@@ -112,12 +112,12 @@ def main():
         "Comente \"FONTE\" abaixo e eu te envio o Desbloqueio Neural. Uma tecnologia sonora que sincroniza "
         "seu batimento com o campo da criação hoje mesmo."
     )
-    
+
     # ── COMPILAÇÃO E REGISTRO ──────────────────────────────────────────────────
     # Usaremos o preset "sagrado" (âmbar/dourado) que se alinha perfeitamente
     # com o tema da oração, da fé e do coração.
     out_dir = Path("C:/Users/julia/Desktop/carrossel-coerencia-cardiaca-fe")
-    
+
     print("\n[CAMPANHA] Iniciando o pipeline do Diretor Artístico...")
     gerar_carrossel(
         tema=tema,
@@ -131,7 +131,7 @@ def main():
         out_dir=out_dir,
         registrar=True
     )
-    
+
     print("\n[CAMPANHA] Campanha compilada com sucesso!")
 
 if __name__ == "__main__":

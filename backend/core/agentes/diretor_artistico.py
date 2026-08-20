@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 diretor_artistico.py — Diretor Artístico — Oráculo Manager
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -39,15 +38,16 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
+from core.agentes.register_carousel import broadcast_event
 from core.util.compose_util_v3 import compose
 from core.util.gen_image_openai import gen_openai as gen_image
-from core.agentes.register_carousel import broadcast_event
+
 
 def d_print(msg: str):
     """Print to console and broadcast to dashboard terminal."""
@@ -86,8 +86,8 @@ class SlideData:
     title:  str           # Título (suporta \n para quebras manuais)
     body:   str           # Corpo (suporta **acento**, *itálico*, \n)
     prompt: str = ""      # Prompt de imagem base. Vazio → text_slide forçado
-    mode:   Optional[str]  = None   # 'image' | 'text' | None (auto)
-    cover:  Optional[bool] = None   # True | False | None (auto)
+    mode:   str | None  = None   # 'image' | 'text' | None (auto)
+    cover:  bool | None = None   # True | False | None (auto)
 
 
 # ── ATMOSFERA E ENERGIA POR CONTEXTO ──────────────────────────────────────────
@@ -255,14 +255,14 @@ def _generate_slide(
     # RAW CACHE SYSTEM (Evitar regeração e gasto de créditos)
     raw_fname = out_dir / f"raw-{slide.num:02d}.jpg"
     img_bytes = None
-    
+
     if mode in ("image", "card"):
         if raw_fname.exists():
             print(f"  │  🔄 Raw Cache encontrado! Carregando {raw_fname.name} (Poupando créditos OpenAI)")
             img_bytes = raw_fname.read_bytes()
         else:
             enriched = _enrich_prompt(slide, preset_name)
-            print(f"  │  Gerando imagem DALL-E 3...")
+            print("  │  Gerando imagem DALL-E 3...")
 
             for attempt in range(1, retries + 1):
                 try:
@@ -271,7 +271,7 @@ def _generate_slide(
                         print(f"  │  ✓ Imagem gerada ({len(img_bytes) // 1024} KB)")
                         # SALVAR RAW CACHE AQUI
                         raw_fname.write_bytes(img_bytes)
-                        print(f"  │  💾 Raw Cache salvo para reuso futuro.")
+                        print("  │  💾 Raw Cache salvo para reuso futuro.")
                         break
                     else:
                         print(f"  │  ⚠️  Tentativa {attempt}: resposta vazia")
@@ -281,7 +281,7 @@ def _generate_slide(
                         time.sleep(4)
 
             if not img_bytes:
-                print(f"  │  ❌ Falha ao gerar imagem. Fallback → text_slide.")
+                print("  │  ❌ Falha ao gerar imagem. Fallback → text_slide.")
                 mode = "text"
 
     # S10 usa o mesmo preset do carrossel — sem override forçado
@@ -320,7 +320,7 @@ def gerar_carrossel(
     caption:       str  = "",
     revisor_score: float = 0.0,
     notes:         str  = "",
-    out_dir:       Optional[Path] = None,
+    out_dir:       Path | None = None,
     registrar:     bool = True,
 ) -> Path:
     """
@@ -346,7 +346,8 @@ def gerar_carrossel(
 
     if registrar:
         try:
-            from core.agentes.register_carousel import register as reg, broadcast_event
+            from core.agentes.register_carousel import broadcast_event
+            from core.agentes.register_carousel import register as reg
             # Registra no início como gerando
             c_entry = reg(
                 title         = tema,
@@ -355,7 +356,7 @@ def gerar_carrossel(
                 format        = formato,
                 caption       = caption,
                 revisor_score = revisor_score,
-                notes         = notes or f"Diretor Artístico v1",
+                notes         = notes or "Diretor Artístico v1",
                 status        = "gerando"
             )
             broadcast_event("generation_started", {"carousel_id": c_entry["id"]})
@@ -365,7 +366,7 @@ def gerar_carrossel(
 
     line = "═" * 60
     d_print(f"\n{line}")
-    d_print(f"  🎬 DIRETOR ARTÍSTICO — Oráculo Manager")
+    d_print("  🎬 DIRETOR ARTÍSTICO — Oráculo Manager")
     d_print(f"  Carrossel: {tema}")
     d_print(f"  Preset: {preset_name.upper()} | {len(slides)} slides")
     d_print(f"  Saída: {out_dir}")
@@ -407,7 +408,7 @@ def gerar_carrossel(
                 status        = "pronto"
             )
             broadcast_event("generation_done", {"carousel_id": c_entry["id"]})
-            d_print(f"  📋 Registrado no dashboard com status pronto.")
+            d_print("  📋 Registrado no dashboard com status pronto.")
         except Exception as e:
             d_print(f"  ⚠️  Dashboard não finalizou registro: {e}")
 

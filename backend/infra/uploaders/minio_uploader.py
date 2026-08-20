@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 minio_uploader.py — Upload de imagens para MinIO (URL pública)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -16,10 +15,11 @@ Uso:
 import os
 import sys
 import uuid
-import boto3
 from pathlib import Path
-from dotenv import load_dotenv
+
+import boto3
 from botocore.client import Config
+from dotenv import load_dotenv
 
 # Fix Windows terminal encoding
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -129,7 +129,7 @@ def upload_slides(slides_dir: Path | str, prefix: str = None) -> list[str]:
         key = f"{prefix}/{slide.name}"
         print(f"     {slide.name}...", end=" ", flush=True)
         url = upload_image(slide, key=key)
-        print(f"✅")
+        print("✅")
         urls.append(url)
 
     print(f"  ✅ Upload completo — prefixo: {prefix}\n")

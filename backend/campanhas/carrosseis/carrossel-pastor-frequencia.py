@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-pastor-frequencia.py — v2 (Diretor Artístico + compose_util_v3)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -11,12 +10,15 @@ Design:  compose_util_v3 — proporção 1080×1350 correta, smart_crop
 """
 
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from pathlib import Path
+
 from diretor_artistico import SlideData, gerar_carrossel
 
 # ── CONFIGURAÇÃO ───────────────────────────────────────────────────────────────

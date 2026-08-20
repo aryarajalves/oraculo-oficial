@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Carrossel: A indústria do desenvolvimento pessoal te vendeu o método errado
 Pilar: CONSCIÊNCIA | Formato: B — Demolição + Reconstrução
@@ -8,16 +7,24 @@ Score Angel: 78/100 — FORTE
 """
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import json, base64, time, urllib.request, urllib.error
+import base64
+import json
 import sys
+import time
+import urllib.error
+import urllib.request
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from pathlib import Path
+
+from core.agentes.register_carousel import register
 from core.util.compose_util import compose
 from core.util.prompt_builder import build_prompt
-from core.agentes.register_carousel import register
 
 API_KEY  = os.getenv("GEMINI_API_KEY")
 MODEL    = "gemini-2.0-flash-preview-image-generation"

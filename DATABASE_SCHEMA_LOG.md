@@ -2,6 +2,44 @@
 
 Este documento registra a evolução do esquema de banco de dados do projeto, garantindo a rastreabilidade e a reprodutibilidade das alterações em produção.
 
+## [2026-08-20] Criação das tabelas da Biblioteca (library_images e library_chats)
+
+### Motivação
+Suporte à funcionalidade de Biblioteca de Referências Visuais e Assistente de Criação IA com referências visuais e histórico persistente de chat e imagens geradas.
+
+### Tabelas Criadas: `library_images` e `library_chats`
+
+#### Estrutura: `library_images`
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | `SERIAL PRIMARY KEY` | Identificador único da imagem |
+| `title` | `VARCHAR(255) NOT NULL` | Nome / título da imagem |
+| `category` | `VARCHAR(100)` | Categoria / tag da imagem (ex: Geral, Pessoas, Estilo, Cenários) |
+| `notes` | `TEXT` | Anotações, descrição ou prompt de estilo associado |
+| `filename` | `VARCHAR(255) NOT NULL` | Nome do arquivo armazenado |
+| `storage_path` | `TEXT NOT NULL` | Caminho no armazenamento MinIO ou local |
+| `mime_type` | `VARCHAR(100)` | Tipo MIME (image/png, image/jpeg, image/webp) |
+| `size_bytes` | `BIGINT` | Tamanho do arquivo em bytes |
+| `width` | `INTEGER` | Largura da imagem em pixels |
+| `height` | `INTEGER` | Altura da imagem em pixels |
+| `created_by` | `VARCHAR(255)` | E-mail do usuário que fez o upload |
+| `created_at` | `TIMESTAMP` | Data e hora de criação |
+
+#### Estrutura: `library_chats`
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `id` | `SERIAL PRIMARY KEY` | Identificador único |
+| `user_email` | `VARCHAR(255) UNIQUE NOT NULL` | E-mail do usuário dono da sessão |
+| `messages` | `JSONB` | Array estruturado com histórico de mensagens do chat |
+| `generated_images` | `JSONB` | Array de imagens geradas durante a sessão |
+| `updated_at` | `TIMESTAMP` | Data e hora da última alteração |
+
+#### Script de Migração
+- Standalone: `backend/dashboard/scripts/migrate_library.js`
+- Automático: Executado no `initDb()` em `backend/dashboard/db.js`.
+
+---
+
 ## [2026-08-05] Adição de colunas de agendamento de publicação na tabela carousels
 
 ### Motivação

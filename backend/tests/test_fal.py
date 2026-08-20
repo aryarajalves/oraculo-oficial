@@ -1,15 +1,17 @@
-import os
 import json
-import urllib.request
+import os
 import urllib.error
+import urllib.request
+
 from dotenv import load_dotenv
+
+import pytest
 
 load_dotenv()
 fal_key = os.getenv("FAL_KEY")
 
 if not fal_key:
-    print("FAL_KEY not found in .env")
-    exit(1)
+    pytest.skip("FAL_KEY not found in .env", allow_module_level=True)
 
 print(f"Using FAL_KEY: {fal_key[:10]}...")
 
@@ -38,7 +40,7 @@ try:
     print("Sending request to fal.ai (flux/schnell)...")
     with urllib.request.urlopen(req, timeout=120) as r:
         response = json.loads(r.read().decode("utf-8"))
-    
+
     print("Response keys:", response.keys())
     images = response.get("images", [])
     if images:

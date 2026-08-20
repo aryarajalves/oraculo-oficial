@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import sys
+
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
@@ -24,9 +24,11 @@ USO:
     python processos/reel_preview.py  → http://localhost:4242
 """
 
-import os, json, threading, webbrowser
+import json
+import threading
+import webbrowser
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
-from http.server import HTTPServer, BaseHTTPRequestHandler
 
 REELS_DIR = Path("campanhas/reels")
 PORT = 4242
@@ -279,9 +281,9 @@ def build_html(reels):
             sfx   = c.get("sfx")
             video = c.get("video")
 
-            b_voz   = f'<span class="badge voz">VOZ</span>'   if voz   else '<span class="badge miss">VOZ</span>'
-            b_sfx   = f'<span class="badge sfx">SFX</span>'   if sfx   else '<span class="badge miss">SFX</span>'
-            b_video = f'<span class="badge video">VIDEO</span>' if video else '<span class="badge miss">VIDEO</span>'
+            b_voz   = '<span class="badge voz">VOZ</span>'   if voz   else '<span class="badge miss">VOZ</span>'
+            b_sfx   = '<span class="badge sfx">SFX</span>'   if sfx   else '<span class="badge miss">SFX</span>'
+            b_video = '<span class="badge video">VIDEO</span>' if video else '<span class="badge miss">VIDEO</span>'
 
             def ap(f, tag, url_prefix):
                 if f:
@@ -387,8 +389,8 @@ def main():
     print("="*50)
     print(f"  Acessivel em: http://localhost:{PORT}")
     print(f"  Pasta monitorada: {REELS_DIR.resolve()}")
-    print(f"  Auto-atualiza a cada 3 segundos")
-    print(f"\n  Ctrl+C para encerrar")
+    print("  Auto-atualiza a cada 3 segundos")
+    print("\n  Ctrl+C para encerrar")
     print("="*50 + "\n")
 
     def open_browser():

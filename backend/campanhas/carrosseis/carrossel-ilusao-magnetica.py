@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-ilusao-magnetica.py — A Ilusão Magnética: Você não "Atrai"
 Método Jordânico | Praça: ALAVANCA / MENTE | Formato B
@@ -8,9 +7,10 @@ Preset: esoterico | 10 slides
 """
 
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
-from diretor_artistico import gerar_carrossel, SlideData
+from diretor_artistico import SlideData, gerar_carrossel
 
 TEMA      = "A Ilusão Magnética: Você Não 'Atrai' Dinheiro"
 TEMA_SLUG = "ilusao-magnetica"

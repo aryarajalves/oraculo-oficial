@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+import argparse
+import json
 import os
 import sys
-import json
-import argparse
-from pathlib import Path
+
 from PIL import Image, ImageDraw, ImageFont
 
 
@@ -200,7 +199,7 @@ def main():
                     "body": text_content,
                     "layout": "text_only"
                 }, mf, ensure_ascii=False, indent=2)
-        except Exception as e:
+        except Exception:
             pass
 
         print(json.dumps({

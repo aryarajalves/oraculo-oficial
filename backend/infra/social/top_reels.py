@@ -1,6 +1,6 @@
 import os
+
 import requests
-import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -17,27 +17,27 @@ def fetch_media(limit=50):
         "access_token": ACCESS_TOKEN,
         "limit": limit
     }
-    
+
     media_list = []
-    
+
     print("Buscando mídia do perfil...")
     while url:
         response = requests.get(url, params=params)
         data = response.json()
-        
+
         if "error" in data:
             print(f"Erro na API: {data['error']}")
             break
-            
+
         for item in data.get("data", []):
             if item.get("media_type") == "VIDEO":
                 media_list.append(item)
-                
+
         # Handle pagination
         paging = data.get("paging", {})
         url = paging.get("next")
         params = None # Parameters are already in the next URL
-        
+
         # Para não demorar muito, limitamos a 100 reels
         if len(media_list) >= 100:
             break
@@ -53,7 +53,7 @@ def fetch_insights(media_id):
     }
     response = requests.get(url, params=params)
     data = response.json()
-    
+
     plays = 0
     reach = 0
     if "data" in data:
@@ -62,12 +62,12 @@ def fetch_insights(media_id):
                 plays = item["values"][0]["value"]
             elif item["name"] == "reach":
                 reach = item["values"][0]["value"]
-                
+
     return plays, reach
 
 def main():
     media_list = fetch_media()
-    
+
     results = []
     for i, media in enumerate(media_list):
         print(f"Buscando insights {i+1}/{len(media_list)}...")
@@ -75,14 +75,14 @@ def main():
         media["plays"] = plays
         media["reach"] = reach
         results.append(media)
-        
+
     # Sort by plays (views)
     results.sort(key=lambda x: x.get("plays", 0), reverse=True)
-    
+
     print("\n" + "="*80)
     print("🏆 TOP 10 REELS MAIS ASSISTIDOS - @afonteoculta")
     print("="*80)
-    
+
     for i, item in enumerate(results[:10]):
         caption = item.get("caption", "").split("\n")[0][:40] + "..." if item.get("caption") else "Sem legenda"
         caption = caption.replace("\n", " ")
@@ -90,7 +90,7 @@ def main():
         likes = item.get("like_count", 0)
         comments = item.get("comments_count", 0)
         link = item.get("permalink", "")
-        
+
         print(f"{i+1}. 👀 {plays:,} views | ❤️ {likes:,} likes | 💬 {comments:,} coments")
         print(f"   Título: {caption}")
         print(f"   Link: {link}")

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 import os
-import sys
 import time
-import requests
 from pathlib import Path
+
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,32 +22,32 @@ def gerar_video_seedance(prompt_final: str, nome_arquivo: str = "cena_01_video.m
         return ""
 
     print("\n[Diretor] Acordando o Seedance 2.0 na nuvem...")
-    
+
     headers = {
         "Authorization": f"Key {FAL_KEY}",
         "Content-Type": "application/json"
     }
-    
+
     # Parâmetros de envio (ajustado para Seedance 2.0)
     payload = {
         "prompt": prompt_final,
         "aspect_ratio": "9:16",
         "duration": "5"
     }
-    
+
     try:
         # 1. Envia o pedido para a fila
         print("  > Enviando prompt para a Kling Video O3 (Fal.ai)...", flush=True)
         # Endpoint oficial do Kling Video O3 (Text to Video)
-        submit_url = "https://queue.fal.run/fal-ai/kling-video/o3/standard/text-to-video" 
+        submit_url = "https://queue.fal.run/fal-ai/kling-video/o3/standard/text-to-video"
         response = requests.post(submit_url, headers=headers, json=payload)
-        
+
         if response.status_code != 200:
             print(f"Erro ao contatar API: {response.text}", flush=True)
             return ""
-            
+
         status_url = response.json().get("status_url")
-        
+
         # 2. Fica perguntando (Polling) se o vídeo ficou pronto
         print("  > Renderizando vídeo cinematográfico (aguarde)...", flush=True)
         while True:
@@ -60,7 +59,7 @@ def gerar_video_seedance(prompt_final: str, nome_arquivo: str = "cena_01_video.m
                 print(f"  ... aviso: falha de rede temporária durante o polling ({e}). Retentando...", flush=True)
                 time.sleep(5)
                 continue
-            
+
             if status == "COMPLETED":
                 # Fazer GET na response_url para pegar o payload final
                 final_res = requests.get(status_data["response_url"], headers=headers).json()
@@ -72,24 +71,24 @@ def gerar_video_seedance(prompt_final: str, nome_arquivo: str = "cena_01_video.m
             elif status == "FAILED":
                 print(f"Erro na renderização: {status_data.get('error')}")
                 return ""
-            
+
             print("  ... ainda renderizando ...", flush=True)
             time.sleep(10) # Espera 10 segundos antes de perguntar de novo
-            
+
         # 3. Baixa o MP4 pronto
-        print(f"  > Vídeo pronto! Fazendo download...")
+        print("  > Vídeo pronto! Fazendo download...")
         video_data = requests.get(video_url).content
-        
+
         pasta_saida = Path("campanhas/reels/temp")
         pasta_saida.mkdir(parents=True, exist_ok=True)
         caminho_final = pasta_saida / nome_arquivo
-        
+
         with open(caminho_final, "wb") as f:
             f.write(video_data)
-            
+
         print(f"[Seedance 2.0] Sucesso absoluto! Salvo em: {caminho_final}")
         return str(caminho_final)
-        
+
     except Exception as e:
         print(f"Erro catastrófico ao gerar vídeo: {e}")
         return ""

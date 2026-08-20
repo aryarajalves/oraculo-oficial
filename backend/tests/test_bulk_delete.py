@@ -1,8 +1,9 @@
-import unittest
-import urllib.request
-import urllib.parse
 import http.cookiejar
 import json
+import unittest
+import urllib.parse
+import urllib.request
+
 
 class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
     def http_error_302(self, req, fp, code, msg, headers):
@@ -24,10 +25,10 @@ class TestBulkDeleteAPI(unittest.TestCase):
             "username": "aryarajmarketing@gmail.com",
             "password": "123456"
         }).encode("utf-8")
-        
+
         login_req = urllib.request.Request(
-            self.login_url, 
-            data=login_data, 
+            self.login_url,
+            data=login_data,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             method="POST"
         )
@@ -36,7 +37,7 @@ class TestBulkDeleteAPI(unittest.TestCase):
 
     def test_create_and_bulk_delete(self):
         """Cria dois carrosséis de teste e os deleta em lote validando a operação"""
-        
+
         # 1. Criar Carrossel A
         payload_a = json.dumps({
             "title": "Carrossel de Teste Bulk A",
@@ -86,7 +87,7 @@ class TestBulkDeleteAPI(unittest.TestCase):
         with self.opener.open(bulk_req, timeout=5) as bulk_resp:
             self.assertEqual(bulk_resp.status, 200)
             bulk_data = json.loads(bulk_resp.read().decode("utf-8"))
-            
+
             # Validações da resposta
             self.assertTrue(bulk_data["ok"])
             self.assertEqual(bulk_data["deletedCount"], 2)
@@ -97,11 +98,11 @@ class TestBulkDeleteAPI(unittest.TestCase):
         with self.opener.open(list_req, timeout=5) as list_resp:
             self.assertEqual(list_resp.status, 200)
             list_data = json.loads(list_resp.read().decode("utf-8"))
-            
+
             remaining_ids = [c["id"] for c in list_data]
             self.assertNotIn(id_a, remaining_ids, "O carrossel A não deveria constar na lista após a deleção")
             self.assertNotIn(id_b, remaining_ids, "O carrossel B não deveria constar na lista após a deleção")
-            
+
         print("\n[OK] Teste de Deleção em Lote (Bulk Delete) passou com sucesso!")
 
 if __name__ == '__main__':

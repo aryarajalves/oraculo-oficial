@@ -1,6 +1,5 @@
-import sys
 
-with open('dashboard/public/index.html', 'r', encoding='utf-8') as f:
+with open('dashboard/public/index.html', encoding='utf-8') as f:
     content = f.read()
 
 # 1. Injetar a nova aba

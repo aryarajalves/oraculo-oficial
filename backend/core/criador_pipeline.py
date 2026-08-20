@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 criador_pipeline.py — Runner genérico de carrossel a partir do output do Criador.
 
@@ -20,9 +19,14 @@ Em produção (Linux/Render):
     - O Node.js lê os arquivos de /tmp/ e faz upload para B2
 """
 
-import os, sys, json, argparse, re, subprocess, importlib
+import argparse
+import importlib
+import json
+import os
+import re
+import subprocess
+import sys
 from pathlib import Path
-from datetime import date
 
 # ── Garante que a raiz do projeto está no sys.path ────────────────────────────
 ROOT = Path(__file__).parent.parent
@@ -66,8 +70,8 @@ IS_WIN = sys.platform == "win32"
 
 # ── Imports do pipeline ───────────────────────────────────────────────────────
 try:
-    from core.util.gen_image_openai import gen_openai as gen
     from core.util.compose_util import compose
+    from core.util.gen_image_openai import gen_openai as gen
     from core.util.prompt_builder import build_prompt
 except ImportError as e:
     print(json.dumps({"type": "error", "msg": f"Import error: {e}"}), flush=True)
@@ -98,6 +102,7 @@ def slugify(text: str) -> str:
 
 
 import threading
+
 _out_lock = threading.Lock()
 
 def out_safe(obj: dict):
@@ -243,12 +248,12 @@ def main():
             # Salvar a imagem base sem texto (Raw Cache)
             if img_bytes:
                 raw_file.write_bytes(img_bytes)
-            
+
             if isinstance(final_img, bytes):
                 out_file.write_bytes(final_img)
             else:
                 final_img.save(str(out_file), "JPEG", quality=95)
-                
+
             # Salvar metadados do slide para permitir edição posterior com textos e prompt preenchidos
             try:
                 meta_file = out_file.with_suffix(".meta.json")
@@ -260,9 +265,9 @@ def main():
                     "prompt": s.get("prompt", f"Cinematic dark esoteric illustration, dramatic volumetric light, deep emotional atmosphere. Abstract visual metaphor for: {s_title}")
                 }
                 meta_file.write_text(json.dumps(meta_data, ensure_ascii=False, indent=2), encoding="utf-8")
-            except Exception as ex_meta:
+            except Exception:
                 pass
-                
+
             ok_count += 1
             out({"type": "slide", "num": idx, "total": total, "estado": estado,
                  "status": "ok", "file": str(out_file)})

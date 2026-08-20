@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-dinheiro-sofrimento-moral.py
 Campanha: Se o dinheiro precisa doer, alguém te ensinou (Tema 46)
@@ -14,10 +13,11 @@ sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from core.agentes.diretor_artistico import SlideData, gerar_carrossel
 
+
 def main():
     tema = "SE O DINHEIRO PRECISA DOER ALGUEM TE ENSINOU ERRADO"
     tema_slug = "dinheiro-sofrimento-moral"
-    
+
     # ── DEFINIÇÃO DOS SLIDES ──────────────────────────────────────────────────
     slides = [
         SlideData(
@@ -122,7 +122,7 @@ def main():
             mode="image"
         )
     ]
-    
+
     # ── LEGENDA DO INSTAGRAM (CAPTION) ─────────────────────────────────────────
     caption = (
         "Tem gente que não rejeita o dinheiro por falta de ambição.\n\n"
@@ -138,10 +138,10 @@ def main():
         "Vivem na forma como o seu corpo reage ao receber.\n\n"
         "Comente FONTE se existe em você uma culpa silenciosa toda vez que a vida começa a ficar mais leve"
     )
-    
+
     # ── COMPILAÇÃO E REGISTRO ──────────────────────────────────────────────────
     out_dir = Path("C:/Users/julia/Desktop/carrossel-se-o-dinheiro-precisa-doer-alguem-te-ensinou")
-    
+
     print("\n[CAMPANHA] Iniciando o pipeline de Geração do Tema 46...")
     gerar_carrossel(
         tema=tema,
@@ -155,7 +155,7 @@ def main():
         out_dir=out_dir,
         registrar=True
     )
-    
+
     print("\n[CAMPANHA] Tema 46 compilado com sucesso!")
 
 if __name__ == "__main__":

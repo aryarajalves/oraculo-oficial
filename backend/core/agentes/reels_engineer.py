@@ -1,10 +1,11 @@
+import json
 import os
 import sys
-import json
-import yt_dlp
 from pathlib import Path
-from openai import OpenAI
+
+import yt_dlp
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 
@@ -70,7 +71,7 @@ Por favor, responda estritamente no formato JSON com as chaves:
         messages=[{"role": "user", "content": prompt}],
         response_format={"type": "json_object"}
     )
-    
+
     send_progress("Roteiro gerado com sucesso!")
     return json.loads(response.choices[0].message.content)
 
@@ -78,9 +79,9 @@ def main():
     if len(sys.argv) < 2:
         print(json.dumps({"error": "URL do Reel não fornecida"}))
         sys.exit(1)
-        
+
     url = sys.argv[1]
-    
+
     # Pasta temporária para o vídeo
     # Pasta temporária para o vídeo
     temp_dir = Path(__file__).parent / "dashboard" / "data" / "temp"
@@ -90,23 +91,23 @@ def main():
     import time
     video_filename = f"temp_reel_{int(time.time())}.mp4"
     video_path = str(temp_dir / video_filename)
-    
+
     # Busca e limpa qualquer arquivo temporário antigo na pasta para não acumular lixo
     for old_file in temp_dir.glob("temp_reel_*"):
         try:
             os.remove(old_file)
         except:
             pass
-    
+
     try:
         download_reel(url, video_path)
         texto = transcrever_audio(video_path)
         resultado = realizar_engenharia_reversa(texto)
         resultado["transcricao_original"] = texto
-        
+
         send_progress("FINALIZANDO")
         print("FINAL_RESULT:" + json.dumps(resultado, ensure_ascii=False))
-        
+
     except Exception as e:
         print("FINAL_RESULT:" + json.dumps({"error": str(e)}, ensure_ascii=False))
     finally:

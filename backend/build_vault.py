@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 build_vault.py — Popula o vault Obsidian "Oráculo do Conteúdo"
 com todo o sistema: xquads-squads + nano-banana + skills + frameworks.
@@ -7,12 +6,12 @@ com todo o sistema: xquads-squads + nano-banana + skills + frameworks.
 USO:
     python -X utf8 build_vault.py
 """
-import os
-import re
-import yaml
 import json
-from pathlib import Path
+import re
 from datetime import date
+from pathlib import Path
+
+import yaml
 
 # ── Caminhos ─────────────────────────────────────────────────────────────────
 VAULT   = Path("C:/Users/julia/OneDrive/Área de Trabalho/Oráculo do conteúdo/Oráculo do conteúdo")

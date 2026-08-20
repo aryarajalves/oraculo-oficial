@@ -62,3 +62,20 @@ kerykeion/
 # Docker produção com credenciais
 docker/docker-compose-producao.yml
 
+# Backups temporários de refatoração — NUNCA commitar
+*.bak
+*.backup
+*.orig
+*.original.*
+*.bak.*
+_backups/
+backups/
+
+# Relatórios e artefatos de testes
+playwright-report/
+test-results/
+backend/playwright-report/
+backend/test-results/
+backend/storage/
+
+

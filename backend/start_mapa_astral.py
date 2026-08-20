@@ -1,5 +1,7 @@
 """Launcher do servidor Mapa da Alma — chamado pelo preview."""
-import subprocess, sys, os
+import os
+import subprocess
+import sys
 
 os.chdir(r"C:\Users\julia\Documents\mapa-astral")
 

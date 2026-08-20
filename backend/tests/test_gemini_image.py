@@ -1,16 +1,18 @@
-import os
-import json
 import base64
-import urllib.request
+import json
+import os
 import urllib.error
+import urllib.request
+
 from dotenv import load_dotenv
+
+import pytest
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 
 if not api_key:
-    print("GEMINI_API_KEY not found in .env")
-    exit(1)
+    pytest.skip("GEMINI_API_KEY not found in .env", allow_module_level=True)
 
 models = ["gemini-3.1-flash-image", "gemini-3-pro-image", "imagen-4.0-generate-001", "imagen-4.0-fast-generate-001"]
 
@@ -54,7 +56,7 @@ for model in models:
         print(f"Sending request to {model}...")
         with urllib.request.urlopen(req, timeout=30) as r:
             body = json.loads(r.read().decode("utf-8"))
-        
+
         if "imagen" in model:
             predictions = body.get("predictions", [])
             if predictions:

@@ -1,0 +1,156 @@
+import React from 'react';
+import ChatWelcomeGuide from './ChatWelcomeGuide';
+
+export default function ChatMessages({
+  messages,
+  generating,
+  onSaveToLibrary,
+  onPreviewImage,
+  onSelectPrompt,
+  showToast,
+  scrollAnchorRef
+}) {
+  const handleCopyPrompt = (text) => {
+    navigator.clipboard.writeText(text);
+    if (showToast) showToast('Prompt copiado para a área de transferência!');
+  };
+
+  const handleDownload = async (url, filename) => {
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || `gerada_${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      if (showToast) showToast('Download iniciado!');
+    } catch {
+      if (showToast) showToast('Erro ao baixar imagem.');
+    }
+  };
+
+  return (
+    <div className="assistant-chat-scroll">
+      {messages.length === 0 && !generating && (
+        <ChatWelcomeGuide onSelectPrompt={onSelectPrompt} />
+      )}
+
+      {messages.map((msg, index) => {
+        if (msg.role === 'user') {
+          return (
+            <div key={msg.id || index} className="chat-bubble-user">
+              {msg.content}
+            </div>
+          );
+        }
+
+        // Mensagem da IA
+        return (
+          <div key={msg.id || index} className="chat-bubble-ai-card">
+            {msg.imageUrl && (
+              <div className="chat-ai-img-wrap" onClick={() => onPreviewImage({ url: msg.imageUrl, title: msg.generatedPrompt || 'Imagem Gerada' })}>
+                <img
+                  src={msg.imageUrl}
+                  alt={msg.generatedPrompt || 'Imagem gerada pela IA'}
+                  className="chat-ai-img"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+
+            {msg.generatedPrompt && (
+              <div className="chat-ai-prompt-box">
+                <strong>Prompt Gerado: </strong>
+                {msg.generatedPrompt}
+              </div>
+            )}
+
+            {msg.warning && (
+              <div style={{
+                margin: '8px 0',
+                padding: '8px 12px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                fontSize: '11px',
+                color: '#fca5a5',
+                lineHeight: '1.4'
+              }}>
+                {msg.warning}
+              </div>
+            )}
+
+            {msg.content && !msg.generatedPrompt && (
+              <div style={{ fontSize: '12px', color: '#e4e4e7', lineHeight: '1.45' }}>
+                {msg.content}
+              </div>
+            )}
+
+            {msg.imageUrl && (
+              <div className="chat-ai-actions-bar">
+                <button
+                  className="chat-ai-action-btn btn-save-lib"
+                  onClick={() => onSaveToLibrary(msg)}
+                  title="Salvar esta imagem no catálogo da biblioteca"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                  </svg>
+                  Salvar na Biblioteca
+                </button>
+
+                <button
+                  className="chat-ai-action-btn"
+                  onClick={() => handleDownload(msg.imageUrl, msg.filename)}
+                  title="Baixar imagem"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Baixar
+                </button>
+
+                <button
+                  className="chat-ai-action-btn"
+                  onClick={() => handleCopyPrompt(msg.generatedPrompt || msg.content)}
+                  title="Copiar prompt gerado"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
+                  Copiar Prompt
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {generating && (
+        <div className="chat-bubble-ai-card" style={{ padding: '20px', alignItems: 'center', gap: '12px' }}>
+          <div style={{
+            width: '28px',
+            height: '28px',
+            border: '2px solid rgba(201, 168, 76, 0.2)',
+            borderTopColor: 'var(--gold, #c9a84c)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite'
+          }} />
+          <span style={{ fontSize: '12px', color: 'var(--gold, #c9a84c)', fontWeight: '500' }}>
+            Criando imagem e aplicando referências visuais...
+          </span>
+        </div>
+      )}
+
+      <div ref={scrollAnchorRef} style={{ height: '1px' }} />
+    </div>
+  );
+}

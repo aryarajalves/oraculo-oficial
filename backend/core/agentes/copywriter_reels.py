@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 copywriter_reels.py — Agente Copywriter de Reels
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -21,9 +20,12 @@ Saída JSON:
 }
 """
 
-import os, sys, json
-from openai import OpenAI
+import json
+import os
+import sys
+
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 

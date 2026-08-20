@@ -5,13 +5,14 @@ Atualizado para cobrir também o estado imageError (correção da tela preta).
 import unittest
 from pathlib import Path
 
+
 class TestLightboxImageLoading(unittest.TestCase):
     def setUp(self):
         self.file_path = (
             Path(__file__).resolve().parents[2] / "frontend" / "src" / "components" / "Lightbox.jsx"
         )
         self.assertTrue(self.file_path.exists(), f"Lightbox.jsx não encontrado em {self.file_path}")
-        with open(self.file_path, "r", encoding="utf-8") as f:
+        with open(self.file_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_image_loading_state_exists(self):

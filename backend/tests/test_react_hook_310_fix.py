@@ -15,11 +15,11 @@ class TestLightboxHooksAndImageAuthFix(unittest.TestCase):
         lightbox_path = FRONTEND_SRC / "components" / "Lightbox.jsx"
         self.assertTrue(lightbox_path.exists(), "Lightbox.jsx não encontrado")
         content = lightbox_path.read_text(encoding="utf-8")
-        
+
         # Encontra a posição do 'if (!isOpen'
         return_pos = content.find("if (!isOpen")
         self.assertNotEqual(return_pos, -1, "Cláusula if (!isOpen) não encontrada em Lightbox.jsx")
-        
+
         # Verifica que nenhum useState aparece APÓS essa linha
         after_return_content = content[return_pos:]
         self.assertNotIn(
@@ -33,7 +33,7 @@ class TestLightboxHooksAndImageAuthFix(unittest.TestCase):
         app_path = FRONTEND_SRC / "App.jsx"
         self.assertTrue(app_path.exists(), "App.jsx não encontrado")
         content = app_path.read_text(encoding="utf-8")
-        
+
         self.assertIn(
             "/api/carousels/${c.id}/image/${coverPath}?token=${token}",
             content,

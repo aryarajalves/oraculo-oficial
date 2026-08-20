@@ -3,12 +3,18 @@
 
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import os, sys, json, base64, time
-import urllib.request, urllib.error
-from pathlib import Path
+import base64
+import json
+import time
+import urllib.error
+import urllib.request
 from io import BytesIO
+from pathlib import Path
+
 from PIL import Image, ImageDraw, ImageFont
 
 API_KEY  = os.getenv("GEMINI_API_KEY")
@@ -165,7 +171,7 @@ for slide in slides:
     print(f"[{slide['num']}] {slide['title'].splitlines()[0][:50]}...")
     img = generate_image(slide["prompt"], slide["num"])
     if not img:
-        print(f"  FALHOU - pulando\n")
+        print("  FALHOU - pulando\n")
         continue
     print(f"  Compondo ({slide['layout']})...")
     if slide["layout"] == "fullbleed":

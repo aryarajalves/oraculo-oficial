@@ -20,6 +20,7 @@ except ImportError:
 
 import psycopg2
 
+
 def run():
     conn = psycopg2.connect(
         host=os.getenv("DB_HOST", "localhost"),

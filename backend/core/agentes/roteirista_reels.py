@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+import json
 import os
 import sys
-import json
-from openai import OpenAI
+
 from dotenv import load_dotenv
+from openai import OpenAI
 
 load_dotenv()
 
@@ -58,7 +58,7 @@ def fatiar_roteiro(input_text: str) -> dict:
             ],
             response_format={"type": "json_object"}
         )
-        
+
         resultado = json.loads(response.choices[0].message.content)
         print("[Roteirista] Fatiamento concluído com sucesso!")
         return resultado
@@ -72,7 +72,7 @@ if __name__ == "__main__":
         tema = " ".join(sys.argv[1:])
     else:
         tema = "O programa subconsciente instalado antes dos 7 anos de idade que dita o seu fracasso financeiro."
-        
+
     print(f"[Roteirista] Tema de Entrada: '{tema}'")
     roteiro = fatiar_roteiro(tema)
     print("\n" + json.dumps(roteiro, indent=2, ensure_ascii=False))

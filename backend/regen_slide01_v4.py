@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 regen_slide01_v4.py
 Gera 3 variações cinematográficas do slide 01 usando o DNA Visual v2.
@@ -7,15 +6,26 @@ Seleciona automaticamente a mais escura (maior proporção de pixels escuros).
 """
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import json, base64, time, urllib.request, urllib.error, sys
+import base64
+import json
+import sys
+import time
+import urllib.error
+import urllib.request
+
 import numpy as np
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
-from pathlib import Path
-from PIL import Image
 from io import BytesIO
+from pathlib import Path
+
+from PIL import Image
+
 from core.util.compose_util import compose
 from core.util.prompt_builder import build_prompt_cinematic
 

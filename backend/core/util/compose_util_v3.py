@@ -25,10 +25,10 @@ PROPORÇÃO CORRETA:
   resize para 1080×1350 (+5.5% uniforme em ambas dimensões)
 """
 
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 from pathlib import Path
+
+from PIL import Image, ImageDraw, ImageFont
 
 # ── Canvas ─────────────────────────────────────────────────────────────────────
 W, H       = 1080, 1350
@@ -37,8 +37,9 @@ MARGIN_R   = 72
 MAX_TW     = W - MARGIN_L - MARGIN_R   # 936px
 
 import json
-import sys
 import os
+import sys
+
 
 # Localizador de fontes multiplataforma para Windows e Linux (Docker)
 def get_font_path(font_name):
@@ -60,7 +61,7 @@ def get_font_path(font_name):
         elif "inter" in name_lower or "regular" in name_lower:
             linux_paths.insert(0, "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
             linux_paths.insert(1, "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf")
-            
+
         for p in linux_paths:
             if os.path.exists(p):
                 return p
@@ -76,9 +77,9 @@ BRANDING_FILE = Path(__file__).parent.parent.parent / "dashboard" / "data" / "br
 branding = {}
 if BRANDING_FILE.exists():
     try:
-        with open(BRANDING_FILE, "r", encoding="utf-8") as f:
+        with open(BRANDING_FILE, encoding="utf-8") as f:
             branding = json.load(f)
-    except Exception as e:
+    except Exception:
         pass
 
 BRAND_LOGO_TEXT      = branding.get("logoText", "@afonteoculta")
@@ -201,7 +202,7 @@ def _gradient(img: Image.Image, preset: dict) -> Image.Image:
     ov   = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d    = ImageDraw.Draw(ov)
     sy   = int(H * preset["gradient_start"])
-    
+
     # Usamos opacidade alta na base para contraste máximo (estilo viral)
     amax = 250
     r, g, b = preset["gradient_tint"]
@@ -253,7 +254,7 @@ def _watermark(draw: ImageDraw.Draw, color: tuple):
     logo_color = hex_to_rgb(BRAND_LOGO_COLOR, color)
     f = _font(F_REGULAR, BRAND_LOGO_SIZE)
     mark = BRAND_LOGO_TEXT
-    
+
     # Se logoPosition for right, desenha no canto superior direito respeitando a margem MARGIN_R
     if BRAND_LOGO_POSITION == "right":
         bbox = draw.textbbox((0, 0), mark, font=f)
@@ -408,7 +409,7 @@ def _render_body(draw, body: str, size: int, x: int, y: float,
             # Clip: se esta linha sair do frame, para aqui
             if y + lh > max_y:
                 return y
-            
+
             # Se centralizado, calcula largura total da linha
             if align == "center":
                 line_w = 0

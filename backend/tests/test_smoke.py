@@ -2,10 +2,9 @@
 Teste de smoke rápido: valida endpoints críticos sem gerar carrossel real.
 NÃO dispara SSE nem criação de slides.
 """
+import json
 import unittest
 import urllib.request
-import json
-
 
 BASE = "http://localhost:3131"
 

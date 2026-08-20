@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import os; os.environ["PYTHONIOENCODING"] = "utf-8"
+os.environ["PYTHONIOENCODING"] = "utf-8"
 """
 Carrossel - O Deus Que Te Ensinaram Nao Existe
 Tema: DEUS | Ângulo 01 | Formato B — Demolição + Reconstrução
@@ -12,10 +13,16 @@ Curva: ⚡↘️↘️↗️↗️↘️⬆️⬆️⬆️🚪
 gemini-2.0-flash-preview-image-generation + compose_util.py
 """
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
-import json, base64, time, urllib.request, urllib.error
+import base64
+import json
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
+
 from core.util.compose_util import compose
 
 API_KEY  = os.getenv("GEMINI_API_KEY")
@@ -377,6 +384,7 @@ print("="*60 + "\n")
 
 # ── Registro automatico no Dashboard ──────────────────────────────────────
 from core.agentes.register_carousel import register
+
 register(
     title         = "O que a Igreja chama de Deus distante, a fisica chama de campo do qual voce nunca se separou",
     theme         = "deus-campo-quantico",

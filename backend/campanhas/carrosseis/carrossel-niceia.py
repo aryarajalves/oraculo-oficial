@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-niceia.py
 Campanha: Jesus nunca disse que era o único filho de Deus (Tema 6)
@@ -14,10 +13,11 @@ sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from core.agentes.diretor_artistico import SlideData, gerar_carrossel
 
+
 def main():
     tema = "Jesus nunca disse que era o único filho de Deus"
     tema_slug = "niceia-terceirizacao-divino"
-    
+
     # ── DEFINIÇÃO DOS SLIDES ──────────────────────────────────────────────────
     slides = [
         SlideData(
@@ -113,7 +113,7 @@ def main():
             mode="image"
         )
     ]
-    
+
     # ── LEGENDA DO INSTAGRAM (CAPTION) ─────────────────────────────────────────
     caption = (
         "O maior escândalo do Cristianismo não foi uma heresia. Foi uma decisão de Estado.\n\n"
@@ -126,10 +126,10 @@ def main():
         "Você tá pronto pra parar de pedir e começar a sintonizar?\n\n"
         "Comente \"FONTE\" aqui embaixo e eu te envio o Desbloqueio Neural. Uma tecnologia sonora que recalibra o seu sistema nervoso e devolve o seu peito para a frequência natural de criação ainda hoje."
     )
-    
+
     # ── COMPILAÇÃO E REGISTRO ──────────────────────────────────────────────────
     out_dir = Path("C:/Users/julia/Desktop/carrossel-niceia-terceirizacao-divino")
-    
+
     print("\n[CAMPANHA] Iniciando o pipeline de Niceia...")
     gerar_carrossel(
         tema=tema,
@@ -143,7 +143,7 @@ def main():
         out_dir=out_dir,
         registrar=True
     )
-    
+
     print("\n[CAMPANHA] Niceia compilada com sucesso!")
 
 if __name__ == "__main__":

@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Regenera apenas S7 e S8 do carrossel-dia-parou-crescer."""
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import json, base64, time, urllib.request, urllib.error
+import base64
+import json
 import sys
+import time
+import urllib.error
+import urllib.request
+
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from pathlib import Path
+
 from core.util.compose_util import compose
 from core.util.prompt_builder import build_prompt
 
@@ -109,7 +116,7 @@ def gen(prompt: str, retries: int = 4) -> bytes | None:
 
 
 print(f"\n{'='*60}")
-print(f"  Regenerando S07 e S08 — dia-parou-crescer")
+print("  Regenerando S07 e S08 — dia-parou-crescer")
 print(f"{'='*60}\n")
 
 ok = 0

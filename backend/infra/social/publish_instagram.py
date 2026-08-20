@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 publish_instagram.py — Publica carrosseis no Instagram via Meta Graph API oficial.
 
@@ -9,9 +8,12 @@ USO:
     python -X utf8 publish_instagram.py --list
 """
 
-import sys, os, json, argparse
-from pathlib import Path
+import argparse
+import json
+import os
+import sys
 from datetime import datetime
+from pathlib import Path
 
 # ── Encoding fix Windows ──────────────────────────────────────────────────────
 if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
@@ -27,6 +29,7 @@ if str(SOCIAL_DIR) not in sys.path:
     sys.path.insert(0, str(SOCIAL_DIR))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 DATA_FILE = BASE_DIR / "dashboard" / "data" / "carousels.json"
@@ -130,7 +133,7 @@ def publish(carousel_id: str, custom_caption: str = "", stories: bool = False, s
 
     raw_dir = str(carousel.get("slidesDir", ""))
     slides_dir = Path(raw_dir)
-    
+
     if not slides_dir.exists():
         storage_dir = BASE_DIR / "storage" / "carousels"
         if storage_dir.exists():
@@ -163,10 +166,10 @@ def publish(carousel_id: str, custom_caption: str = "", stories: bool = False, s
             story_ids = publicar_stories(
                 slides_dir = slides_dir,
             )
-            print(f"\nPUBLICADO COM SUCESSO (Stories)")
+            print("\nPUBLICADO COM SUCESSO (Stories)")
             try:
                 update_status(carousel_id, "publicado", ",".join(story_ids))
-                print(f"Dashboard atualizado -> publicado (Stories)")
+                print("Dashboard atualizado -> publicado (Stories)")
             except Exception as ue:
                 print(f"AVISO: Nao foi possivel atualizar status local apos publicacao Stories: {ue}")
         else:
@@ -176,7 +179,7 @@ def publish(carousel_id: str, custom_caption: str = "", stories: bool = False, s
                 scheduled_publish_time = scheduled_time
             )
             new_status = "agendado" if scheduled_time else "publicado"
-            print(f"\nPUBLICADO COM SUCESSO" if not scheduled_time else f"\nAGENDADO COM SUCESSO")
+            print("\nPUBLICADO COM SUCESSO" if not scheduled_time else "\nAGENDADO COM SUCESSO")
             print(f"Post ID: {post_id}")
             try:
                 update_status(carousel_id, new_status, str(post_id))

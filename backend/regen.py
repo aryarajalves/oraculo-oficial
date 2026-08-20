@@ -1,11 +1,13 @@
-import sys, os
+import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from pathlib import Path
-from core.util.compose_util import compose
-from core.util.prompt_builder import build_prompt
+
 from core.agentes.register_carousel import register
+from core.util.compose_util import compose
 from core.util.gen_image_openai import gen_openai as gen
+from core.util.prompt_builder import build_prompt
 
 OUT_DIR = Path("C:/Users/julia/Desktop/carrossel-dinheiro-foge")
 

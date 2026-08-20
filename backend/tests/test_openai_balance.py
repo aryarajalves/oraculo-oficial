@@ -9,12 +9,11 @@ Testa:
 5. Frontend: verifica que o botão de atualizar existe com ID correto
 6. Frontend: verifica que o link de fallback para billing existe com ID correto
 """
-import unittest
-import urllib.request
-import urllib.error
 import json
+import unittest
+import urllib.error
+import urllib.request
 from pathlib import Path
-
 
 BASE_URL = "http://localhost:3131"
 LOGIN_URL = f"{BASE_URL}/auth/login"
@@ -120,7 +119,7 @@ class TestOpenAIBalanceFrontend(unittest.TestCase):
             self.general_tab_path.exists(),
             f"GeneralTab.jsx não encontrado em {self.general_tab_path}"
         )
-        with open(self.general_tab_path, "r", encoding="utf-8") as f:
+        with open(self.general_tab_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_balance_card_exists(self):
@@ -183,9 +182,9 @@ class TestSettingsComponentPropPassing(unittest.TestCase):
         for p in [self.settings_path, self.app_path]:
             self.assertTrue(p.exists(), f"Arquivo não encontrado: {p}")
 
-        with open(self.settings_path, "r", encoding="utf-8") as f:
+        with open(self.settings_path, encoding="utf-8") as f:
             self.settings_content = f.read()
-        with open(self.app_path, "r", encoding="utf-8") as f:
+        with open(self.app_path, encoding="utf-8") as f:
             self.app_content = f.read()
 
     def test_settings_receives_current_user_prop(self):

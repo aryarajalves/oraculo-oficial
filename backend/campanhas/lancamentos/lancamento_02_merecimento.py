@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 from diretor_artistico import SlideData, gerar_carrossel
 
@@ -8,46 +9,46 @@ preset_name = "A"
 
 slides = [
     SlideData(
-        1, "DISRUPÇÃO", 
-        "Pessoas ruins enriquecem o tempo todo.", 
+        1, "DISRUPÇÃO",
+        "Pessoas ruins enriquecem o tempo todo.",
         "Enquanto pessoas puras continuam presas na miséria.",
         mode="image", cover=True,
         prompt="A pristine white dove trapped inside a dusty golden birdcage, while outside a dark raven sits on a pile of gold coins. Cinematic lighting, rich contrast."
     ),
     SlideData(
-        2, "DESCIDA", 
-        "Isso te revolta? Faz você achar que o universo estragou?", 
+        2, "DESCIDA",
+        "Isso te revolta? Faz você achar que o universo estragou?",
         "Você foi ensinado que o dinheiro é uma recompensa por bom comportamento.",
         mode="text"
     ),
     SlideData(
-        3, "NOMEAÇÃO", 
-        "Mas a verdade mecânica é uma só:", 
+        3, "NOMEAÇÃO",
+        "Mas a verdade mecânica é uma só:",
         "O universo não é moral. Ele é puramente matemático.",
         mode="text"
     ),
     SlideData(
-        4, "PROFUNDIDADE", 
-        "A lei da gravidade derruba um criminoso e um monge da mesma forma.", 
+        4, "PROFUNDIDADE",
+        "A lei da gravidade derruba um criminoso e um monge da mesma forma.",
         "A frequência da abundância funciona exatamente igual.",
         mode="image", cover=False,
         prompt="A majestic ancient golden scale of justice in a dark void. On one side a glowing light, on the other a heavy iron weight. The scale is perfectly balanced. Mystical."
     ),
     SlideData(
-        5, "QUEDA FUNDA", 
-        "Ele não recompensa o seu bom caráter.", 
+        5, "QUEDA FUNDA",
+        "Ele não recompensa o seu bom caráter.",
         "Ele recompensa a frequência que o seu corpo físico está emitindo agora.",
         mode="text"
     ),
     SlideData(
-        6, "ESPELHO", 
-        "Enquanto você tentar ser 'bonzinho' para convencer o universo a te pagar...", 
+        6, "ESPELHO",
+        "Enquanto você tentar ser 'bonzinho' para convencer o universo a te pagar...",
         "Estará jogando um jogo que não existe.",
         mode="text"
     ),
     SlideData(
-        7, "ASCENSÃO", 
-        "A moralidade é uma criação humana para convívio social.", 
+        7, "ASCENSÃO",
+        "A moralidade é uma criação humana para convívio social.",
         "A atração magnética é um código de Física Oculta.",
         mode="image", cover=False,
         prompt="A cosmic blueprint glowing in gold lines over a dark background, showing complex sacred geometry and mathematical equations of reality."
@@ -55,8 +56,8 @@ slides = [
     SlideData(8, "CRISTALIZAÇÃO", "Você não precisa sofrer para ser digno.", "Você só precisa calibrar a máquina.", mode="text"),
     SlideData(9, "SETUP CTA", "Se o seu esforço não trouxe o prêmio, a sua vibração basal está desalinhada.", "E o alinhamento acontece no subconsciente.", mode="text"),
     SlideData(
-        10, "CTA FIXO", 
-        "COMENTE\n75", 
+        10, "CTA FIXO",
+        "COMENTE\n75",
         "E receba o convite VIP para os Engenheiros da Realidade. O protocolo definitivo que destrava seu código financeiro, amoroso e físico.",
         mode="image", cover=False,
         prompt="A massive glowing golden portal in a dark room. Ancient symbols of hermeticism floating softly around it."

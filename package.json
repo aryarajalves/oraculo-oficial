@@ -7,8 +7,14 @@
     "start": "npm --prefix backend run start",
     "dashboard": "npm --prefix backend run dashboard",
     "sync": "npm --prefix backend run sync",
+    "test": "node scripts/test_runner.mjs",
+    "test:limits": "node scripts/test_runner.mjs --limits",
+    "test:unit": "node scripts/test_runner.mjs --unit",
+    "test:build": "node scripts/test_runner.mjs --build",
+    "test:all": "node scripts/test_runner.mjs --full",
     "security:check": "node scripts/security_audit.mjs",
     "security:fix": "node scripts/security_audit.mjs --fix",
-    "setup:hooks": "node scripts/setup-git-hooks.js"
+    "setup:hooks": "node scripts/setup-git-hooks.js",
+    "prepare": "node scripts/setup-git-hooks.js"
   }
 }

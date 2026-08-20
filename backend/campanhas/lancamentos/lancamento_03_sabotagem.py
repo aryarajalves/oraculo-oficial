@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 from diretor_artistico import SlideData, gerar_carrossel
 
@@ -8,46 +9,46 @@ preset_name = "A"
 
 slides = [
     SlideData(
-        1, "DISRUPÇÃO", 
-        "Você não se autossabota porque é fraco.", 
+        1, "DISRUPÇÃO",
+        "Você não se autossabota porque é fraco.",
         "Você se sabota porque o seu subconsciente é brilhante.",
         mode="image", cover=True,
         prompt="A glowing brain trapped inside a beautiful golden puzzle box, showing that sabotage is just a complex defense mechanism. Moody, hyper-realistic."
     ),
     SlideData(
-        2, "DESCIDA", 
-        "Toda vez que você ganha dinheiro, acontece uma emergência.", 
+        2, "DESCIDA",
+        "Toda vez que você ganha dinheiro, acontece uma emergência.",
         "Toda vez que uma relação fica em paz, você cria uma briga.",
         mode="text"
     ),
     SlideData(
-        3, "NOMEAÇÃO", 
-        "Você chama isso de azar ou falta de disciplina.", 
+        3, "NOMEAÇÃO",
+        "Você chama isso de azar ou falta de disciplina.",
         "A neurociência chama isso de Mecanismo de Proteção.",
         mode="text"
     ),
     SlideData(
-        4, "PROFUNDIDADE", 
-        "Se o seu cérebro, lá na infância, gravou que 'ter dinheiro gera brigas na família'...", 
+        4, "PROFUNDIDADE",
+        "Se o seu cérebro, lá na infância, gravou que 'ter dinheiro gera brigas na família'...",
         "Fazer você falir é a forma de te manter em segurança.",
         mode="image", cover=False,
         prompt="A small child's silhouette standing in front of a massive, ancient supercomputer emitting red warning lights. Symbolic representation of childhood programming."
     ),
     SlideData(
-        5, "QUEDA FUNDA", 
-        "O seu corpo prefere a miséria conhecida...", 
+        5, "QUEDA FUNDA",
+        "O seu corpo prefere a miséria conhecida...",
         "Do que a abundância desconhecida.",
         mode="text"
     ),
     SlideData(
-        6, "ESPELHO", 
-        "É por isso que você tem picos de melhora e logo recai.", 
+        6, "ESPELHO",
+        "É por isso que você tem picos de melhora e logo recai.",
         "A sua força de vontade (5%) não consegue vencer o seu instinto de sobrevivência (95%).",
         mode="text"
     ),
     SlideData(
-        7, "ASCENSÃO", 
-        "Para quebrar o ciclo, você não precisa de mais disciplina.", 
+        7, "ASCENSÃO",
+        "Para quebrar o ciclo, você não precisa de mais disciplina.",
         "Você precisa de uma atualização de sistema. Desativar o vírus antigo.",
         mode="image", cover=False,
         prompt="A luminous golden key unlocking a heavy, rusted iron vault inside a dark, ancient library. Beams of pure light escaping."
@@ -55,8 +56,8 @@ slides = [
     SlideData(8, "CRISTALIZAÇÃO", "Enquanto você lutar contra a sua própria mente, você sempre vai perder.", "A chave é alterar o código-fonte através do corpo.", mode="text"),
     SlideData(9, "SETUP CTA", "Seus resultados atuais são o teto de segurança da sua programação de infância.", "Chegou a hora de hackear esse teto.", mode="text"),
     SlideData(
-        10, "CTA FIXO", 
-        "COMENTE\n75", 
+        10, "CTA FIXO",
+        "COMENTE\n75",
         "E receba o convite VIP para os Engenheiros da Realidade. O protocolo definitivo que destrava seu código financeiro, amoroso e físico.",
         mode="image", cover=False,
         prompt="A massive glowing golden portal in a dark room. Ancient symbols of hermeticism floating softly around it."

@@ -1,6 +1,6 @@
+import json
 import unittest
 import urllib.request
-import json
 
 BASE = "http://localhost:3131"
 
@@ -35,7 +35,7 @@ class TestNoImageSlidesCount(unittest.TestCase):
             },
             method="POST"
         )
-        
+
         with urllib.request.urlopen(req, timeout=5) as resp:
             self.assertEqual(resp.status, 200)
             res_data = json.loads(resp.read().decode('utf-8'))

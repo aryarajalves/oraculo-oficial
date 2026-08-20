@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 oraculo_metrics.py — Oráculo: Métricas reais do Instagram por carrossel
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -21,9 +20,14 @@ Uso:
     python oraculo_metrics.py --report           # imprime relatório no terminal
 """
 
-import os, sys, json, argparse, requests
-from pathlib import Path
+import argparse
+import json
+import os
+import sys
 from datetime import datetime
+from pathlib import Path
+
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -178,7 +182,7 @@ def print_report():
 
     line = "=" * 72
     print(f"\n{line}")
-    print(f"  ORACULO — PERFORMANCE DOS CARROSSEIS @afonteoculta")
+    print("  ORACULO — PERFORMANCE DOS CARROSSEIS @afonteoculta")
     print(f"  Atualizado: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
     print(f"{line}")
     print(f"  {'TITULO':<38} {'LIKES':>6} {'COMENT':>6} {'ALCANCE':>8} {'SALV':>6} {'ENG':>6}")

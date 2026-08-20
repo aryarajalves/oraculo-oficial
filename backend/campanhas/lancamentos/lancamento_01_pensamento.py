@@ -1,4 +1,5 @@
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 from diretor_artistico import SlideData, gerar_carrossel
 
@@ -8,46 +9,46 @@ preset_name = "A"
 
 slides = [
     SlideData(
-        1, "DISRUPÇÃO", 
-        "A Bíblia nunca mandou você apenas 'pensar positivo'.", 
+        1, "DISRUPÇÃO",
+        "A Bíblia nunca mandou você apenas 'pensar positivo'.",
         "Pensar positivo enquanto seu corpo está em pânico é tentar mentir para Deus.",
         mode="image", cover=True,
         prompt="A pristine white marble statue wearing a golden mask, but the marble is cracking and revealing dark, chaotic machinery underneath. Deep contrast, dark aesthetic."
     ),
     SlideData(
-        2, "DESCIDA", 
-        "Você tenta forçar o otimismo.", 
+        2, "DESCIDA",
+        "Você tenta forçar o otimismo.",
         "Mas o seu coração continua acelerado e o peito apertado.",
         mode="text"
     ),
     SlideData(
-        3, "NOMEAÇÃO", 
-        "Isso acontece porque o universo não ouve as suas palavras.", 
+        3, "NOMEAÇÃO",
+        "Isso acontece porque o universo não ouve as suas palavras.",
         "Ele lê a sua vibração biológica.",
         mode="text"
     ),
     SlideData(
-        4, "PROFUNDIDADE", 
-        "Repetir 'eu sou rico' 100 vezes de frente para o espelho...", 
+        4, "PROFUNDIDADE",
+        "Repetir 'eu sou rico' 100 vezes de frente para o espelho...",
         "Só ensina o seu cérebro a mentir melhor.",
         mode="image", cover=False,
         prompt="A shattered mirror reflecting a person reciting words, but the reflection shows a hollow, empty shell made of static noise. Mysterious, esoteric."
     ),
     SlideData(
-        5, "QUEDA FUNDA", 
-        "Se o seu corpo foi programado na infância para sentir medo da falta...", 
+        5, "QUEDA FUNDA",
+        "Se o seu corpo foi programado na infância para sentir medo da falta...",
         "Afirmar riqueza consciente gera um curto-circuito de ansiedade.",
         mode="text"
     ),
     SlideData(
-        6, "ESPELHO", 
-        "É por isso que O Segredo e a Lei da Atração clássica falharam com você.", 
+        6, "ESPELHO",
+        "É por isso que O Segredo e a Lei da Atração clássica falharam com você.",
         "Eles ensinaram a visualizar, mas não a desinstalar o vírus corporal.",
         mode="text"
     ),
     SlideData(
-        7, "ASCENSÃO", 
-        "Para mudar o reflexo lá fora, você não força a mente.", 
+        7, "ASCENSÃO",
+        "Para mudar o reflexo lá fora, você não força a mente.",
         "Você altera o estado do sistema nervoso. Direto na raiz.",
         mode="image", cover=False,
         prompt="A glowing golden tuning fork struck in the dark, sending perfect golden soundwaves that reorganize chaotic matter into perfect geometry."
@@ -55,8 +56,8 @@ slides = [
     SlideData(8, "CRISTALIZAÇÃO", "O trauma está na frequência Theta.", "Falar sobre ele em estado Beta não muda nada. Frequências sonoras sim.", mode="text"),
     SlideData(9, "SETUP CTA", "Se você tentou de tudo e continua travado...", "O problema não é sua falta de esforço. É que você está no nível errado.", mode="text"),
     SlideData(
-        10, "CTA FIXO", 
-        "COMENTE\n75", 
+        10, "CTA FIXO",
+        "COMENTE\n75",
         "E receba o convite VIP para os Engenheiros da Realidade. O protocolo definitivo que destrava seu código financeiro, amoroso e físico.",
         mode="image", cover=False,
         prompt="A massive glowing golden portal in a dark room. Ancient symbols of hermeticism floating softly around it."

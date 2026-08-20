@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 pipeline_reels.py — Orquestrador Principal de Reels
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -23,15 +22,17 @@ USO:
     python processos/pipeline_reels.py  ← usa tema padrão
 """
 
-import os, sys, json
+import os
+import sys
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.agentes.copywriter_reels import escrever_narrativa
 from core.agentes.diretor_de_cena import criar_visuais
-from core.agentes.voz_misteriosa import gerar_voz_cinematografica
-from core.agentes.sonoplasta import gerar_sfx
 from core.agentes.musico import gerar_musica_fundo
+from core.agentes.sonoplasta import gerar_sfx
 from core.agentes.video_prompt_builder import build_kling_prompt
+from core.agentes.voz_misteriosa import gerar_voz_cinematografica
 from infra.video.seedance_manager import gerar_video_seedance
 
 
@@ -113,9 +114,9 @@ def iniciar_pipeline(tema: str):
     print("      PIPELINE CONCLUÍDO")
     print(f"{'═'*58}{C.RST}")
     print(f"  {C.GREEN}Assets salvos em: campanhas/reels/temp/{C.RST}")
-    print(f"  Cada cena: _voz.mp3 + _sfx.mp3 + _video.mp4")
-    print(f"  Trilha: trilha_fundo.mp3")
-    print(f"\n  Arraste os pares para sua timeline e monte o reel.\n")
+    print("  Cada cena: _voz.mp3 + _sfx.mp3 + _video.mp4")
+    print("  Trilha: trilha_fundo.mp3")
+    print("\n  Arraste os pares para sua timeline e monte o reel.\n")
 
 
 if __name__ == "__main__":

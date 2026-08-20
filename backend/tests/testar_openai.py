@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 testar_openai.py — Teste completo do GPT Image 1 integrado ao compose_util
 Gera 1 slide de amostra com layout fullbleed e salva na Desktop.
@@ -9,18 +8,22 @@ COMO USAR:
     python -X utf8 testar_openai.py --modelo dall-e-3
 """
 
-import sys, os
+import os
 import sys
 from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 import argparse
 from pathlib import Path
-from core.util.gen_image_openai import gen_openai, verificar_key, MODEL as DEFAULT_MODEL
+
 from core.util.compose_util import compose
+from core.util.gen_image_openai import MODEL as DEFAULT_MODEL
+from core.util.gen_image_openai import gen_openai, verificar_key
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--modelo", default=DEFAULT_MODEL, choices=["gpt-image-1", "dall-e-3"])
@@ -28,6 +31,7 @@ args = parser.parse_args()
 
 # Override model se necessário
 import gen_image_openai as _g
+
 _g.MODEL = args.modelo
 
 print(f"\n{'='*60}")
@@ -80,10 +84,10 @@ final = compose(img_bytes, TITLE, BODY, "fullbleed", preset_name="cinematografic
 out = Path("C:/Users/julia/Desktop/teste_openai_slide.jpg")
 final.save(str(out), "JPEG", quality=95)
 
-print(f"  ✅ Slide composto e salvo!")
+print("  ✅ Slide composto e salvo!")
 print(f"  📁 {out.resolve()}")
 print(f"\n{'='*60}")
 print(f"  GPT {args.modelo.upper()} está funcionando!")
-print(f"  Agora pode usar nos carrosseis com:")
-print(f"  from core.util.gen_image_openai import gen_openai as gen")
+print("  Agora pode usar nos carrosseis com:")
+print("  from core.util.gen_image_openai import gen_openai as gen")
 print(f"{'='*60}\n")

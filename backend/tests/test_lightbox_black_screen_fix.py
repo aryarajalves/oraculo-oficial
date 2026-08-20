@@ -8,7 +8,6 @@ Cobre:
 import unittest
 from pathlib import Path
 
-
 LIGHTBOX_PATH = (
     Path(__file__).resolve().parents[2] / "frontend" / "src" / "components" / "Lightbox.jsx"
 )
@@ -25,7 +24,7 @@ class TestLightboxImageError(unittest.TestCase):
 
     def setUp(self):
         self.assertTrue(LIGHTBOX_PATH.exists(), f"Lightbox.jsx não encontrado em {LIGHTBOX_PATH}")
-        with open(LIGHTBOX_PATH, "r", encoding="utf-8") as f:
+        with open(LIGHTBOX_PATH, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_image_error_state_declared(self):
@@ -91,12 +90,12 @@ class TestBackendImageProxy(unittest.TestCase):
     """Opção B — Backend: proxy de imagem em vez de redirect 302."""
 
     def setUp(self):
-        self.assertTrue(CAROUSELS_ROUTE_PATH.exists(), f"carousels.js não encontrado")
-        with open(CAROUSELS_ROUTE_PATH, "r", encoding="utf-8") as f:
+        self.assertTrue(CAROUSELS_ROUTE_PATH.exists(), "carousels.js não encontrado")
+        with open(CAROUSELS_ROUTE_PATH, encoding="utf-8") as f:
             self.carousels_content = f.read()
 
-        self.assertTrue(B2_PATH.exists(), f"b2.js não encontrado")
-        with open(B2_PATH, "r", encoding="utf-8") as f:
+        self.assertTrue(B2_PATH.exists(), "b2.js não encontrado")
+        with open(B2_PATH, encoding="utf-8") as f:
             self.b2_content = f.read()
 
     def test_no_redirect_302_for_b2_images(self):

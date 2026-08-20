@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 sanitize_keys.py
 Substitui API keys hardcoded por os.getenv() em todos os scripts Python.
 Executa uma única vez para preparar o repo para o GitHub.
 """
 import re
-import os
 from pathlib import Path
 
 ROOT = Path("C:/Users/julia/nano-banana-mcp")

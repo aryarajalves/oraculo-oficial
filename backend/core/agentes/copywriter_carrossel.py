@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 copywriter_carrossel.py — Agente de Copy para Carrosséis
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -17,10 +16,12 @@ USO IMPORTADO:
     resultado = gerar_copy(tema="...", pilar="ALAVANCA", ancora="...")
 """
 
-import os, sys, json
+import json
+import os
+import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
-import anthropic
 
 load_dotenv()
 
@@ -506,7 +507,7 @@ def imprimir_copy(data: dict):
 
     bolhas = data.get("bolhas", {})
     if bolhas:
-        print(f"\n  BOLHAS:")
+        print("\n  BOLHAS:")
         print(f"  A (concorda): {bolhas.get('bolha_a','')[:80]}")
         print(f"  B (discorda): {bolhas.get('bolha_b','')[:80]}")
         print(f"  TENSÃO:       {bolhas.get('tensao_central','')[:80]}")
@@ -514,7 +515,7 @@ def imprimir_copy(data: dict):
     print(sep)
 
     hf = data.get("hook_forge", {})
-    print(f"\n  HOOK FORGE:")
+    print("\n  HOOK FORGE:")
     print(f"  1. CONFRONTO:  {hf.get('confronto_direto','')[:80]}")
     print(f"  2. INVERSÃO:   {hf.get('inversao_de_crenca','')[:80]}")
     print(f"  3. PARADOXO:   {hf.get('paradoxo_sagrado','')[:80]}")
@@ -538,7 +539,7 @@ def imprimir_copy(data: dict):
 
     rev = data.get("revisao", {})
     print(f"\n{sep}")
-    print(f"  REVISÃO AUTÔNOMA:")
+    print("  REVISÃO AUTÔNOMA:")
     print(f"  C1 Gancho:        {rev.get('c1_gancho',{}).get('score','?')}/3 — {rev.get('c1_gancho',{}).get('justificativa','')[:60]}")
     print(f"  C2 Arco:          {rev.get('c2_arco',{}).get('score','?')}/3 — {rev.get('c2_arco',{}).get('justificativa','')[:60]}")
     print(f"  C3 Raiva:         {rev.get('c3_raiva',{}).get('score','?')}/3 — {rev.get('c3_raiva',{}).get('justificativa','')[:60]}")
@@ -583,7 +584,7 @@ if __name__ == "__main__":
     ancora = input("\n  Âncora/dado verificável (Enter = auto): ").strip()
 
     FORMATOS = ["A", "B", "C", "D"]
-    print(f"\n  Formatos: A=Tese+Tradução | B=Demolição+Reconstrução | C=Lista Revelação | D=História+Verdade")
+    print("\n  Formatos: A=Tese+Tradução | B=Demolição+Reconstrução | C=Lista Revelação | D=História+Verdade")
     fmt = input("  Formato (Enter = auto): ").strip().upper() or "auto"
     if fmt not in FORMATOS and fmt != "AUTO":
         fmt = "auto"

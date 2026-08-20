@@ -5,6 +5,7 @@ garantindo a remoção de MutationObservers ruidosos que causavam oscilação r�
 import unittest
 from pathlib import Path
 
+
 class TestStaticOraculoTitle(unittest.TestCase):
     def setUp(self):
         self.main_path = (

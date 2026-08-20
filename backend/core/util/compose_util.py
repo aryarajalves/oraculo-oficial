@@ -24,11 +24,11 @@ Design Presets:
   etereo_luminoso         — âmbar luminoso, suave
 """
 
-import random
-import numpy as np
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from io import BytesIO
 from pathlib import Path
+
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 W, H        = 1080, 1350
 MARGIN_C    = 92    # margem para texto centralizado
@@ -38,6 +38,7 @@ MAX_TW_C    = W - MARGIN_C * 2   # 920px centralizado
 MAX_TW_L    = W - MARGIN_L - MARGIN_R  # 936px left
 
 from core.util.fonts import get_fonts as _get_fonts
+
 _FONTS   = _get_fonts()
 F_HEAVY  = _FONTS["heavy"]
 F_HEAVY_IT = _FONTS["heavy_it"]
@@ -453,18 +454,18 @@ def _watermarks(draw, color, pos="top_left", x=None, y=None, text=None):
             branding_path = Path(__file__).parent.parent.parent / "dashboard" / "data" / "branding.json"
             if branding_path.exists():
                 import json
-                with open(branding_path, "r", encoding="utf-8") as f:
+                with open(branding_path, encoding="utf-8") as f:
                     data = json.load(f)
                     mark = data.get("logoText", "@HAUCACAU")
         except Exception:
             pass
 
     fm   = load_font(F_MARK, 28)
-    
+
     # Coordenadas padrão baseadas na posição
     default_x = MARGIN_L
     default_y = 48
-    
+
     if pos == "top_right":
         default_x = W - MARGIN_R - 180
         default_y = 48
@@ -474,7 +475,7 @@ def _watermarks(draw, color, pos="top_left", x=None, y=None, text=None):
     elif pos == "bottom_right":
         default_x = W - MARGIN_R - 180
         default_y = H - 80
-        
+
     final_x = int(x) if x is not None and str(x).strip() != "" else default_x
     final_y = int(y) if y is not None and str(y).strip() != "" else default_y
     draw.text((final_x, final_y), mark, font=fm, fill=color)
@@ -800,7 +801,7 @@ def compose(img_bytes, title, body, layout="fullbleed", preset_name=DEFAULT_PRES
       'esoterico_minimalista' | 'dramatico' | 'etereo_luminoso'
     """
     p = get_preset(preset_name).copy()
-    
+
     if title_px is not None and str(title_px).strip() != "":
         p["title_px"] = int(title_px)
     if body_px is not None and str(body_px).strip() != "":
@@ -829,7 +830,7 @@ def compose(img_bytes, title, body, layout="fullbleed", preset_name=DEFAULT_PRES
       'esoterico_minimalista' | 'dramatico' | 'etereo_luminoso'
     """
     p = get_preset(preset_name).copy()
-    
+
     if title_px is not None and str(title_px).strip() != "":
         p["title_px"] = int(title_px)
     if body_px is not None and str(body_px).strip() != "":

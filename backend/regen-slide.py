@@ -4,9 +4,17 @@ Uso: python regen-slide.py --prompt <txt> --title <txt> --body <txt> --layout fu
 """
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import sys, argparse, json, base64, time, urllib.request, urllib.error
+import argparse
+import base64
+import json
+import sys
+import time
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))

@@ -12,7 +12,7 @@ class TestEditSlideModalLoadingPopup(unittest.TestCase):
             / "frontend" / "src" / "components" / "EditSlideModal.jsx"
         )
         self.assertTrue(self.file_path.exists(), f"EditSlideModal.jsx não encontrado em {self.file_path}")
-        with open(self.file_path, "r", encoding="utf-8") as f:
+        with open(self.file_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_popup_overlay_rendered_when_saving(self):

@@ -2,11 +2,18 @@
 """Carrossel — Cabala | gemini-2.0-flash-preview-image-generation"""
 
 import os
+
 from dotenv import load_dotenv
+
 load_dotenv()
-import json, base64, time, urllib.request, urllib.error
-from pathlib import Path
+import base64
+import json
+import time
+import urllib.error
+import urllib.request
 from io import BytesIO
+from pathlib import Path
+
 from PIL import Image, ImageDraw, ImageFont
 
 API_KEY  = os.getenv("GEMINI_API_KEY")

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 oraculo_completo.py — Oráculo Completo: TODOS os posts do @afonteoculta
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -19,9 +18,15 @@ Uso:
     python oraculo_completo.py --report  # imprime relatório no terminal
 """
 
-import os, sys, json, time, argparse, requests
-from pathlib import Path
+import argparse
+import json
+import os
+import sys
+import time
 from datetime import datetime
+from pathlib import Path
+
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -193,15 +198,15 @@ def sincronizar(verbose: bool = True) -> dict:
     line = "=" * 62
     if verbose:
         print(f"\n{line}")
-        print(f"  ORACULO COMPLETO — @afonteoculta")
-        print(f"  Sincronizando todos os posts...")
+        print("  ORACULO COMPLETO — @afonteoculta")
+        print("  Sincronizando todos os posts...")
         print(f"{line}\n")
 
     # 1. Busca todos os media IDs
     raw_posts = fetch_all_media()
     if verbose:
         print(f"\n  Total de posts encontrados: {len(raw_posts)}\n")
-        print(f"  Buscando insights (1 post por vez)...")
+        print("  Buscando insights (1 post por vez)...")
 
     # 2. Enriquece com insights
     enriched = []
@@ -252,7 +257,7 @@ def sincronizar(verbose: bool = True) -> dict:
 
     if verbose:
         print(f"\n{line}")
-        print(f"  SYNC CONCLUIDO")
+        print("  SYNC CONCLUIDO")
         print(f"  Posts: {len(enriched)} | Erros: {errors}")
         print(f"  Likes totais:       {total_likes:>10,}")
         print(f"  Comentarios totais: {total_comments:>10,}")

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-sal-escravo.py — O Sal do Escravo
 Tema: Salário como herança de servidão / calibração financeira
@@ -7,9 +6,10 @@ Preset: REVELACAO | 10 slides | Formato B
 """
 
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
-from diretor_artistico import gerar_carrossel, SlideData
+from diretor_artistico import SlideData, gerar_carrossel
 
 TEMA      = "O Sal do Escravo"
 TEMA_SLUG = "sal-escravo"

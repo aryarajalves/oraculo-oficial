@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 sonoplasta.py — Agente Sonoplasta (SFX)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -13,8 +12,11 @@ Recebe a fala + descrição visual de uma cena e:
 APIs: OpenAI (prompt SFX) + ElevenLabs (geração de áudio)
 """
 
-import os, sys, json, requests
+import os
+import sys
 from pathlib import Path
+
+import requests
 from dotenv import load_dotenv
 from openai import OpenAI
 

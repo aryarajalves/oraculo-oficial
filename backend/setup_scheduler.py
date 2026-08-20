@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 setup_scheduler.py — Configura o Task Scheduler do Windows
 Cria 3 tarefas agendadas que executam publisher.py nos horários corretos.
@@ -9,7 +8,10 @@ USO:
     python setup_scheduler.py --list  → listar tarefas criadas
     python setup_scheduler.py --remove → remover as tarefas
 """
-import subprocess, sys, os, argparse
+import argparse
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 # Fix Windows console encoding
@@ -74,7 +76,7 @@ def main():
     args = parser.parse_args()
 
     print(f"\n{'='*56}")
-    print(f"  SCHEDULER — Fonte Oculta")
+    print("  SCHEDULER — Fonte Oculta")
     print(f"  Python: {PYTHON}")
     print(f"  Script: {PUB}")
     print(f"{'='*56}\n")
@@ -99,11 +101,11 @@ def main():
             print(f"    {msg.strip()[:120]}")
 
     print(f"\n  {'='*52}")
-    print(f"  Tarefas ativas. Próximas execuções:")
+    print("  Tarefas ativas. Próximas execuções:")
     for t in TAREFAS:
         print(f"    🕐 {t['horario']} → {t['label']}")
-    print(f"\n  Para verificar: python setup_scheduler.py --list")
-    print(f"  Para remover:  python setup_scheduler.py --remove")
+    print("\n  Para verificar: python setup_scheduler.py --list")
+    print("  Para remover:  python setup_scheduler.py --remove")
     print(f"  {'='*52}\n")
 
 if __name__ == "__main__":

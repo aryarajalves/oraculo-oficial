@@ -1,24 +1,32 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-teto-sna.py — ALAVANCA | Formato D | Score 15/15
 Big Idea: "Você não tem um problema de estratégia. Tem um teto de segurança calibrado pelo SNA antes dos 7 anos."
 Refs: Bruce Lipton (Stanford/1994), Paul MacLean (NIMH/1990), Raj Chetty (Harvard/2014), Joe Dispenza (JACM/2017)
 """
 
-import os, sys
+import os
+import sys
+
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from dotenv import load_dotenv
+
 load_dotenv()
-import json, base64, time, urllib.request, urllib.error
+import base64
+import json
+import time
+import urllib.error
+import urllib.request
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from pathlib import Path
+
+from core.agentes.register_carousel import register
 from core.util.compose_util import compose
 from core.util.prompt_builder import build_prompt
-from core.agentes.register_carousel import register
 
 # ── CONFIGURACAO ──────────────────────────────────────────────────────────────
 API_KEY  = os.getenv("GEMINI_API_KEY")

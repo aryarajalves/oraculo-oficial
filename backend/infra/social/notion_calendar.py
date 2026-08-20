@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 notion_calendar.py — Cliente do Calendário Editorial no Notion
 Lê e escreve no banco "Calendário Editorial — Fonte Oculta"
 
 Data Source ID: c595263c-1c98-4b18-abd2-445bb3630661
 """
-import os, json, urllib.request, urllib.error
+import json
+import os
+import urllib.error
+import urllib.request
 from datetime import datetime
+
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # ── CONSTRUTORES DE BLOCOS NOTION ─────────────────────────────────────────────

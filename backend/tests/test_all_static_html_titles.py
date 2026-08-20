@@ -2,8 +2,8 @@
 Teste unitário para varrer TODOS os arquivos HTML das pastas frontend/public, frontend/dist e frontend/index.html
 para garantir que a tag <title> seja estritamente 'Oraculo', eliminando qualquer oscilação de título de aba.
 """
-import unittest
 import re
+import unittest
 from pathlib import Path
 
 FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"

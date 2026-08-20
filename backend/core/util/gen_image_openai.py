@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 gen_image_openai.py — Gerador de imagens via OpenAI (gpt-image-1 / dall-e-3)
 Drop-in replacement para o gen() do Gemini nos scripts de carrossel.
@@ -13,7 +12,10 @@ MODELOS:
     "dall-e-3"     → DALL-E 3 (mais rápido, amplamente disponível)
 """
 
-import os, base64, time, sys
+import base64
+import os
+import sys
+import time
 from pathlib import Path
 
 # Carrega .env localmente; no Render as variáveis já estão no ambiente

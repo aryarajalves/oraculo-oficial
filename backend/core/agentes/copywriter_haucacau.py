@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 copywriter_haucacau.py — Agente de Copy para Carrosséis HauCacau
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -17,8 +16,11 @@ USO IMPORTADO:
     resultado = gerar_copy_haucacau(tema="...", universo=2, avatar="B")
 """
 
-import os, sys, json
+import json
+import os
+import sys
 from pathlib import Path
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -34,6 +36,7 @@ if not ANTHROPIC_KEY:
     sys.exit(1)
 
 import anthropic
+
 _claude = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
 MODEL   = "claude-sonnet-4-6"
 

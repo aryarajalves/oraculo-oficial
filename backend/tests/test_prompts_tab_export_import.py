@@ -17,7 +17,7 @@ class TestPromptsTabWordWrap(unittest.TestCase):
             / "frontend" / "src" / "components" / "Settings" / "PromptsTab.jsx"
         )
         self.assertTrue(self.file_path.exists(), f"PromptsTab.jsx não encontrado em {self.file_path}")
-        with open(self.file_path, "r", encoding="utf-8") as f:
+        with open(self.file_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_whitespace_pre_wrap_applied(self):
@@ -63,7 +63,7 @@ class TestPromptsTabExportImport(unittest.TestCase):
             Path(__file__).resolve().parents[2]
             / "frontend" / "src" / "components" / "Settings" / "PromptsTab.jsx"
         )
-        with open(self.file_path, "r", encoding="utf-8") as f:
+        with open(self.file_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_export_button_exists(self):
@@ -124,7 +124,7 @@ class TestSettingsPassesShowToastToPromptsTab(unittest.TestCase):
             Path(__file__).resolve().parents[2]
             / "frontend" / "src" / "components" / "Settings.jsx"
         )
-        with open(self.settings_path, "r", encoding="utf-8") as f:
+        with open(self.settings_path, encoding="utf-8") as f:
             self.content = f.read()
 
     def test_show_toast_passed_to_prompts_tab(self):

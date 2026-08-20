@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Regenera apenas o slide-07 do carrossel-pastor-frequencia com prompt revisado."""
 
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from pathlib import Path
+
 from core.util.compose_util import compose
 from core.util.gen_image_openai import gen_openai as gen
 

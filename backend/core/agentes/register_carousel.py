@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 register_carousel.py — Registra automaticamente um carrossel no dashboard.
 Chamado no final de todo script de geração de carrossel.
@@ -18,11 +17,10 @@ Uso:
     )
 """
 import json
-from pathlib import Path
-from datetime import date
-
-import urllib.request
 import urllib.error
+import urllib.request
+from datetime import date
+from pathlib import Path
 
 DATA_FILE = Path("C:/Users/julia/nano-banana-mcp/dashboard/data/carousels.json")
 

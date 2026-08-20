@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 open-dashboard.py — Inicia o dashboard e abre no browser.
 
@@ -14,8 +13,8 @@ O script:
 import subprocess
 import sys
 import time
-import webbrowser
 import urllib.request
+import webbrowser
 from pathlib import Path
 
 DASHBOARD_DIR = Path("C:/Users/julia/nano-banana-mcp/dashboard")

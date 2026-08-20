@@ -1,12 +1,13 @@
 import unittest
 from pathlib import Path
 
+
 class TestRadarPagination(unittest.TestCase):
     def setUp(self):
         # Localiza o arquivo Radar.jsx a partir do diretório do teste
         self.radar_path = Path(__file__).resolve().parents[2] / 'frontend' / 'src' / 'components' / 'Radar.jsx'
         self.assertTrue(self.radar_path.exists(), f"Radar.jsx não encontrado em {self.radar_path}")
-        with open(self.radar_path, 'r', encoding='utf-8') as f:
+        with open(self.radar_path, encoding='utf-8') as f:
             self.content = f.read()
 
     def test_pagination_states_exist(self):

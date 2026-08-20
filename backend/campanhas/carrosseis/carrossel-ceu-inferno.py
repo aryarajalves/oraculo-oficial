@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 carrossel-ceu-inferno.py — O Céu e o Inferno Nunca Foram Lugares Físicos
 Método Jordânico | Praça: ESPÍRITO | Formato B
@@ -8,9 +7,10 @@ Preset: revelacao | 10 slides
 """
 
 import sys
+
 sys.path.insert(0, "C:/Users/julia/nano-banana-mcp")
 
-from diretor_artistico import gerar_carrossel, SlideData
+from diretor_artistico import SlideData, gerar_carrossel
 
 TEMA      = "O Céu e o Inferno Nunca Foram Lugares Físicos"
 TEMA_SLUG = "ceu-inferno-frequencias"
