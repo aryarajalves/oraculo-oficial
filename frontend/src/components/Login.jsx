@@ -321,7 +321,7 @@ export default function Login({ onSuccess }) {
 
         {error && <div className="error-msg">{error}</div>}
 
-        <div className="footer-note">@afonteoculta · Plataforma Interna</div>
+        <div className="footer-note">Oraculo · Plataforma Interna</div>
       </div>
     </div>
   );

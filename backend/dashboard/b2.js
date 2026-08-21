@@ -8,13 +8,29 @@ import { Readable } from "stream";
 import { logger } from "./logger.js";
 
 // ── Config ──────────────────────────────────────────────────────────────────
-const BUCKET      = process.env.MINIO_BUCKET      || "oraculo-bucket";
-const ENDPOINT    = process.env.MINIO_ENDPOINT    || "http://localhost:9000";
-const KEY_ID      = process.env.MINIO_ROOT_USER   || "oraculo_admin";
-const APP_KEY     = process.env.MINIO_ROOT_PASSWORD || "oraculo_secret_123";
+const BUCKET      = process.env.MINIO_BUCKET      || process.env.B2_BUCKET || "oraculo-bucket";
+const RAW_ENDPOINT = process.env.MINIO_ENDPOINT    || process.env.B2_ENDPOINT || "http://localhost:9000";
+const KEY_ID      = process.env.MINIO_ROOT_USER   || process.env.B2_KEY_ID || process.env.B2_APPLICATION_KEY_ID || "oraculo_admin";
+const APP_KEY     = process.env.MINIO_ROOT_PASSWORD || process.env.B2_APP_KEY || process.env.B2_APPLICATION_KEY || "oraculo_secret_123";
 const PREFIX      = "carousels";  // pasta raiz no bucket
 
-function getRegionFromEndpoint(endpoint) {
+export function normalizeEndpoint(raw) {
+  if (!raw) return "http://localhost:9000";
+  let ep = String(raw).trim();
+  if (!ep.startsWith("http://") && !ep.startsWith("https://")) {
+    if (ep.includes("localhost") || ep.includes("minio") || ep.includes("127.0.0.1") || ep.includes(":9000")) {
+      ep = `http://${ep}`;
+    } else {
+      ep = `https://${ep}`;
+    }
+  } else if (ep.startsWith("http://") && (ep.includes("backblazeb2.com") || ep.includes("amazonaws.com") || ep.includes("r2.cloudflarestorage.com"))) {
+    // Evita redirecionamento HTTP 301 "Moved Permanently" da nuvem
+    ep = ep.replace(/^http:\/\//i, "https://");
+  }
+  return ep.replace(/\/+$/, "");
+}
+
+export function getRegionFromEndpoint(endpoint) {
   if (process.env.MINIO_REGION || process.env.AWS_REGION || process.env.B2_REGION) {
     return process.env.MINIO_REGION || process.env.AWS_REGION || process.env.B2_REGION;
   }
@@ -25,15 +41,17 @@ function getRegionFromEndpoint(endpoint) {
   return "us-east-1";
 }
 
+const ENDPOINT = normalizeEndpoint(RAW_ENDPOINT);
+
 // URL pública base para acesso (com fallback)
-const MINIO_PUBLIC_URL = (process.env.MINIO_PUBLIC_URL || ENDPOINT).replace(/\/$/, "");
+const MINIO_PUBLIC_URL = normalizeEndpoint(process.env.MINIO_PUBLIC_URL || ENDPOINT);
 export const B2_PUBLIC_URL = `${MINIO_PUBLIC_URL}/${BUCKET}`;
 
 // ── Client ──────────────────────────────────────────────────────────────────
 let _client = null;
 let _bucketInitialized = false;
 
-function getClient() {
+export function getClient() {
   if (!_client) {
     const region = getRegionFromEndpoint(ENDPOINT);
     _client = new S3Client({
@@ -46,43 +64,44 @@ function getClient() {
   return _client;
 }
 
-async function ensureBucketExists() {
+export async function ensureBucketExists() {
   if (_bucketInitialized) return;
-  const client = getClient();
-  const policy = JSON.stringify({
-    Version: "2012-10-17",
-    Statement: [
-      {
-        Sid: "PublicRead",
-        Effect: "Allow",
-        Principal: "*",
-        Action: ["s3:GetObject"],
-        Resource: [`arn:aws:s3:::${BUCKET}/*`]
-      }
-    ]
-  });
+  _bucketInitialized = true;
 
-  try {
-    const cmd = new CreateBucketCommand({ Bucket: BUCKET });
-    await client.send(cmd);
-    logger.info('[B2]', `Bucket "${BUCKET}" criado ou verificado com sucesso.`);
-    
-    await client.send(new PutBucketPolicyCommand({ Bucket: BUCKET, Policy: policy }));
-    logger.info('[B2]', `Política pública de leitura configurada no bucket "${BUCKET}".`);
-  } catch (e) {
-    if (e.name !== "BucketAlreadyExists" && e.name !== "BucketAlreadyOwnedByYou" && e.code !== "BucketAlreadyExists") {
-      logger.error('[B2]', `Erro ao verificar/criar bucket "${BUCKET}":`, e.message);
-    } else {
-      // Se já existe, tenta aplicar/atualizar a política para garantir que esteja pública
-      try {
-        await client.send(new PutBucketPolicyCommand({ Bucket: BUCKET, Policy: policy }));
-        logger.info('[B2]', `Política pública de leitura atualizada no bucket existente "${BUCKET}".`);
-      } catch (policyErr) {
-        logger.error('[B2]', `Erro ao atualizar política no bucket existente:`, policyErr.message);
+  const isCloudProvider = ENDPOINT.includes("backblazeb2.com") || ENDPOINT.includes("r2.cloudflarestorage.com");
+  const client = getClient();
+
+  // Em provedores de nuvem como Backblaze B2, a criação e permissões do bucket são gerenciadas no console do provedor
+  if (!isCloudProvider) {
+    try {
+      const cmd = new CreateBucketCommand({ Bucket: BUCKET });
+      await client.send(cmd);
+      logger.info('[B2]', `Bucket "${BUCKET}" criado ou verificado com sucesso.`);
+    } catch (e) {
+      if (e.name !== "BucketAlreadyExists" && e.name !== "BucketAlreadyOwnedByYou" && e.code !== "BucketAlreadyExists") {
+        logger.warn('[B2]', `Aviso ao criar bucket "${BUCKET}": ${e.message}`);
       }
     }
+
+    try {
+      const policy = JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [
+          {
+            Sid: "PublicRead",
+            Effect: "Allow",
+            Principal: "*",
+            Action: ["s3:GetObject"],
+            Resource: [`arn:aws:s3:::${BUCKET}/*`]
+          }
+        ]
+      });
+      await client.send(new PutBucketPolicyCommand({ Bucket: BUCKET, Policy: policy }));
+      logger.info('[B2]', `Política pública de leitura configurada no bucket "${BUCKET}".`);
+    } catch (policyErr) {
+      logger.warn('[B2]', `Aviso ao configurar política no bucket: ${policyErr.message}`);
+    }
   }
-  _bucketInitialized = true;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -99,28 +118,33 @@ function streamToBuffer(stream) {
 const DATA_KEY = `${PREFIX}/carousels.json`;
 
 export async function readDataFromB2() {
-  await ensureBucketExists();
   try {
+    await ensureBucketExists();
     const cmd = new GetObjectCommand({ Bucket: BUCKET, Key: DATA_KEY });
     const res = await getClient().send(cmd);
     const buf = await streamToBuffer(res.Body);
     return JSON.parse(buf.toString("utf-8"));
   } catch (e) {
     if (e.name === "NoSuchKey" || e.$metadata?.httpStatusCode === 404) return [];
-    throw e;
+    logger.warn('[B2]', `Aviso ao ler carousels.json do B2/MinIO (${e.message}), retornando lista vazia.`);
+    return [];
   }
 }
 
 export async function writeDataToB2(data) {
-  await ensureBucketExists();
-  const body = JSON.stringify(data, null, 2);
-  const cmd = new PutObjectCommand({
-    Bucket: BUCKET,
-    Key: DATA_KEY,
-    Body: body,
-    ContentType: "application/json",
-  });
-  await getClient().send(cmd);
+  try {
+    await ensureBucketExists();
+    const body = JSON.stringify(data, null, 2);
+    const cmd = new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: DATA_KEY,
+      Body: body,
+      ContentType: "application/json",
+    });
+    await getClient().send(cmd);
+  } catch (e) {
+    logger.warn('[B2]', `Aviso ao escrever carousels.json no B2/MinIO: ${e.message}`);
+  }
 }
 
 // ── Images ───────────────────────────────────────────────────────────────────

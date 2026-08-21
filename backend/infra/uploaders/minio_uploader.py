@@ -39,22 +39,53 @@ MINIO_BUCKET        = os.getenv("MINIO_BUCKET", "oraculo-bucket")
 MINIO_PUBLIC_URL    = os.getenv("MINIO_PUBLIC_URL") or MINIO_ENDPOINT
 
 
+def _get_region(endpoint: str) -> str:
+    if os.getenv("B2_REGION") or os.getenv("MINIO_REGION") or os.getenv("AWS_REGION"):
+        return os.getenv("B2_REGION") or os.getenv("MINIO_REGION") or os.getenv("AWS_REGION")
+    import re
+    m = re.search(r"s3[.-]([a-z0-9-]+)\.backblazeb2\.com", endpoint, re.IGNORECASE)
+    if m:
+        return m.group(1)
+    aws_m = re.search(r"s3[.-]([a-z0-9-]+)\.amazonaws\.com", endpoint, re.IGNORECASE)
+    if aws_m:
+        return aws_m.group(1)
+    return "us-east-1"
+
+
+def _normalize_endpoint(endpoint: str) -> str:
+    if not endpoint:
+        return "http://localhost:9000"
+    ep = endpoint.strip()
+    if not ep.startswith("http://") and not ep.startswith("https://"):
+        if any(h in ep for h in ["localhost", "minio", "127.0.0.1", ":9000"]):
+            ep = f"http://{ep}"
+        else:
+            ep = f"https://{ep}"
+    elif ep.startswith("http://") and any(cloud in ep for cloud in ["backblazeb2.com", "amazonaws.com", "r2.cloudflarestorage.com"]):
+        ep = ep.replace("http://", "https://")
+    return ep.rstrip("/")
+
+
 def _client():
     """Cria cliente boto3 apontando para B2 ou MinIO."""
     if B2_KEY_ID and B2_APPLICATION_KEY:
-        endpoint = B2_ENDPOINT or "https://s3.us-west-004.backblazeb2.com"
+        endpoint = _normalize_endpoint(B2_ENDPOINT or "https://s3.us-west-004.backblazeb2.com")
+        region = _get_region(endpoint)
         return boto3.client(
             "s3",
+            region_name         = region,
             endpoint_url        = endpoint,
             aws_access_key_id   = B2_KEY_ID,
             aws_secret_access_key = B2_APPLICATION_KEY,
             config              = Config(signature_version="s3v4"),
         )
+    endpoint = _normalize_endpoint(MINIO_ENDPOINT or "http://localhost:9000")
     return boto3.client(
         "s3",
-        endpoint_url        = MINIO_ENDPOINT,
-        aws_access_key_id   = MINIO_ROOT_USER,
-        aws_secret_access_key = MINIO_ROOT_PASSWORD,
+        region_name         = "us-east-1",
+        endpoint_url        = endpoint,
+        aws_access_key_id   = MINIO_ROOT_USER or "oraculo_admin",
+        aws_secret_access_key = MINIO_ROOT_PASSWORD or "oraculo_secret_123",
         config              = Config(signature_version="s3v4"),
     )
 

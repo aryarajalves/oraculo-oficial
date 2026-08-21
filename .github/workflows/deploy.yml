@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Alvo do Deploy (ALL, HAUCAU, OFICIAL, TESTES)'
+        description: 'Alvo do Deploy (ALL, HAUCAU, OFICIAL, TESTES, BELLA)'
         required: true
         default: 'ALL'
         type: string
@@ -24,4 +24,5 @@ jobs:
           WEBHOOK_HAUCAU: ${{ secrets.WEBHOOK_HAUCAU }}
           WEBHOOK_OFICIAL: ${{ secrets.WEBHOOK_OFICIAL }}
           WEBHOOK_TESTES: ${{ secrets.WEBHOOK_TESTES }}
+          WEBHOOK_BELLA: ${{ secrets.WEBHOOK_BELLA }}
         run: node scripts/trigger_webhooks.mjs

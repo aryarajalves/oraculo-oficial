@@ -17,11 +17,24 @@ import { Readable } from 'stream';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ── S3 Configuration ──────────────────────────────────────────────────────────
+function getRegionFromEndpoint(endpoint) {
+  if (process.env.B2_REGION || process.env.AWS_REGION || process.env.MINIO_REGION) {
+    return process.env.B2_REGION || process.env.AWS_REGION || process.env.MINIO_REGION;
+  }
+  const match = endpoint.match(/s3[.-]([a-z0-9-]+)\.backblazeb2\.com/i);
+  if (match) return match[1];
+  const awsMatch = endpoint.match(/s3[.-]([a-z0-9-]+)\.amazonaws\.com/i);
+  if (awsMatch) return awsMatch[1];
+  return "us-east-005";
+}
+
 const getS3Client = () => {
-  const bucket = process.env.B2_BUCKET_NAME || "Publicacoes";
-  const endpoint = (process.env.B2_ENDPOINT || "s3.us-east-005.backblazeb2.com").replace(/^https?:\/\//i, "");
-  const keyId = process.env.B2_KEY_ID;
-  const appKey = process.env.B2_APPLICATION_KEY;
+  const bucket = process.env.B2_BUCKET_NAME || process.env.B2_BUCKET || "Publicacoes";
+  const rawEndpoint = process.env.B2_ENDPOINT || process.env.MINIO_ENDPOINT || "s3.us-east-005.backblazeb2.com";
+  const cleanEndpoint = rawEndpoint.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  const region = getRegionFromEndpoint(cleanEndpoint);
+  const keyId = process.env.B2_KEY_ID || process.env.B2_APPLICATION_KEY_ID || process.env.MINIO_ROOT_USER;
+  const appKey = process.env.B2_APPLICATION_KEY || process.env.B2_APP_KEY || process.env.MINIO_ROOT_PASSWORD;
 
   if (!keyId || !appKey) {
     throw new Error("Credenciais do Backblaze B2/S3 não configuradas no .env");
@@ -29,8 +42,8 @@ const getS3Client = () => {
 
   return {
     client: new S3Client({
-      region: "us-east-005",
-      endpoint: `https://${endpoint}`,
+      region: region,
+      endpoint: `https://${cleanEndpoint}`,
       credentials: { accessKeyId: keyId, secretAccessKey: appKey },
       forcePathStyle: true,
     }),

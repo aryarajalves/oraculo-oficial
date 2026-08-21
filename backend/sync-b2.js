@@ -27,10 +27,37 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 import { S3Client, PutObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 
-const BUCKET   = process.env.MINIO_BUCKET      || "oraculo-bucket";
-const ENDPOINT = process.env.MINIO_ENDPOINT    || "http://localhost:9000";
-const KEY_ID   = process.env.MINIO_ROOT_USER   || "oraculo_admin";
-const APP_KEY  = process.env.MINIO_ROOT_PASSWORD || "oraculo_secret_123";
+function normalizeEndpoint(raw) {
+  if (!raw) return "http://localhost:9000";
+  let ep = String(raw).trim();
+  if (!ep.startsWith("http://") && !ep.startsWith("https://")) {
+    if (ep.includes("localhost") || ep.includes("minio") || ep.includes("127.0.0.1") || ep.includes(":9000")) {
+      ep = `http://${ep}`;
+    } else {
+      ep = `https://${ep}`;
+    }
+  } else if (ep.startsWith("http://") && (ep.includes("backblazeb2.com") || ep.includes("amazonaws.com") || ep.includes("r2.cloudflarestorage.com"))) {
+    ep = ep.replace(/^http:\/\//i, "https://");
+  }
+  return ep.replace(/\/+$/, "");
+}
+
+function getRegionFromEndpoint(endpoint) {
+  if (process.env.MINIO_REGION || process.env.AWS_REGION || process.env.B2_REGION) {
+    return process.env.MINIO_REGION || process.env.AWS_REGION || process.env.B2_REGION;
+  }
+  const match = endpoint.match(/s3[.-]([a-z0-9-]+)\.backblazeb2\.com/i);
+  if (match) return match[1];
+  const awsMatch = endpoint.match(/s3[.-]([a-z0-9-]+)\.amazonaws\.com/i);
+  if (awsMatch) return awsMatch[1];
+  return "us-east-1";
+}
+
+const RAW_ENDPOINT = process.env.MINIO_ENDPOINT || process.env.B2_ENDPOINT || "http://localhost:9000";
+const ENDPOINT = normalizeEndpoint(RAW_ENDPOINT);
+const BUCKET   = process.env.MINIO_BUCKET || process.env.B2_BUCKET || "oraculo-bucket";
+const KEY_ID   = process.env.MINIO_ROOT_USER || process.env.B2_KEY_ID || process.env.B2_APPLICATION_KEY_ID || "oraculo_admin";
+const APP_KEY  = process.env.MINIO_ROOT_PASSWORD || process.env.B2_APP_KEY || process.env.B2_APPLICATION_KEY || "oraculo_secret_123";
 const PREFIX   = "carousels";
 
 const DATA_FILE = path.join(__dirname, "dashboard", "data", "carousels.json");
@@ -39,12 +66,12 @@ const DATA_FILE = path.join(__dirname, "dashboard", "data", "carousels.json");
 const G = "\x1b[32m", Y = "\x1b[33m", R = "\x1b[31m", D = "\x1b[2m", RST = "\x1b[0m", B = "\x1b[34m";
 
 if (!KEY_ID || !APP_KEY) {
-  console.error(`${R}ERRO: MINIO_ROOT_USER e MINIO_ROOT_PASSWORD não encontrados no .env${RST}`);
+  console.error(`${R}ERRO: Credenciais de storage (MINIO/B2) não encontradas no .env${RST}`);
   process.exit(1);
 }
 
 const s3 = new S3Client({
-  region: "us-east-1",
+  region: getRegionFromEndpoint(ENDPOINT),
   endpoint: ENDPOINT,
   credentials: { accessKeyId: KEY_ID, secretAccessKey: APP_KEY },
   forcePathStyle: true,
