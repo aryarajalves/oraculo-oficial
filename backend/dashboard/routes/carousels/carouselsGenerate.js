@@ -396,7 +396,10 @@ TÍTULO: [conteúdo do título do slide]
 CORPO: [conteúdo do texto/copy do slide]
 VISUAL: [descrição da imagem visual do slide]
 
-Jamais entregue os slides apenas como texto corrido ou apenas **SX:** sem as chaves TÍTULO:, CORPO: e VISUAL:.\n\n`;
+Jamais entregue os slides apenas como texto corrido ou apenas **SX:** sem as chaves TÍTULO:, CORPO: e VISUAL:.
+
+🎯 REGRA DE SELEÇÃO DE TEMA:
+Se o usuário escolheu ou enviou um tema/título (ex: "Tema: ...", "X. Tema: ...", ou selecionou um item da lista anterior), você DEVE IMEDIATAMENTE gerar o roteiro completo dos ${numSlides} slides ([S1] até [S${numSlides}]). NUNCA continue listando mais opções de temas numeradas (como 6, 7, 8...). Apenas gere novos temas se o usuário pedir explicitamente para sugerir mais ideias.\n\n`;
 
   system = system + mandatoryFormatInstruction;
 

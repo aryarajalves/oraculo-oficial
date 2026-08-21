@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { parseCarouselText } from '../utils/carouselParser';
+import { exportChatToHtml } from '../utils/exportChat';
 
 const IDEAS_PROMPT = `Sugira 5 ideias de temas e títulos para carrosséis do @afonteoculta. O nicho é: espiritualidade, epigenética, frequência, traumas, dinheiro, consciência. Use o Método Jordânico — ganchos disruptivos, revelação oculta, arco emocional.
 
@@ -8,6 +9,21 @@ Tema: [slug-do-tema]
 Título: [título do slide 1 — gancho disruptivo]
 
 Seja direto. Sem introduções. Só as 5 ideias.`;
+
+function parseIdeasFromText(text) {
+  if (!text || typeof text !== 'string') return [];
+  const regex = /(?:(\d+)[\.\)]\s*)?Tema:\s*([^\n]+)\s*\n\s*Título:\s*([^\n]+)/gi;
+  const ideas = [];
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    ideas.push({
+      num: match[1] || '',
+      theme: match[2].trim(),
+      title: match[3].trim()
+    });
+  }
+  return ideas;
+}
 
 export default function Criador({ onStartGeneration, showToast, shouldAddFormMessage, clearAddFormMessage, initialMessages, clearInitialMessages, isReadOnly, isMockFlow }) {
   const [input, setInput] = useState('');
@@ -44,7 +60,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
     const verbo = /\b(criar|cria|crie|gerar|gera|gere|bora|faz|faca|fazer|produz|monta|execute|executa|dispara|ativa|roda|vai|cria)\b/;
     if (!verbo.test(t)) return false;
     const novoConteudo = /\b(sobre|com a|relacionado|baseado|partindo|a partir|novo|nova|diferente|outra|outro|tema|ideia|versao|variacao|gancho|hook|roteiro|legenda|caption|copy|texto)\b/;
-    if (novoConteudo.test(t)) return false;
+    if (!novoConteudo.test(t)) return false;
     return t.trim().split(/\s+/).length <= 6;
   };
 
@@ -55,11 +71,16 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
     setInput('');
     setMessages(prev => [...prev, { role: 'user', content: text }]);
 
-
-
     setGenerating(true);
     const aiMessageId = 'ai-' + Date.now();
     setMessages(prev => [...prev, { role: 'ai', content: '', id: aiMessageId, streaming: true }]);
+
+    // Trata seleção de tema de forma direta para a IA gerar os 10 slides sem listar mais números
+    let promptToSend = text;
+    const isThemeSelection = /(?:^\d+[\.\)]\s*tema:|^tema:|^t[ií]tulo:)/i.test(text) || (text.includes('Tema:') && text.includes('Título:'));
+    if (isThemeSelection && !text.toLowerCase().includes('sugira') && !text.toLowerCase().includes('ideias')) {
+      promptToSend = `Quero criar o carrossel com este tema selecionado:\n${text}\n\nGere agora o roteiro completo dos slides no Método Jordânico ([S1] até [S10]) com todos os ganchos, cópias e descrições visuais.`;
+    }
 
     let fullText = '';
     let responseModel = 'gpt-4o';
@@ -70,7 +91,7 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          messages: [...chatHistory, { role: 'user', content: text }],
+          messages: [...chatHistory, { role: 'user', content: promptToSend }],
           totalSlides: activeBriefing?.totalSlides || 10,
           noImageSlidesCount: activeBriefing?.noImageSlidesCount || 0
         }),
@@ -227,40 +248,6 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
   }, [initialMessages]);
 
 
-
-
-  const handleSaveDraft = async (text) => {
-    const temaMatch = text.match(/TEMA:\s*(.+)/i);
-    const bigIdeaMatch = text.match(/BIG IDEA:\s*(.+)/i);
-    const title = temaMatch
-      ? temaMatch[1].trim().slice(0, 80)
-      : text.slice(0, 60).replace(/\n/g, ' ') + '...';
-
-    try {
-      const res = await fetch('/api/carousels', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          theme: temaMatch?.[1]?.trim() || '',
-          notes: text,
-          status: 'rascunho',
-          caption: bigIdeaMatch?.[1]?.trim() || '',
-          chatHistory: messages
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setCurrentCarouselId(data.id);
-        showToast('Rascunho salvo!');
-      } else {
-        showToast('Erro ao salvar rascunho.');
-      }
-    } catch (e) {
-      showToast('Erro ao salvar rascunho.');
-    }
-  };
-
   return (
     <div className="main-view active" id="view-criador" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, height: '100%', overflow: 'hidden' }}>
       <div className="criador-wrap" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -322,6 +309,29 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
                       );
                     })()}
                     {m.streaming && <span className="criador-cursor"></span>}
+                    {m.role === 'ai' && !m.streaming && (() => {
+                      const ideas = parseIdeasFromText(m.content);
+                      if (ideas.length > 0 && !generating) {
+                        return (
+                          <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div style={{ fontSize: '11px', color: 'var(--gold)', fontWeight: '600' }}>✦ Clique para escolher o tema e gerar o carrossel:</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                              {ideas.map((idea, iIdx) => (
+                                <button
+                                  key={iIdx}
+                                  className="criador-action-btn"
+                                  style={{ background: 'rgba(201, 168, 76, 0.12)', borderColor: 'rgba(201, 168, 76, 0.35)', color: 'var(--gold)' }}
+                                  onClick={() => handleSend(`${idea.num ? idea.num + '. ' : ''}Tema: ${idea.theme}\nTítulo: ${idea.title}`)}
+                                >
+                                  ✨ {idea.num ? `#${idea.num} ` : ''}{idea.theme}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                     {m.role === 'ai' && !m.streaming && (
                       <div style={{ marginTop: '8px', fontSize: '10.5px', color: 'rgba(237, 232, 223, 0.45)', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span>
@@ -391,6 +401,39 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
             >
               💡 Dar ideias de Tema/Título
             </button>
+            {messages.length > 0 && (
+              <button
+                onClick={() => {
+                  try {
+                    exportChatToHtml(messages);
+                    showToast('✓ Conversa exportada em HTML com sucesso!');
+                  } catch (err) {
+                    showToast('Erro ao exportar conversa: ' + err.message);
+                  }
+                }}
+                disabled={generating}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '16px',
+                  color: '#ede8df',
+                  padding: '4px 12px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  cursor: generating ? 'not-allowed' : 'pointer',
+                  opacity: generating ? 0.6 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.2s',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.2)'
+                }}
+                onMouseEnter={e => { if (!generating) e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)'; }}
+              >
+                📥 Exportar conversa (HTML)
+              </button>
+            )}
           </div>
 
           <div className="criador-input-wrap">
