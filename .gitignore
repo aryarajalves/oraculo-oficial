@@ -9,7 +9,9 @@ __pycache__/
 .env
 
 # Gerados / mídia (muito pesados para git)
-carousels/
+/carousels/
+backend/storage/carousels/
+!backend/dashboard/routes/carousels/
 drive_staging/
 upload_temp/
 preview/
