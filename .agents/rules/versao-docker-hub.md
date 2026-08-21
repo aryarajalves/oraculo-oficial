@@ -20,3 +20,5 @@ Toda vez que for realizar uma atualização no repositório remoto (GitHub) que 
 4. **Persistência da Última Versão Usada:** Após o usuário informar a versão, o agente deve salvar a versão em:
    - `package.json` (raiz e backend) na propriedade `"version"`.
    - `VERSION` na raiz do projeto contendo o número da última versão implantada.
+
+5. **Atualizações de Código sem Build Docker (Skip Docker):** Se o usuário desejar atualizar apenas o repositório GitHub sem gerar nova imagem Docker (ex: ajustes de documentação, README, testes ou código intermediário), adicione a flag `[skip docker]` na mensagem do commit. O pipeline do GitHub Actions validará os testes mas não fará o build nem o deploy de imagem Docker.
