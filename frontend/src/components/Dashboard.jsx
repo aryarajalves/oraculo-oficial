@@ -27,6 +27,7 @@ export default function Dashboard({
   const [expandedCards, setExpandedCards] = useState({});
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [retryTargetId, setRetryTargetId] = useState(null);
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [selectedDetailsCarousel, setSelectedDetailsCarousel] = useState(null);
   const [selectedPipelineCarousel, setSelectedPipelineCarousel] = useState(null);
@@ -45,7 +46,7 @@ export default function Dashboard({
   const [schedulingId, setSchedulingId] = useState(null);
 
   // Trava scroll do body quando qualquer modal estiver aberto
-  const anyModalOpen = !!selectedDetailsCarousel || !!selectedPipelineCarousel || isBulkDeleteModalOpen || !!deleteTargetId || isCaptionMaximized || !!confirmPublishCarousel || !!publishResultModal;
+  const anyModalOpen = !!selectedDetailsCarousel || !!selectedPipelineCarousel || isBulkDeleteModalOpen || !!deleteTargetId || !!retryTargetId || isCaptionMaximized || !!confirmPublishCarousel || !!publishResultModal;
   useScrollLock(anyModalOpen);
 
   // Reseta seleção ao mudar o filtro
@@ -413,7 +414,7 @@ export default function Dashboard({
                   onOpenCaptionModal={handleOpenCaptionModal}
                   onStatusChange={handleStatusChange}
                   onLoadChatHistory={onLoadChatHistory}
-                  onRetryGeneration={handleRetryGeneration}
+                  onRetryGeneration={setRetryTargetId}
                   onOpenPipeline={setSelectedPipelineCarousel}
                   onOpenDetails={setSelectedDetailsCarousel}
                   onPublish={handlePublish}
@@ -443,6 +444,9 @@ export default function Dashboard({
         setIsBulkDeleteModalOpen={setIsBulkDeleteModalOpen}
         selectedCount={selectedIds.length}
         confirmDeleteBulk={confirmDeleteBulk}
+        retryTargetId={retryTargetId}
+        setRetryTargetId={setRetryTargetId}
+        confirmRetry={handleRetryGeneration}
         selectedDetailsCarousel={selectedDetailsCarousel}
         setSelectedDetailsCarousel={setSelectedDetailsCarousel}
         handleOpenCaptionModal={handleOpenCaptionModal}

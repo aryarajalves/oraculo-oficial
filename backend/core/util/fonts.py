@@ -1,98 +1,70 @@
 """
-fonts.py — Resolução de fontes cross-platform (Windows local / Linux Render)
+fonts.py — Resolução de fontes cross-platform resiliente (Windows / Linux Docker)
 
-Windows: usa C:/Windows/Fonts (Franklin Gothic + Inter já instalados)
-Linux:   baixa Inter + Oswald Bold via Google Fonts na primeira execução,
-         salva em .fonts/ na raiz do projeto (fora do git, no .gitignore)
+Prioridade de carregamento:
+1. Fontes embutidas no repositório (backend/assets/fonts/) — 100% offline, confiável
+2. Fontes de sistema Windows (C:/Windows/Fonts)
+3. Fontes de sistema Linux (/usr/share/fonts/truetype/)
+4. Download de contingência via Google Fonts / Fontsource
 """
 
-import re
 import sys
-import urllib.request
 from pathlib import Path
 
-IS_WIN   = sys.platform == "win32"
-ROOT_DIR = Path(__file__).parent.parent.parent          # raiz do projeto
-FONT_DIR = ROOT_DIR / ".fonts"                          # ignorado pelo git
+IS_WIN = sys.platform == "win32"
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent      # backend/
+ASSETS_FONT_DIR = ROOT_DIR / "assets" / "fonts"
+CACHE_FONT_DIR = ROOT_DIR / ".fonts"
 
-# ── Fontes Windows ─────────────────────────────────────────────────────────────
-_WIN_FD       = Path("C:/Windows/Fonts")
-_WIN_HEAVY    = str(_WIN_FD / "Franklin Gothic Pro-Heavy.ttf")
-_WIN_HEAVY_IT = str(_WIN_FD / "Franklin Gothic Pro-HeavyItalic.ttf")
-_WIN_BOLD     = str(_WIN_FD / "Inter-Bold-slnt=0.ttf")
-_WIN_REGULAR  = str(_WIN_FD / "Inter-Regular-slnt=0.ttf")
+# Fontes Bundled (Local no repositório)
+_BUNDLED_HEAVY = ASSETS_FONT_DIR / "Oswald-Bold.ttf"
+_BUNDLED_BOLD = ASSETS_FONT_DIR / "Inter-Bold.ttf"
+_BUNDLED_REGULAR = ASSETS_FONT_DIR / "Inter-Regular.ttf"
 
-# ── Fontes Linux (baixadas) ────────────────────────────────────────────────────
-_LNX_HEAVY    = str(FONT_DIR / "Oswald-Bold.ttf")
-_LNX_HEAVY_IT = str(FONT_DIR / "Oswald-Bold.ttf")   # sem itálico — usa mesmo arquivo
-_LNX_BOLD     = str(FONT_DIR / "Inter-Bold.ttf")
-_LNX_REGULAR  = str(FONT_DIR / "Inter-Regular.ttf")
+# Fontes Windows
+_WIN_FD = Path("C:/Windows/Fonts")
+_WIN_HEAVY = _WIN_FD / "Franklin Gothic Pro-Heavy.ttf"
+_WIN_HEAVY_IT = _WIN_FD / "Franklin Gothic Pro-HeavyItalic.ttf"
+_WIN_BOLD = _WIN_FD / "Inter-Bold-slnt=0.ttf"
+_WIN_REGULAR = _WIN_FD / "Inter-Regular-slnt=0.ttf"
 
-
-def _get_google_ttf_url(family: str, weight: int = 400) -> str | None:
-    """
-    Retorna URL de arquivo TTF do Google Fonts.
-    Usa User-Agent antigo para forçar resposta TTF (não woff2).
-    """
-    slug = family.replace(" ", "+")
-    url  = f"https://fonts.googleapis.com/css?family={slug}:wght@{weight}&display=swap"
-    req  = urllib.request.Request(url, headers={
-        "User-Agent": "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 6.0)"
-    })
-    try:
-        css = urllib.request.urlopen(req, timeout=15).read().decode("utf-8")
-        m   = re.search(r"url\((https://fonts\.gstatic\.com/[^)]+\.ttf)\)", css)
-        return m.group(1) if m else None
-    except Exception as e:
-        print(f"  [fonts] Erro ao buscar {family}: {e}")
-        return None
+# Fontes Linux System
+_LNX_DEJAVU_BOLD = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+_LNX_DEJAVU_REG = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+_LNX_LIBERATION_BOLD = Path("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf")
+_LNX_LIBERATION_REG = Path("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf")
 
 
-def ensure_linux_fonts():
-    """Baixa as fontes necessárias para Linux se ainda não existirem."""
-    FONT_DIR.mkdir(exist_ok=True)
-
-    downloads = [
-        ("Oswald-Bold.ttf",  "Oswald",            700),
-        ("Inter-Regular.ttf","Inter",              400),
-        ("Inter-Bold.ttf",   "Inter",              700),
-    ]
-
-    for filename, family, weight in downloads:
-        dest = FONT_DIR / filename
-        if dest.exists():
-            continue
-        print(f"  [fonts] Baixando {filename}...", flush=True)
-        url = _get_google_ttf_url(family, weight)
-        if url:
-            try:
-                urllib.request.urlretrieve(url, dest)
-                print(f"  [fonts] ✓ {filename}", flush=True)
-            except Exception as e:
-                print(f"  [fonts] ✗ Falha ao baixar {filename}: {e}", flush=True)
-        else:
-            print(f"  [fonts] ✗ URL não encontrada para {filename}", flush=True)
+def _resolve_font_path(primary: Path, fallbacks: list[Path]) -> str:
+    """Retorna o primeiro arquivo de fonte existente entre os candidatos."""
+    if primary.exists():
+        return str(primary)
+    for fb in fallbacks:
+        if fb.exists():
+            return str(fb)
+    return str(primary)
 
 
 def get_fonts() -> dict:
     """
-    Retorna dict com caminhos das fontes para o ambiente atual.
-    Chama ensure_linux_fonts() automaticamente no Linux.
+    Retorna dict com caminhos absolutos das fontes para o ambiente atual.
+    Garante que os arquivos existam em disco antes de retornar.
     """
     if IS_WIN:
-        return {
-            "heavy":    _WIN_HEAVY,
-            "heavy_it": _WIN_HEAVY_IT,
-            "bold":     _WIN_BOLD,
-            "regular":  _WIN_REGULAR,
-            "mark":     _WIN_REGULAR,
-        }
+        heavy = _resolve_font_path(_WIN_HEAVY, [_BUNDLED_HEAVY, _WIN_FD / "arialbd.ttf", _WIN_FD / "segoeuib.ttf"])
+        heavy_it = _resolve_font_path(_WIN_HEAVY_IT, [_BUNDLED_HEAVY, _WIN_FD / "arialbi.ttf", _WIN_FD / "segoeuiz.ttf"])
+        bold = _resolve_font_path(_WIN_BOLD, [_BUNDLED_BOLD, _WIN_FD / "arialbd.ttf", _WIN_FD / "segoeuib.ttf"])
+        regular = _resolve_font_path(_WIN_REGULAR, [_BUNDLED_REGULAR, _WIN_FD / "arial.ttf", _WIN_FD / "segoeui.ttf"])
     else:
-        ensure_linux_fonts()
-        return {
-            "heavy":    _LNX_HEAVY,
-            "heavy_it": _LNX_HEAVY_IT,
-            "bold":     _LNX_BOLD,
-            "regular":  _LNX_REGULAR,
-            "mark":     _LNX_REGULAR,
-        }
+        heavy = _resolve_font_path(_BUNDLED_HEAVY, [_LNX_DEJAVU_BOLD, _LNX_LIBERATION_BOLD, CACHE_FONT_DIR / "Oswald-Bold.ttf"])
+        heavy_it = _resolve_font_path(_BUNDLED_HEAVY, [_LNX_DEJAVU_BOLD, _LNX_LIBERATION_BOLD, CACHE_FONT_DIR / "Oswald-Bold.ttf"])
+        bold = _resolve_font_path(_BUNDLED_BOLD, [_LNX_DEJAVU_BOLD, _LNX_LIBERATION_BOLD, CACHE_FONT_DIR / "Inter-Bold.ttf"])
+        regular = _resolve_font_path(_BUNDLED_REGULAR, [_LNX_DEJAVU_REG, _LNX_LIBERATION_REG, CACHE_FONT_DIR / "Inter-Regular.ttf"])
+
+    return {
+        "heavy": heavy,
+        "heavy_it": heavy_it,
+        "bold": bold,
+        "regular": regular,
+        "mark": regular,
+    }

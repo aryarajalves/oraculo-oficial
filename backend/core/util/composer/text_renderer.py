@@ -15,9 +15,50 @@ from .presets import (
     F_REGULAR
 )
 
+from pathlib import Path
+
 def load_font(path, size):
+    sz = max(int(size), 10)
+    # 1. Tenta carregar o path primário se existir
+    if path:
+        try:
+            p_obj = Path(str(path))
+            if p_obj.exists():
+                return ImageFont.truetype(str(p_obj), sz)
+        except Exception:
+            pass
+
+    # 2. Tenta fontes bundled no projeto
     try:
-        return ImageFont.truetype(str(path), max(size, 10))
+        from core.util.fonts import get_fonts
+        f_dict = get_fonts()
+        for candidate in f_dict.values():
+            if candidate and Path(str(candidate)).exists():
+                try:
+                    return ImageFont.truetype(str(candidate), sz)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    # 3. Tenta fontes comuns de sistema
+    fallback_paths = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+        "C:/Windows/Fonts/arial.ttf",
+        "C:/Windows/Fonts/segoeui.ttf",
+    ]
+    for fb in fallback_paths:
+        try:
+            if Path(fb).exists():
+                return ImageFont.truetype(fb, sz)
+        except Exception:
+            pass
+
+    # 4. Fallback final com suporte a size quando suportado pelo Pillow
+    try:
+        return ImageFont.load_default(size=sz)
     except Exception:
         return ImageFont.load_default()
 

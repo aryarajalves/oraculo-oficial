@@ -56,47 +56,47 @@ def _get_client() -> OpenAI:
 
 
 # ── Função principal ───────────────────────────────────────────────────────────
-def gen_openai(prompt: str, retries: int = MAX_RETRIES, size: str = SIZE, quality: str = None) -> bytes | None:
+def gen_openai(prompt: str, retries: int = MAX_RETRIES, size: str = None, quality: str = None) -> bytes | None:
     """
     Gera uma imagem via OpenAI e retorna os bytes PNG/JPEG.
-    Mesma interface do gen() do Gemini — retorna None em caso de falha.
-
-    Args:
-        prompt:  Prompt descritivo da imagem
-        retries: Número máximo de tentativas
-        size:    Tamanho da imagem ("1024x1536", "1024x1024", etc)
-        quality: Qualidade da imagem ("low", "medium", "high", "standard", "hd", etc)
-
-    Returns:
-        bytes da imagem, ou None se falhou
+    Respeita dinamicamente a variável de ambiente ACTIVE_IMAGE_PROVIDER.
     """
     client = _get_client()
 
+    active_provider = os.getenv("ACTIVE_IMAGE_PROVIDER", "gpt-image-2").lower().strip()
+    if active_provider in ["gpt-image-1-mini", "dall-e-2", "mini", "economico"]:
+        model_name = "dall-e-2"
+        target_size = size or "1024x1024"
+        target_quality = "standard"
+    elif active_provider in ["gpt-image-2", "dall-e-3", "gpt-image-1"]:
+        model_name = "dall-e-3"
+        target_size = size or "1024x1792"
+        target_quality = quality or "hd"
+    else:
+        model_name = "dall-e-3"
+        target_size = size or "1024x1792"
+        target_quality = quality or "hd"
+
     for attempt in range(1, retries + 1):
         try:
-            print(f"    [OpenAI {MODEL}] tentativa {attempt}/{retries} ({size})...")
+            print(f"    [OpenAI {model_name} ({active_provider})] tentativa {attempt}/{retries} ({target_size})...")
 
             kwargs = {
-                "model":  MODEL,
+                "model":  model_name,
                 "prompt": prompt,
                 "n":      1,
+                "size":   target_size,
             }
 
-            if MODEL in ["gpt-image-1", "gpt-image-2"]:
-                kwargs["size"]    = size
-                kwargs["quality"] = quality or QUALITY
-
-            elif MODEL == "dall-e-3":
-                # DALL-E 3 usa tamanhos diferentes e não aceita "high"
-                kwargs["size"]             = "1024x1792"
-                kwargs["quality"]          = quality or "hd"
-                kwargs["response_format"]  = "b64_json"
+            if model_name == "dall-e-3":
+                kwargs["quality"] = target_quality
+                kwargs["response_format"] = "b64_json"
+            elif model_name in ["gpt-image-1", "gpt-image-2"]:
+                kwargs["quality"] = target_quality
 
             response = client.images.generate(**kwargs)
             item     = response.data[0]
 
-            # gpt-image-1 retorna b64_json diretamente
-            # dall-e-3 retorna b64_json ou url (dependendo de response_format)
             if hasattr(item, "b64_json") and item.b64_json:
                 return base64.b64decode(item.b64_json)
 

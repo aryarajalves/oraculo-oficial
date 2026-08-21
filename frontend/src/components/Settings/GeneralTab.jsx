@@ -47,9 +47,21 @@ export default function GeneralTab({
     }
   };
 
-  const selectProvider = (provider) => {
-    setPendingUpdates(prev => ({ ...prev, ACTIVE_IMAGE_PROVIDER: provider }));
-    setSettingsData(prev => ({ ...prev, activeProvider: provider }));
+  const selectProvider = (selectedProv, isConfigured, keyName) => {
+    if (!isConfigured) {
+      if (showToast) showToast(`⚠️ A chave ${keyName} ainda não está configurada. Insira sua chave na aba "Chaves de Imagem & IA".`, 'error');
+      setActiveCategory('imagem');
+      return;
+    }
+    setPendingUpdates(prev => ({ ...prev, ACTIVE_IMAGE_PROVIDER: selectedProv }));
+    setSettingsData(prev => ({ ...prev, activeProvider: selectedProv }));
+    const providerNames = {
+      'gpt-image-2': 'GPT Image 2 (DALL-E 3)',
+      'gpt-image-1-mini': 'GPT Image 1 Mini (Econômico)',
+      'fal': 'Fal.ai (Flux / SDXL)',
+      'gemini': 'Gemini Imagen'
+    };
+    if (showToast) showToast(`✓ ${providerNames[selectedProv] || selectedProv} selecionado! Clique em "Salvar Configurações" no topo para aplicar.`, 'info');
   };
 
   const keysMap = {};
@@ -61,7 +73,7 @@ export default function GeneralTab({
   const falSet = !!(keysMap['FAL_KEY'] && keysMap['FAL_KEY'].set);
   const geminiSet = !!(keysMap['GEMINI_API_KEY'] && keysMap['GEMINI_API_KEY'].set);
 
-  const provider = settingsData?.activeProvider || 'gpt-image-2';
+  const provider = pendingUpdates?.ACTIVE_IMAGE_PROVIDER || settingsData?.activeProvider || 'gpt-image-2';
 
   const groups = {};
   if (settingsData?.keys) {
@@ -148,39 +160,47 @@ export default function GeneralTab({
             <div className="provider-selector">
               <div
                 className={`provider-card ${provider === 'gpt-image-2' ? 'active' : ''} ${!openaiSet ? 'disabled-card' : ''}`}
-                onClick={() => openaiSet && selectProvider('gpt-image-2')}
-                style={{ opacity: openaiSet ? 1 : 0.4, cursor: openaiSet ? 'pointer' : 'not-allowed', pointerEvents: openaiSet ? 'auto' : 'none' }}
+                onClick={() => selectProvider('gpt-image-2', openaiSet, 'OPENAI_API_KEY')}
+                style={{ opacity: openaiSet ? 1 : 0.6, cursor: 'pointer' }}
+                title={openaiSet ? 'Clique para selecionar GPT Image 2' : 'Requer OPENAI_API_KEY'}
               >
                 <div className="provider-icon">🤖</div>
                 <div className="provider-name">GPT Image 2</div>
                 <div className="provider-desc">OpenAI · DALL-E 3 · ~$0.08/img</div>
+                {!openaiSet && <div style={{ fontSize: '10px', color: '#f43f5e', marginTop: '4px' }}>⚠️ Chave não configurada</div>}
               </div>
               <div
                 className={`provider-card ${provider === 'gpt-image-1-mini' ? 'active' : ''} ${!openaiSet ? 'disabled-card' : ''}`}
-                onClick={() => openaiSet && selectProvider('gpt-image-1-mini')}
-                style={{ opacity: openaiSet ? 1 : 0.4, cursor: openaiSet ? 'pointer' : 'not-allowed', pointerEvents: openaiSet ? 'auto' : 'none' }}
+                onClick={() => selectProvider('gpt-image-1-mini', openaiSet, 'OPENAI_API_KEY')}
+                style={{ opacity: openaiSet ? 1 : 0.6, cursor: 'pointer' }}
+                title={openaiSet ? 'Clique para selecionar GPT Image 1 Mini' : 'Requer OPENAI_API_KEY'}
               >
                 <div className="provider-icon">🖼️</div>
                 <div className="provider-name">GPT Image 1 Mini</div>
                 <div className="provider-desc">OpenAI · Econômico · ~$0.02/img</div>
+                {!openaiSet && <div style={{ fontSize: '10px', color: '#f43f5e', marginTop: '4px' }}>⚠️ Chave não configurada</div>}
               </div>
               <div
                 className={`provider-card ${provider === 'fal' ? 'active' : ''} ${!falSet ? 'disabled-card' : ''}`}
-                onClick={() => falSet && selectProvider('fal')}
-                style={{ opacity: falSet ? 1 : 0.4, cursor: falSet ? 'pointer' : 'not-allowed', pointerEvents: falSet ? 'auto' : 'none' }}
+                onClick={() => selectProvider('fal', falSet, 'FAL_KEY')}
+                style={{ opacity: falSet ? 1 : 0.6, cursor: 'pointer' }}
+                title={falSet ? 'Clique para selecionar Fal.ai' : 'Requer FAL_KEY'}
               >
                 <div className="provider-icon">⚡</div>
                 <div className="provider-name">Fal.ai</div>
                 <div className="provider-desc">Flux / SDXL · Rápido · ~$0.003/img</div>
+                {!falSet && <div style={{ fontSize: '10px', color: '#f43f5e', marginTop: '4px' }}>⚠️ Chave não configurada</div>}
               </div>
               <div
                 className={`provider-card ${provider === 'gemini' ? 'active' : ''} ${!geminiSet ? 'disabled-card' : ''}`}
-                onClick={() => geminiSet && selectProvider('gemini')}
-                style={{ opacity: geminiSet ? 1 : 0.4, cursor: geminiSet ? 'pointer' : 'not-allowed', pointerEvents: geminiSet ? 'auto' : 'none' }}
+                onClick={() => selectProvider('gemini', geminiSet, 'GEMINI_API_KEY')}
+                style={{ opacity: geminiSet ? 1 : 0.6, cursor: 'pointer' }}
+                title={geminiSet ? 'Clique para selecionar Gemini Imagen' : 'Requer GEMINI_API_KEY'}
               >
                 <div className="provider-icon">✦</div>
                 <div className="provider-name">Gemini Imagen</div>
                 <div className="provider-desc">Google · Experimental · Pré-pago</div>
+                {!geminiSet && <div style={{ fontSize: '10px', color: '#f43f5e', marginTop: '4px' }}>⚠️ Chave não configurada</div>}
               </div>
             </div>
           </div>

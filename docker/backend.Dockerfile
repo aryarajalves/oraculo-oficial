@@ -1,6 +1,6 @@
 FROM node:20-bookworm-slim
 
-# Instala Python e dependências do sistema
+# Instala Python, fontes e dependências do sistema
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -8,6 +8,9 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     postgresql-client \
+    fonts-dejavu-core \
+    fonts-liberation \
+    fontconfig \
     && rm -rf /var/lib/apt/lists/*
 
 # Cria diretório da aplicação

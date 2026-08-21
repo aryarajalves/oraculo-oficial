@@ -1,5 +1,6 @@
 import React from 'react';
 import DeleteConfirmationModals from './modals/DeleteConfirmationModals';
+import RetryConfirmationModal from './modals/RetryConfirmationModal';
 import CarouselDetailsModal from './modals/CarouselDetailsModal';
 import CaptionEditModal from './modals/CaptionEditModal';
 import PublishModals from './modals/PublishModals';
@@ -12,6 +13,9 @@ export default function DashboardModals({
   setIsBulkDeleteModalOpen,
   selectedCount,
   confirmDeleteBulk,
+  retryTargetId,
+  setRetryTargetId,
+  confirmRetry,
   selectedDetailsCarousel,
   setSelectedDetailsCarousel,
   handleOpenCaptionModal,
@@ -44,6 +48,12 @@ export default function DashboardModals({
         setIsBulkDeleteModalOpen={setIsBulkDeleteModalOpen}
         selectedCount={selectedCount}
         confirmDeleteBulk={confirmDeleteBulk}
+      />
+
+      <RetryConfirmationModal
+        retryTargetId={retryTargetId}
+        setRetryTargetId={setRetryTargetId}
+        confirmRetry={confirmRetry}
       />
 
       <CarouselDetailsModal
