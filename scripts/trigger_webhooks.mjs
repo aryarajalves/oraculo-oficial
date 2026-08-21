@@ -3,7 +3,7 @@
  * scripts/trigger_webhooks.mjs
  * 
  * Executa o acionamento de Webhooks do Portainer nos servidores configurados
- * de forma segura e transparente.
+ * com suporte a SSL flexível (-k), redirecionamentos (-L) e logs detalhados.
  */
 
 import { execSync } from 'child_process';
@@ -26,7 +26,7 @@ let hasErrors = false;
 
 for (const key of webhookKeys) {
   const serverName = key.replace('WEBHOOK_', '');
-  const url = envVars[key];
+  const url = envVars[key].trim();
 
   if (!url || !url.startsWith('http')) {
     console.log(`⚠️ [ ${serverName} ] URL inválida ou vazia, pulando.`);
@@ -36,22 +36,28 @@ for (const key of webhookKeys) {
   console.log(`📡 Notificando Portainer de [ ${serverName} ]...`);
 
   try {
-    const cmd = `curl -s -o /dev/null -w "%{http_code}" -X POST "${url}"`;
+    // Flags do curl:
+    // -k: Aceita certificados SSL auto-assinados / Cloudflare / Let's Encrypt
+    // -L: Segue redirecionamentos HTTP -> HTTPS
+    // --max-time 45: Timeout de 45 segundos
+    // -sS: Silencioso mas exibe mensagens de erro caso falhe
+    const cmd = `curl -k -L --max-time 45 -sS -o /dev/null -w "%{http_code}" -X POST "${url}"`;
     const statusCode = execSync(cmd).toString().trim();
 
     if (statusCode === '200' || statusCode === '204' || statusCode === '202') {
-      console.log(`✅ [ ${serverName} ] Atualização aceita pelo Portainer! (HTTP ${statusCode})`);
+      console.log(`✅ [ ${serverName} ] Atualização aceita com sucesso pelo Portainer! (HTTP ${statusCode})`);
     } else {
       console.log(`⚠️ [ ${serverName} ] Portainer respondeu com código HTTP: ${statusCode}`);
     }
   } catch (err) {
-    console.error(`❌ [ ${serverName} ] Erro ao chamar Webhook:`, err.message);
+    console.error(`❌ [ ${serverName} ] Erro de conexão ao tentar chamar o Webhook:`);
+    console.error(err.message);
     hasErrors = true;
   }
 }
 
 if (hasErrors) {
-  console.log('\n⚠️ Algumas notificações falharam.');
+  console.log('\n⚠️ Algumas notificações falharam. Verifique os detalhes acima.');
 } else {
   console.log('\n🎉 Todos os Webhooks foram acionados com sucesso!');
 }
