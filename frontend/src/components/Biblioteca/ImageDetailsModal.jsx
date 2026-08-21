@@ -94,7 +94,7 @@ export default function ImageDetailsModal({
 
         {/* ── Lado Direito: Metadados e Edição ── */}
         <div style={{ flex: 1, padding: '24px', background: '#121214', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: (image.created_at || image.createdAt) ? '6px' : '16px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#fff', margin: 0 }}>
               Detalhes da Imagem
             </h3>
@@ -105,6 +105,15 @@ export default function ImageDetailsModal({
               ✕
             </button>
           </div>
+
+          {(image.created_at || image.createdAt) && (
+            <div style={{ fontSize: '11px', color: 'var(--text-3, #71717a)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <span>🕒 Data do Upload:</span>
+              <strong style={{ color: 'var(--gold, #c9a84c)' }}>
+                {new Date(image.created_at || image.createdAt).toLocaleString('pt-BR')}
+              </strong>
+            </div>
+          )}
 
           <form onSubmit={handleSave} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div className="form-group">

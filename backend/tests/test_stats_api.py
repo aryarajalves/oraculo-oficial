@@ -31,27 +31,29 @@ class TestStatsAPI(unittest.TestCase):
         stats_url = "http://localhost:3131/api/stats"
 
         # Dados de login (usando credenciais padrão do ambiente de desenvolvimento)
-        login_data = urllib.parse.urlencode({
+        login_data = json.dumps({
             "username": "aryarajmarketing@gmail.com",
             "password": "123456"
         }).encode("utf-8")
 
         try:
-            # 1. Faz o Login para obter o cookie de sessão
+            # 1. Faz o Login para obter o token JWT
             login_req = urllib.request.Request(
                 login_url,
                 data=login_data,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                headers={"Content-Type": "application/json"},
                 method="POST"
             )
-            # Ao fazer a requisição, o NoRedirectHandler impede o erro 302, mas o CookieProcessor salva os cookies
-            with self.opener.open(login_req, timeout=5) as login_resp:
-                # O status do login de sucesso deve ser 302 (Found)
-                self.assertEqual(login_resp.status, 302)
+            token = ""
+            with urllib.request.urlopen(login_req, timeout=5) as login_resp:
+                self.assertEqual(login_resp.status, 200)
+                body = json.loads(login_resp.read().decode("utf-8"))
+                token = body.get("token", "")
 
-            # 2. Faz a chamada ao endpoint de stats usando o cookie de sessão obtido
-            stats_req = urllib.request.Request(stats_url, method="GET")
-            with self.opener.open(stats_req, timeout=5) as stats_resp:
+            # 2. Faz a chamada ao endpoint de stats usando o token obtido
+            headers = {"Authorization": f"Bearer {token}"} if token else {}
+            stats_req = urllib.request.Request(stats_url, headers=headers, method="GET")
+            with urllib.request.urlopen(stats_req, timeout=5) as stats_resp:
                 self.assertEqual(stats_resp.status, 200)
                 data = json.loads(stats_resp.read().decode("utf-8"))
 
@@ -69,7 +71,12 @@ class TestStatsAPI(unittest.TestCase):
                 self.assertIsInstance(data["publicados"], int)
                 self.assertTrue(isinstance(data["cost"], (int, float)))
 
-                print("\n[OK] Teste de Stats API passou com sucesso! Resposta recebida:", json.dumps(data, indent=2))
+                # Valida dados não negativos
+                self.assertGreaterEqual(data["total"], 0, "Total deve ser >= 0")
+                self.assertGreaterEqual(data["slides"], 0, "Slides deve ser >= 0")
+                self.assertGreaterEqual(data["aprovados"], 0, "Aprovados deve ser >= 0")
+
+                print("\n[OK] Teste de Stats API passou com sucesso! Resposta:", json.dumps(data, indent=2))
         except Exception as e:
             self.fail(f"Falha ao conectar com o backend ou processar a resposta: {e}")
 

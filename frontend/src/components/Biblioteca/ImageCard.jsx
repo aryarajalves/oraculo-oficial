@@ -1,10 +1,25 @@
 // frontend/src/components/Biblioteca/ImageCard.jsx — Card individual de imagem na galeria
 import React from 'react';
 
+function formatUploadDate(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 export default function ImageCard({
   image,
-  isSelected,
-  onToggleSelect,
+  isReference,
+  isBatchSelected,
+  onToggleReference,
+  onToggleBatchSelect,
   onPreview,
   onEdit,
   onDelete,
@@ -17,19 +32,44 @@ export default function ImageCard({
     if (showToast) showToast('Link da imagem copiado!');
   };
 
+  const uploadDate = formatUploadDate(image.created_at || image.createdAt);
+
   return (
-    <div className={`lib-card ${isSelected ? 'selected' : ''}`}>
+    <div className={`lib-card ${isReference ? 'is-reference' : ''} ${isBatchSelected ? 'is-batch-selected' : ''}`}>
       <div className="lib-card-thumb-wrap" onClick={() => onPreview(image)}>
+        {/* Checkbox de Seleção em Lote (Deleção/Gestão) */}
         <button
-          className={`lib-select-btn ${isSelected ? 'active' : ''}`}
-          title={isSelected ? 'Remover das referências' : 'Usar como referência'}
+          type="button"
+          className={`lib-batch-checkbox ${isBatchSelected ? 'active' : ''}`}
+          title={isBatchSelected ? 'Desmarcar da seleção' : 'Selecionar para exclusão em lote'}
           onClick={(e) => {
             e.stopPropagation();
-            onToggleSelect(image);
+            onToggleBatchSelect(image.id);
           }}
-        />
+        >
+          {isBatchSelected && (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+        </button>
 
+        {/* Botão de Referência IA (Entrada de Chat - Máx 5) */}
         <button
+          type="button"
+          className={`lib-reference-btn ${isReference ? 'active' : ''}`}
+          title={isReference ? 'Remover das referências IA' : 'Usar como referência IA (Máx 5)'}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleReference(image);
+          }}
+        >
+          <span>✨</span>
+        </button>
+
+        {/* Botão Visualizar em Tamanho Real */}
+        <button
+          type="button"
           className="lib-card-action-icon"
           title="Visualizar em tamanho real"
           onClick={(e) => {
@@ -71,6 +111,13 @@ export default function ImageCard({
             </svg>
           </button>
         </div>
+
+        {uploadDate && (
+          <div className="lib-card-date" title={`Upload realizado em: ${uploadDate}`}>
+            <span className="lib-card-date-icon">🕒</span>
+            <span>{uploadDate}</span>
+          </div>
+        )}
 
         <div className="lib-card-bottom-row">
           <button className="lib-btn-copy-url" onClick={handleCopyUrl}>

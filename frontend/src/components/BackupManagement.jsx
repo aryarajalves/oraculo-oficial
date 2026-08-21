@@ -3,8 +3,11 @@ import BackupStatusCards from './BackupStatusCards';
 import BackupConfigForm from './BackupConfigForm';
 import BackupList from './BackupList';
 import BackupModals from './BackupModals';
+import BackupManualActions from './BackupManualActions';
 
 export default function BackupManagement({ showToast }) {
+  const [subTab, setSubTab] = useState('history'); // 'history' | 'manual' | 'schedule'
+
   const [config, setConfig] = useState({
     enabled: false,
     frequency: 'hours',
@@ -290,83 +293,171 @@ export default function BackupManagement({ showToast }) {
         </div>
       </div>
 
+      {/* Barra de Navegação por Abas */}
+      <div
+        className="inner-tabs"
+        style={{
+          display: 'flex',
+          gap: '12px',
+          margin: '0 16px 20px',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '12px',
+          flexWrap: 'wrap'
+        }}
+      >
+        <button
+          className={`inner-tab-btn ${subTab === 'history' ? 'active' : ''}`}
+          onClick={() => setSubTab('history')}
+          style={{
+            background: subTab === 'history' ? 'rgba(212, 163, 89, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+            border: subTab === 'history' ? '1px solid rgba(212, 163, 89, 0.4)' : '1px solid var(--border)',
+            color: subTab === 'history' ? 'var(--gold)' : 'var(--text-3)',
+            padding: '10px 18px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.2s ease',
+            boxShadow: subTab === 'history' ? '0 0 15px rgba(212, 163, 89, 0.15)' : 'none'
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          <span>Histórico & Arquivos</span>
+          <span
+            style={{
+              background: subTab === 'history' ? 'var(--gold)' : 'var(--surface-d)',
+              color: subTab === 'history' ? '#000' : 'var(--text-3)',
+              fontSize: '11px',
+              fontWeight: '700',
+              padding: '2px 7px',
+              borderRadius: '12px',
+              marginLeft: '4px'
+            }}
+          >
+            {backups.length}
+          </span>
+        </button>
+
+        <button
+          className={`inner-tab-btn ${subTab === 'manual' ? 'active' : ''}`}
+          onClick={() => setSubTab('manual')}
+          style={{
+            background: subTab === 'manual' ? 'rgba(249, 115, 22, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+            border: subTab === 'manual' ? '1px solid rgba(249, 115, 22, 0.4)' : '1px solid var(--border)',
+            color: subTab === 'manual' ? 'var(--orange)' : 'var(--text-3)',
+            padding: '10px 18px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.2s ease',
+            boxShadow: subTab === 'manual' ? '0 0 15px rgba(249, 115, 22, 0.15)' : 'none'
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>Backup Manual & Importar</span>
+        </button>
+
+        <button
+          className={`inner-tab-btn ${subTab === 'schedule' ? 'active' : ''}`}
+          onClick={() => setSubTab('schedule')}
+          style={{
+            background: subTab === 'schedule' ? 'rgba(168, 85, 247, 0.12)' : 'rgba(255, 255, 255, 0.02)',
+            border: subTab === 'schedule' ? '1px solid rgba(168, 85, 247, 0.4)' : '1px solid var(--border)',
+            color: subTab === 'schedule' ? '#c084fc' : 'var(--text-3)',
+            padding: '10px 18px',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '13px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.2s ease',
+            boxShadow: subTab === 'schedule' ? '0 0 15px rgba(168, 85, 247, 0.15)' : 'none'
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span>Agendamento & Retenção</span>
+          {config.enabled && (
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: '#22c55e',
+                boxShadow: '0 0 6px #22c55e'
+              }}
+              title="Agendamento Ativo"
+            />
+          )}
+        </button>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 16px' }}>
         
-        {/* Cards de Status (Último, Próximo e Retenção) */}
-        <BackupStatusCards
-          lastBackupFilename={lastBackupFilename}
-          lastBackupTime={lastBackupTime}
-          nextBackupTime={nextBackupTime}
-          nextBackupSub={nextBackupSub}
-          retention={config.retention}
-        />
-        
-        {/* Painel 1: Backup Manual */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.2 15a8.85 8.85 0 0 0-1.75-4.58c-.1-.13-.25-.23-.41-.3M12 13v8M9 16l3-3 3 3"/></svg>
-              Backup Manual
-            </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-3)' }}>Clique para criar um backup imediato do banco de dados e enviar ao Backblaze S3.</div>
-          </div>
-          <button className="btn btn-gold" onClick={handleManualBackup} disabled={actionLoading}>
-            <svg style={{ marginRight: '6px' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21.2 15a8.85 8.85 0 0 0-1.75-4.58c-.1-.13-.25-.23-.41-.3M12 13v8M9 16l3-3 3 3"/></svg>
-            Fazer Backup Agora
-          </button>
-        </div>
+        {/* Aba 1: Histórico & Arquivos */}
+        {subTab === 'history' && (
+          <>
+            {/* Cards de Status (Último, Próximo e Retenção) */}
+            <BackupStatusCards
+              lastBackupFilename={lastBackupFilename}
+              lastBackupTime={lastBackupTime}
+              nextBackupTime={nextBackupTime}
+              nextBackupSub={nextBackupSub}
+              retention={config.retention}
+            />
 
-        {/* Painel 2: Importar Backup Externo */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-              Importar Backup Externo
-            </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-3)' }}>Envie um arquivo de backup (.dump ou .dump.gz) de outro servidor para salvá-lo no S3 e restaurar quando desejar.</div>
-          </div>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileChange} 
-            style={{ display: 'none' }} 
-            accept=".dump,.dump.gz" 
+            {/* Lista de Backups no S3 */}
+            <BackupList
+              backups={backups}
+              loadingList={loadingList}
+              paginatedBackups={paginatedBackups}
+              selectedBackups={selectedBackups}
+              handleSelectAllToggle={handleSelectAllToggle}
+              handleSelectToggle={handleSelectToggle}
+              formatSize={formatSize}
+              confirmRestore={confirmRestore}
+              confirmDelete={confirmDelete}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              totalPages={totalPages}
+              displayCount={displayCount}
+              setDisplayCount={setDisplayCount}
+              loadBackups={loadBackups}
+              setBulkDeleteModalOpen={setBulkDeleteModalOpen}
+            />
+          </>
+        )}
+
+        {/* Aba 2: Backup Manual & Importar */}
+        {subTab === 'manual' && (
+          <BackupManualActions
+            handleManualBackup={handleManualBackup}
+            handleUploadClick={handleUploadClick}
+            handleFileChange={handleFileChange}
+            fileInputRef={fileInputRef}
+            actionLoading={actionLoading}
           />
-          <button className="btn btn-outline" onClick={handleUploadClick} disabled={actionLoading} style={{ borderColor: 'var(--orange)', color: 'var(--orange)' }}>
-            <svg style={{ marginRight: '6px' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-            Fazer Upload de Backup
-          </button>
-        </div>
+        )}
 
-        {/* Painel 3: Agendamento Automático */}
-        <BackupConfigForm
-          config={config}
-          setConfig={setConfig}
-          loadingConfig={loadingConfig}
-          actionLoading={actionLoading}
-          handleSaveConfig={handleSaveConfig}
-          getFreqLabel={getFreqLabel}
-        />
-
-        {/* Painel 4: Lista de Backups */}
-        <BackupList
-          backups={backups}
-          loadingList={loadingList}
-          paginatedBackups={paginatedBackups}
-          selectedBackups={selectedBackups}
-          handleSelectAllToggle={handleSelectAllToggle}
-          handleSelectToggle={handleSelectToggle}
-          formatSize={formatSize}
-          confirmRestore={confirmRestore}
-          confirmDelete={confirmDelete}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          totalPages={totalPages}
-          displayCount={displayCount}
-          setDisplayCount={setDisplayCount}
-          loadBackups={loadBackups}
-          setBulkDeleteModalOpen={setBulkDeleteModalOpen}
-        />
+        {/* Aba 3: Agendamento & Retenção */}
+        {subTab === 'schedule' && (
+          <BackupConfigForm
+            config={config}
+            setConfig={setConfig}
+            loadingConfig={loadingConfig}
+            actionLoading={actionLoading}
+            handleSaveConfig={handleSaveConfig}
+            getFreqLabel={getFreqLabel}
+          />
+        )}
 
       </div>
 

@@ -54,7 +54,7 @@ export default function PipelineOverviewTab({ pipelineInfo }) {
         }}>
           <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', textTransform: 'uppercase', display: 'block' }}>Custo Total</span>
           <span style={{ fontWeight: '600', color: '#22c55e', fontSize: '14px' }}>
-            ${Number(pipelineInfo.cost || 0).toFixed(2)} (R$ {Number((pipelineInfo.cost || 0) * 5.60).toFixed(2)})
+            ${Number(pipelineInfo.cost || 0).toFixed(2)} (R$ {Number((pipelineInfo.cost || 0) * 5.00).toFixed(2)})
           </span>
         </div>
       </div>

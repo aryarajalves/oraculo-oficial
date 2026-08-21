@@ -13,5 +13,7 @@ Toda vez que você for realizar uma refatoração estrutural, modularização ou
 3. **Notificação ao Usuário:** Informe explicitamente na sua resposta que o backup do arquivo foi realizado antes do início das modificações.
 4. **Validação Pós-Refatoração:** Conclua a refatoração seguindo as regras de modularização, linters e testes E2E. O backup serve como ponto seguro de restauração (rollback) caso qualquer regressão seja detectada durante os testes.
 5. **Limpeza Responsável:** Backups temporários que fiquem dentro das pastas de código fonte (`frontend/src/` ou `backend/`) só devem ser removidos ou arquivados após a confirmação de que todos os testes foram aprovados e a funcionalidade está 100% íntegra.
+6. **Indicação do Próximo Código a Refatorar:** Sempre que terminar de refatorar um código/arquivo, você DEVE retornar o próximo código da lista que precisa ser refatorado (com base nos limites de tamanho e complexidade). Caso não haja mais nenhum arquivo que precise de refatoração, você NÃO deve sugerir mais nenhum e deve apenas informar que todos os códigos já foram refatorados e estão em conformidade.
 
 Isso garante que refatorações complexas nunca resultem em perda de código ou comportamentos históricos do sistema, e que arquivos temporários não poluam o repositório.
+

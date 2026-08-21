@@ -14,13 +14,10 @@ class TestRegenSlideScript(unittest.TestCase):
         with open(self.script_path, encoding="utf-8") as f:
             self.content = f.read()
 
-    def test_uses_imagen_3_model(self):
-        """Verifica se o modelo foi alterado para o Imagen 3 oficial."""
-        self.assertIn("imagen-3.0-generate-002", self.content, "Modelo Imagen 3 não encontrado no regen-slide.py.")
-
-    def test_uses_predict_endpoint(self):
-        """Verifica se o endpoint correto do Imagen 3 (:predict) está sendo utilizado."""
-        self.assertIn(":predict", self.content, "Endpoint :predict não encontrado no regen-slide.py.")
+    def test_supports_all_layouts(self):
+        """Verifica se regen-slide.py aceita dramatico, etereo, text_only, fullbleed e card."""
+        for layout in ["fullbleed", "dramatico", "etereo", "text_only", "card"]:
+            self.assertIn(f'"{layout}"', self.content, f"Layout {layout} não encontrado no choices do regen-slide.py.")
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

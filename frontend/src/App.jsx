@@ -1,26 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
-import Dashboard from './components/Dashboard';
-import Oraculo from './components/Oraculo';
-import Criador from './components/Criador';
-import ReelsCloner from './components/ReelsCloner';
-import Calendar from './components/Calendar';
-import Biblioteca from './components/Biblioteca';
-import Settings from './components/Settings';
-import VideoFactory from './components/VideoFactory';
-import Radar from './components/Radar';
-import UsersManagement from './components/UsersManagement';
-import BackupManagement from './components/BackupManagement';
-import InProgressPage from './components/InProgressPage';
 import InitialLoader from './components/InitialLoader';
 import AppModals from './components/AppModals';
-import { parseCarouselText } from './utils/carouselParser';
-import { customFetch } from './utils/customFetch';
-
+import AppTabRouter from './components/AppTabRouter';
+import { useAppAuth } from './hooks/useAppAuth';
+import { useCarouselsData } from './hooks/useCarouselsData';
+import { useGlobalSSE } from './hooks/useGlobalSSE';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState(() => {
-    // Se o usuário veio da página de login, forçamos 'carrosseis' apenas no primeiro carregamento
     if (document.referrer && (document.referrer.includes('login.html') || document.referrer.includes('login')) && !sessionStorage.getItem('loginHandled')) {
       sessionStorage.setItem('loginHandled', 'true');
       localStorage.setItem('activeTab', 'carrosseis');
@@ -28,6 +16,72 @@ export default function App() {
     }
     return localStorage.getItem('activeTab') || 'carrosseis';
   });
+
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastShow, setToastShow] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  const showToast = useCallback((msg) => {
+    setToastMessage(msg);
+    setToastShow(true);
+    setTimeout(() => setToastShow(false), 2500);
+  }, []);
+
+  const {
+    currentUser,
+    branding,
+    logoutModalOpen,
+    setLogoutModalOpen,
+    loadCurrentUser,
+    loadBranding
+  } = useAppAuth();
+
+  const {
+    allCarousels,
+    stats,
+    filterStatus,
+    setFilterStatus,
+    imageVersion,
+    setImageVersion,
+    loadCarousels,
+    loadStats,
+    handleCreateCarousel,
+    handleStartGeneration,
+    handleStartMockGeneration
+  } = useCarouselsData({ showToast, setActiveTab });
+
+  const { liveSession, setLiveSession, setupSSE } = useGlobalSSE({ loadCarousels, loadStats });
+
+  // Estados de navegação e fluxos do criador
+  const [shouldAddFormMessage, setShouldAddFormMessage] = useState(false);
+  const [criadorInitialMessages, setCriadorInitialMessages] = useState(null);
+  const [criadorReadOnly, setCriadorReadOnly] = useState(false);
+
+  // Modais
+  const [newModalOpen, setNewModalOpen] = useState(false);
+  const [newModalDefaults, setNewModalDefaults] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editCarouselId, setEditCarouselId] = useState('');
+  const [editFilename, setEditFilename] = useState('');
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyCarouselId, setHistoryCarouselId] = useState('');
+
+  // Lightbox
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxCarouselId, setLightboxCarouselId] = useState('');
+  const [lightboxSlides, setLightboxSlides] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const handleOpenLightbox = (id, slides, idx) => {
+    setLightboxCarouselId(id);
+    setLightboxSlides(slides);
+    setLightboxIndex(idx);
+    setLightboxOpen(true);
+  };
+
+  useEffect(() => {
+    document.title = "Oraculo";
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('activeTab', activeTab);
@@ -39,72 +93,10 @@ export default function App() {
       setCriadorReadOnly(false);
     }
   }, [activeTab]);
-  const [allCarousels, setAllCarousels] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [shouldAddFormMessage, setShouldAddFormMessage] = useState(false);
-  const [criadorInitialMessages, setCriadorInitialMessages] = useState(null);
-  const [criadorReadOnly, setCriadorReadOnly] = useState(false);
-
-  // Modais
-  const [newModalOpen, setNewModalOpen] = useState(false);
-  const [newModalDefaults, setNewModalDefaults] = useState(null);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editCarouselId, setEditCarouselId] = useState('');
-  const [editFilename, setEditFilename] = useState('');
-
-  // Lightbox
-  const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [lightboxCarouselId, setLightboxCarouselId] = useState('');
-  const [lightboxSlides, setLightboxSlides] = useState([]);
-  const [lightboxIndex, setLightboxIndex] = useState(0);
-
-  // Live Session Panel
-  const [liveSession, setLiveSession] = useState(null);
-
-  // Toast
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastShow, setToastShow] = useState(false);
-  const [imageVersion, setImageVersion] = useState(Date.now());
-  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
-
-  // Histórico de Geração
-  const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [historyCarouselId, setHistoryCarouselId] = useState('');
-  const [branding, setBranding] = useState(() => {
-    try {
-      const cached = localStorage.getItem('fo_branding');
-      if (cached) return JSON.parse(cached);
-    } catch (e) {}
-    return {
-      companyName: 'Tete',
-      logoText: '@HAUCACAU',
-      logoSub: 'PRODUÇÃO',
-      logoSize: '6px',
-      logoColor: '#ffffff',
-      carouselTextSize: '15px',
-      carouselTextColor: '#e4e4e7',
-      titleTextSize: '18px',
-      bodyTextSize: '12px',
-      titleTextColor: '#ffffff',
-      bodyTextColor: '#df0c7c',
-      logoPosition: 'right'
-    };
-  });
-  const [currentUser, setCurrentUser] = useState(null);
-  const [initialLoading, setInitialLoading] = useState(true);
-
-  const handleOpenLightbox = (id, slides, idx) => {
-    setLightboxCarouselId(id);
-    setLightboxSlides(slides);
-    setLightboxIndex(idx);
-    setLightboxOpen(true);
-  };
 
   useEffect(() => {
     const initApp = async () => {
       try {
-        // Executa chamadas iniciais
         await Promise.all([
           loadCurrentUser(),
           loadBranding(),
@@ -114,256 +106,36 @@ export default function App() {
         const loadedCarousels = await loadCarousels();
         setupSSE();
 
-        // Pré-carrega as imagens de capa dos carrosséis para só exibir quando estiverem renderizadas
         if (Array.isArray(loadedCarousels) && loadedCarousels.length > 0) {
-          const imagePromises = loadedCarousels
+          const visibleCarousels = loadedCarousels.slice(0, 20);
+          const imagePromises = visibleCarousels
             .filter(c => c.cover || (c.slides && c.slides[0]))
-            .map(c => {
-              return new Promise((resolve) => {
-                const img = new Image();
-                const coverPath = c.cover || (typeof c.slides[0] === 'string' ? c.slides[0] : c.slides[0]?.filename);
-                if (!coverPath) return resolve();
-                
-                const token = encodeURIComponent(localStorage.getItem('fo_token') || '');
-                img.src = coverPath.startsWith('http') || coverPath.startsWith('/')
-                  ? coverPath 
-                  : `/api/carousels/${c.id}/image/${coverPath}?token=${token}`;
-                
-                img.onload = () => resolve();
-                img.onerror = () => resolve(); // se falhar imagem individual não trava o dashboard
-              });
-            });
-          
-          // Aguarda o pré-carregamento de todas as imagens de capa
-          await Promise.all(imagePromises);
+            .map(c => new Promise((resolve) => {
+              const img = new Image();
+              const coverPath = c.cover || (typeof c.slides[0] === 'string' ? c.slides[0] : c.slides[0]?.filename);
+              if (!coverPath) return resolve();
+              const token = encodeURIComponent(localStorage.getItem('fo_token') || '');
+              img.src = coverPath.startsWith('http') || coverPath.startsWith('/')
+                ? coverPath 
+                : `/api/carousels/${c.id}/image/${coverPath}?token=${token}`;
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+            }));
+
+          await Promise.race([
+            Promise.all(imagePromises),
+            new Promise(resolve => setTimeout(resolve, 1500))
+          ]);
         }
       } catch (err) {
         console.error("Erro na inicialização do painel:", err);
       } finally {
-        // Transição suave
-        setTimeout(() => {
-          setInitialLoading(false);
-        }, 400);
+        setTimeout(() => setInitialLoading(false), 400);
       }
     };
 
     initApp();
-
-    const handleShowLogout = () => setLogoutModalOpen(true);
-    window.addEventListener('show-logout-modal', handleShowLogout);
-    return () => {
-      window.removeEventListener('show-logout-modal', handleShowLogout);
-    };
   }, []);
-
-  // Polling para carrosseis em geração — caso a conexão SSE caia (ex: container reiniciado)
-  useEffect(() => {
-    const hasGenerating = allCarousels.some(c => c.status === 'generating');
-    if (!hasGenerating) return;
-    const interval = setInterval(() => {
-      loadCarousels();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [allCarousels]);
-
-  const loadCurrentUser = async () => {
-    try {
-      const res = await customFetch('/api/me');
-      const data = await res.json();
-      if (res.ok) {
-        setCurrentUser(data);
-      } else {
-        localStorage.removeItem('fo_token');
-        window.location.href = '/login';
-      }
-    } catch (e) {
-      localStorage.removeItem('fo_token');
-      window.location.href = '/login';
-    }
-  };
-
-  useEffect(() => {
-    document.title = "Oraculo";
-  }, []);
-
-  const loadBranding = async () => {
-    try {
-      const res = await customFetch('/api/settings/branding');
-      const data = await res.json();
-      if (data) {
-        setBranding(data);
-        localStorage.setItem('fo_branding', JSON.stringify(data));
-      }
-    } catch (e) {}
-  };
-
-  const showToast = (msg) => {
-    setToastMessage(msg);
-    setToastShow(true);
-    setTimeout(() => setToastShow(false), 2500);
-  };
-
-  const loadCarousels = async () => {
-    try {
-      const res = await customFetch('/api/carousels');
-      const data = await res.json();
-      if (res.ok) {
-        setAllCarousels(data);
-        setImageVersion(Date.now());
-        return data;
-      }
-    } catch (e) {
-      showToast('Erro ao carregar carrosséis.');
-    }
-    return [];
-  };
-
-  const loadStats = async () => {
-    try {
-      const res = await customFetch('/api/stats');
-      const data = await res.json();
-      if (res.ok) {
-        setStats(data);
-      }
-    } catch (e) {
-      showToast('Erro ao carregar estatísticas.');
-    }
-  };
-
-  const setupSSE = () => {
-    const token = localStorage.getItem('fo_token');
-    const url = token ? `/api/events?token=${encodeURIComponent(token)}` : '/api/events';
-    const eventSource = new EventSource(url);
-
-    // Timeout para fechar o painel se ficar preso sem receber slides (ex: container reiniciado no meio da geração)
-    let stuckTimer = null;
-    const resetStuckTimer = () => {
-      if (stuckTimer) clearTimeout(stuckTimer);
-      stuckTimer = setTimeout(() => {
-        setLiveSession(prev => prev ? { ...prev, visible: false } : null);
-      }, 60000); // 60 segundos sem atividade → fecha
-    };
-
-    eventSource.onmessage = function(event) {
-      try {
-        const obj = JSON.parse(event.data);
-        if (obj.type === 'start') {
-          setLiveSession({
-            carouselId: obj.carouselId,
-            total: obj.total,
-            slides: [],
-            visible: true,
-            expanded: false
-          });
-          loadCarousels();
-          resetStuckTimer(); // inicia o watchdog
-        } else if (obj.type === 'slide') {
-          resetStuckTimer(); // renova o watchdog a cada slide recebido
-          loadCarousels(); // recarrega a lista para mostrar a imagem do slide recém-criado
-          loadStats(); // atualiza o custo em tempo real
-          setLiveSession(prev => {
-            if (!prev) return prev;
-            const slides = [...prev.slides];
-            const idx = slides.findIndex(s => s.num === obj.num);
-            const slideData = {
-              num: obj.num,
-              estado: obj.estado,
-              filename: obj.filename,
-              title_text: obj.title_text,
-              status: obj.status === 'ok' ? 'ok' : obj.status === 'erro' ? 'error' : 'loading',
-              timestamp: Date.now()
-            };
-            if (idx >= 0) slides[idx] = slideData;
-            else slides.push(slideData);
-            return { ...prev, slides };
-          });
-        } else if (obj.type === 'done' || obj.type === 'registered') {
-          if (stuckTimer) clearTimeout(stuckTimer); // cancela o watchdog
-          loadCarousels();
-          loadStats();
-          // Fecha o painel automaticamente após 3 segundos
-          setTimeout(() => {
-            setLiveSession(prev => prev ? { ...prev, visible: false } : null);
-          }, 3000);
-        }
-      } catch (e) {}
-    };
-    return () => { eventSource.close(); if (stuckTimer) clearTimeout(stuckTimer); };
-
-  };
-
-  const handleCreateCarousel = async (payload) => {
-    try {
-      const res = await customFetch('/api/carousels', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        showToast('Carrossel criado com sucesso!');
-        loadCarousels();
-        loadStats();
-      }
-    } catch (e) {
-      showToast('Erro ao criar carrossel.');
-    }
-  };
-
-  const handleStartGeneration = async (carouselText, carouselId = null) => {
-    const payload = parseCarouselText(carouselText);
-    if (payload.slides.length === 0) {
-      alert('Não consegui extrair slides do carrossel!');
-      return;
-    }
-
-    if (carouselId) {
-      payload.id = carouselId;
-    }
-
-    try {
-      const res = await customFetch('/api/criador/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        showToast('✦ Pipeline de geração iniciado!');
-        loadCarousels();
-        setActiveTab('carrosseis');
-      }
-    } catch (e) {
-      showToast('Erro ao iniciar pipeline.');
-    }
-  };
-
-  const handleStartMockGeneration = async (carouselText, carouselId = null) => {
-    const payload = parseCarouselText(carouselText);
-    if (payload.slides.length === 0) {
-      alert('Não consegui extrair slides do carrossel!');
-      return;
-    }
-
-    if (carouselId) {
-      payload.id = carouselId;
-    }
-
-    try {
-      const res = await customFetch('/api/escala/criar-mock', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        showToast('⚡ Pipeline de geração rápida (mock) concluído!');
-        setActiveTab('carrosseis');
-      } else {
-        const err = await res.json();
-        showToast(`Erro ao criar design rápido: ${err.error || err.detail}`);
-      }
-    } catch (e) {
-      showToast('Erro ao iniciar pipeline rápido.');
-    }
-  };
 
   const activeEditCarousel = allCarousels.find(x => x.id === editCarouselId);
   const editSlides = activeEditCarousel ? activeEditCarousel.slides : [];
@@ -371,6 +143,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <InitialLoader loading={initialLoading} branding={branding} />
+      
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -384,94 +157,35 @@ export default function App() {
       />
 
       <div className="main-area">
-        {currentUser?.permissions?.[activeTab] === 'em_breve' ? (
-          <InProgressPage activeTab={activeTab} currentUser={currentUser} />
-        ) : (
-          <>
-            {activeTab === 'carrosseis' && (
-              <Dashboard
-                allCarousels={allCarousels}
-                stats={stats}
-                filterStatus={filterStatus}
-                setFilterStatus={setFilterStatus}
-                currentUser={currentUser}
-                imageVersion={imageVersion}
-                onOpenLightbox={handleOpenLightbox}
-                onOpenEditModal={(id, filename) => {
-                  setEditCarouselId(id);
-                  setEditFilename(filename);
-                  setEditModalOpen(true);
-                }}
-                onLoadCarousels={loadCarousels}
-                showToast={showToast}
-                onOpenHistoryModal={(id) => {
-                  setHistoryCarouselId(id);
-                  setHistoryModalOpen(true);
-                }}
-                onLoadChatHistory={(chatHistory) => {
-                  setCriadorInitialMessages(chatHistory);
-                  setCriadorReadOnly(true);
-                  setActiveTab('criador');
-                }}
-              />
-            )}
-
-            {activeTab === 'calendario' && (
-              <Calendar
-                allCarousels={allCarousels}
-                onLoadCarousels={loadCarousels}
-                showToast={showToast}
-                imageVersion={imageVersion}
-              />
-            )}
-
-            {activeTab === 'biblioteca' && (
-              <Biblioteca
-                showToast={showToast}
-              />
-            )}
-
-            {activeTab === 'reels' && (
-              <ReelsCloner
-                onOpenNewModal={(defaults) => {
-                  setNewModalDefaults(defaults);
-                  setNewModalOpen(true);
-                }}
-                showToast={showToast}
-              />
-            )}
-
-            {activeTab === 'oraculo' && <Oraculo showToast={showToast} />}
-            {activeTab === 'radar' && <Radar showToast={showToast} />}
-            {activeTab === 'fabrica' && <VideoFactory />}
-            {activeTab === 'criador' && (
-              <Criador
-                onStartGeneration={handleStartGeneration}
-                showToast={showToast}
-                shouldAddFormMessage={shouldAddFormMessage}
-                clearAddFormMessage={() => setShouldAddFormMessage(false)}
-                initialMessages={criadorInitialMessages}
-                clearInitialMessages={() => setCriadorInitialMessages(null)}
-                isReadOnly={criadorReadOnly}
-              />
-            )}
-            {activeTab === 'configuracoes' && <Settings showToast={showToast} onLoadBranding={loadBranding} currentUser={currentUser} />}
-            {activeTab === 'users' && <UsersManagement showToast={showToast} />}
-            {activeTab === 'backups' && <BackupManagement showToast={showToast} />}
-            {activeTab === 'escala' && (
-              <Criador
-                onStartGeneration={handleStartMockGeneration}
-                showToast={showToast}
-                shouldAddFormMessage={shouldAddFormMessage}
-                clearAddFormMessage={() => setShouldAddFormMessage(false)}
-                initialMessages={criadorInitialMessages}
-                clearInitialMessages={() => setCriadorInitialMessages(null)}
-                isReadOnly={criadorReadOnly}
-                isMockFlow={true}
-              />
-            )}
-          </>
-        )}
+        <AppTabRouter
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          currentUser={currentUser}
+          allCarousels={allCarousels}
+          stats={stats}
+          filterStatus={filterStatus}
+          setFilterStatus={setFilterStatus}
+          imageVersion={imageVersion}
+          handleOpenLightbox={handleOpenLightbox}
+          setEditCarouselId={setEditCarouselId}
+          setEditFilename={setEditFilename}
+          setEditModalOpen={setEditModalOpen}
+          loadCarousels={loadCarousels}
+          loadBranding={loadBranding}
+          showToast={showToast}
+          setHistoryCarouselId={setHistoryCarouselId}
+          setHistoryModalOpen={setHistoryModalOpen}
+          setCriadorInitialMessages={setCriadorInitialMessages}
+          setCriadorReadOnly={setCriadorReadOnly}
+          setNewModalDefaults={setNewModalDefaults}
+          setNewModalOpen={setNewModalOpen}
+          handleStartGeneration={handleStartGeneration}
+          handleStartMockGeneration={handleStartMockGeneration}
+          shouldAddFormMessage={shouldAddFormMessage}
+          setShouldAddFormMessage={setShouldAddFormMessage}
+          criadorInitialMessages={criadorInitialMessages}
+          criadorReadOnly={criadorReadOnly}
+        />
       </div>
 
       <AppModals

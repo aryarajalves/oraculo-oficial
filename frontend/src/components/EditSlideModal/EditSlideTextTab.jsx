@@ -35,10 +35,10 @@ export default function EditSlideTextTab({
           <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Tamanho do Título (px)</label>
           <input 
             type="number" 
-            placeholder={`${defaultSizes.title}px (Padrão)`} 
+            placeholder="Ex: 76" 
             className="form-input" 
             style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
-            value={slideMeta.title_px} 
+            value={slideMeta.title_px !== undefined && slideMeta.title_px !== null ? slideMeta.title_px : defaultSizes.title} 
             onChange={e => setSlideMeta(prev => ({ ...prev, title_px: e.target.value }))} 
           />
         </div>
@@ -46,10 +46,10 @@ export default function EditSlideTextTab({
           <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)' }}>Tamanho do Corpo (px)</label>
           <input 
             type="number" 
-            placeholder={`${defaultSizes.body}px (Padrão)`} 
+            placeholder="Ex: 40" 
             className="form-input" 
             style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
-            value={slideMeta.body_px} 
+            value={slideMeta.body_px !== undefined && slideMeta.body_px !== null ? slideMeta.body_px : defaultSizes.body} 
             onChange={e => setSlideMeta(prev => ({ ...prev, body_px: e.target.value }))} 
           />
         </div>
@@ -62,7 +62,7 @@ export default function EditSlideTextTab({
           placeholder="Ex: @HAUCACAU" 
           className="form-input" 
           style={{ width: '100%', padding: '8px', background: '#09090b', color: '#fff', border: '1px solid var(--border)', borderRadius: '6px' }} 
-          value={slideMeta.watermark_text} 
+          value={slideMeta.watermark_text || ''} 
           onChange={e => setSlideMeta(prev => ({ ...prev, watermark_text: e.target.value }))} 
         />
       </div>

@@ -68,6 +68,33 @@ export default function ChatMessages({
               </div>
             )}
 
+            {/* ── Modelo de IA e Custo em Reais (1 USD = 5 BRL) ── */}
+            {msg.imageUrl && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '8px',
+                fontSize: '11px',
+                color: 'var(--text-3, #a1a1aa)',
+                padding: '6px 10px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                borderRadius: '6px',
+                margin: '6px 0 8px'
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>🤖 Modelo:</span>
+                  <strong style={{ color: 'var(--text-1, #f4f4f5)' }}>{msg.model || 'gpt-image-1'}</strong>
+                </span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <span>💰 Custo:</span>
+                  <strong style={{ color: '#10b981' }}>{msg.costFormatted || (msg.costBrl ? `R$ ${msg.costBrl.toFixed(2).replace('.', ',')}` : 'R$ 0,20')}</strong>
+                  <span style={{ fontSize: '9px', color: 'var(--text-3, #71717a)' }}>($0.04 USD)</span>
+                </span>
+              </div>
+            )}
+
             {msg.warning && (
               <div style={{
                 margin: '8px 0',

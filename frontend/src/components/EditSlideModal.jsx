@@ -8,6 +8,14 @@ import EditSlideTextTab from './EditSlideModal/EditSlideTextTab';
 import EditSlideImageTab from './EditSlideModal/EditSlideImageTab';
 import EditSlidePreview from './EditSlideModal/EditSlidePreview';
 
+const getDefaultLogoText = () => {
+  try {
+    const branding = JSON.parse(localStorage.getItem('fo_branding') || '{}');
+    if (branding.logoText) return branding.logoText;
+  } catch {}
+  return '@HAUCACAU';
+};
+
 export default function EditSlideModal({
   isOpen,
   onClose,
@@ -30,9 +38,9 @@ export default function EditSlideModal({
     watermark_pos: 'top_left',
     watermark_x: '',
     watermark_y: '',
-    watermark_text: '',
-    title_px: '',
-    body_px: '',
+    watermark_text: getDefaultLogoText(),
+    title_px: 76,
+    body_px: 40,
     preset: 'sagrado'
   });
   const [saving, setSaving] = useState(false);
@@ -134,6 +142,10 @@ export default function EditSlideModal({
           ? `Cinematic dark esoteric illustration, dramatic volumetric light, deep emotional atmosphere. Abstract visual metaphor for: ${data.title}`
           : `Cinematic dark esoteric illustration, dramatic volumetric light, deep emotional atmosphere.`);
 
+        const presetKey = data.preset || 'sagrado';
+        const presetSizes = PRESET_DEFAULTS[presetKey] || PRESET_DEFAULTS.sagrado;
+        const defaultLogo = getDefaultLogoText();
+
         setSlideMeta({
           title: data.title || '',
           body: data.body || '',
@@ -144,10 +156,10 @@ export default function EditSlideModal({
           watermark_pos: data.watermark_pos || 'top_left',
           watermark_x: data.watermark_x !== undefined && data.watermark_x !== null ? data.watermark_x : '',
           watermark_y: data.watermark_y !== undefined && data.watermark_y !== null ? data.watermark_y : '',
-          watermark_text: data.watermark_text !== undefined && data.watermark_text !== null ? data.watermark_text : '',
-          title_px: data.title_px !== undefined && data.title_px !== null ? data.title_px : '',
-          body_px: data.body_px !== undefined && data.body_px !== null ? data.body_px : '',
-          preset: data.preset || 'sagrado'
+          watermark_text: (data.watermark_text !== undefined && data.watermark_text !== null && String(data.watermark_text).trim() !== '') ? data.watermark_text : defaultLogo,
+          title_px: (data.title_px !== undefined && data.title_px !== null && String(data.title_px).trim() !== '') ? data.title_px : presetSizes.title,
+          body_px: (data.body_px !== undefined && data.body_px !== null && String(data.body_px).trim() !== '') ? data.body_px : presetSizes.body,
+          preset: presetKey
         });
       }
     } catch (e) {
@@ -219,13 +231,14 @@ export default function EditSlideModal({
       });
       const data = await res.json();
       if (data.ok) {
-        showToast('Imagem gerada e slide recomposto!');
+        showToast('Imagem gerada e slide recomposto!', 'success');
         setCacheBuster(Date.now());
+        if (typeof onSave === 'function') onSave();
       } else {
         alert('Erro: ' + (data.error || 'desconhecido'));
       }
     } catch (e) {
-      showToast('Erro ao gerar nova imagem.');
+      showToast('Erro ao gerar nova imagem.', 'error');
     } finally {
       setSaving(false);
     }

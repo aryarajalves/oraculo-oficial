@@ -10,4 +10,10 @@ boto3>=1.28.0
 ruff>=0.3.0
 # Auditor de vulnerabilidades e CVEs para dependências Python
 pip-audit>=2.7.0
+# Gerenciador de migrações e versionamento de esquema do banco de dados PostgreSQL
+alembic>=1.13.0
+# Driver nativo de alta performance para conexão do Python/Alembic com PostgreSQL
+psycopg2-binary>=2.9.9
+# Toolkit SQL e ORM para definição e manipulação de esquemas com Alembic
+SQLAlchemy>=2.0.0
 

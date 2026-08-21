@@ -181,7 +181,11 @@ router.post('/api/backups/bulk-delete', async (req, res) => {
     }
 
     for (const filename of filenames) {
-      await deleteBackup(filename, s3Folder);
+      try {
+        await deleteBackup(filename, s3Folder);
+      } catch (e) {
+        logger.error('[Backup]', `Erro ao excluir ${filename}:`, e.message);
+      }
     }
     res.json({ ok: true });
   } catch (err) {

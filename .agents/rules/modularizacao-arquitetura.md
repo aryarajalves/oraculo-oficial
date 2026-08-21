@@ -12,5 +12,7 @@ Ao realizar refatorações ou expansões do sistema, a organização de arquivos
    - **Frontend:** Separe a lógica de estado (Hooks customizados), a renderização (Componentes) e os utilitários em arquivos distintos.
    - **Backend:** Separe as rotas (Routers), os modelos de dados (Schemas/Models) e a lógica de negócio (Services).
 3. **Proibição de Componentes Aninhados:** Não defina sub-componentes dentro do mesmo arquivo se eles possuírem lógica complexa ou mais de 50 linhas de código. Extraia para a pasta `components/`.
+4. **Fluxo Contínuo de Refatoração:** Ao concluir a refatoração de um arquivo, reporte imediatamente qual é o próximo arquivo da lista que precisa de refatoração. Se não houver mais nenhum arquivo excedendo limites ou com necessidade de refatoração, informe que a base de código está 100% em conformidade e encerre o ciclo.
 
 Isso mantém a base de código limpa, escalável e fácil de navegar.
+

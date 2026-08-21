@@ -94,7 +94,7 @@ export default function CarouselCard({
         ) : (
           <div className="card-thumb-placeholder">{c.status === 'generating' ? '⏳' : '🎨'}</div>
         )}
-        <div className="card-meta">
+        <div className="card-meta" style={{ paddingRight: '75px' }}>
           <div className="card-title">{c.title}</div>
           <div className="card-badges">
             {c.isPinned && (

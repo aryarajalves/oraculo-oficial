@@ -113,13 +113,35 @@ def out_safe(obj: dict):
 
 def fetch_image_for_slide(args_tuple):
     """
-    FASE 1 — apenas a chamada de API (rede, sem Pillow).
-    Roda em paralelo. Retorna (idx, img_bytes | None).
+    FASE 1 — Checagem de Checkpoint Local e chamada de API se necessário.
+    Roda em paralelo. Retorna (idx, img_bytes | None, from_cache: bool).
     """
-    idx, s = args_tuple
+    idx, s, out_dir = args_tuple
+    num = s.get("num", str(idx).zfill(2))
     layout = s.get("layout", "fullbleed")
     if layout == "text_only":
-        return idx, None
+        return idx, None, False
+
+    # 1. Verificação de Checkpoint / Imagem já gerada em disco antes do restart
+    raw_file = out_dir / f"raw-{num}.jpg"
+    slide_file = out_dir / f"slide-{num}.jpg"
+    
+    if raw_file.exists() and raw_file.stat().st_size > 1024:
+        try:
+            cached_bytes = raw_file.read_bytes()
+            out_safe({"type": "log", "msg": f"  S{idx:02d} imagem recuperada do checkpoint local (resume)"})
+            return idx, cached_bytes, True
+        except Exception:
+            pass
+    elif slide_file.exists() and slide_file.stat().st_size > 1024:
+        try:
+            cached_bytes = slide_file.read_bytes()
+            out_safe({"type": "log", "msg": f"  S{idx:02d} imagem recuperada do slide local (resume)"})
+            return idx, cached_bytes, True
+        except Exception:
+            pass
+
+    # 2. Se não existir no cache local, chama a API OpenAI
     prompt = s.get("prompt", "")
     s_title = s.get("title", "")
     quality = s.get("imageQuality", None)
@@ -127,7 +149,7 @@ def fetch_image_for_slide(args_tuple):
         "Cinematic dark esoteric illustration, dramatic volumetric light, "
         f"deep emotional atmosphere. Abstract visual metaphor for: {s_title}"
     )
-    return idx, gen(prompt_final, quality=quality)
+    return idx, gen(prompt_final, quality=quality), False
 
 
 def main():
@@ -184,24 +206,25 @@ def main():
              "estado": s.get("estado", f"S{idx}"), "status": "gerando"})
 
     # ══════════════════════════════════════════════════════════════════════════
-    # FASE 1: API calls em paralelo (rede — pouca memória, gargalo é latência)
+    # FASE 1: API calls em paralelo (com detecção de Checkpoint/Resume local)
     # MAX_WORKERS paralelos para as chamadas à OpenAI
     # ══════════════════════════════════════════════════════════════════════════
     MAX_API_WORKERS = min(5, total)
     raw_images: dict[int, bytes | None] = {}
 
     with ThreadPoolExecutor(max_workers=MAX_API_WORKERS) as pool:
-        futures = {pool.submit(fetch_image_for_slide, (idx, s)): idx
+        futures = {pool.submit(fetch_image_for_slide, (idx, s, out_dir)): idx
                    for idx, s in enumerate(slides, 1)}
         for future in as_completed(futures):
+            from_cache = False
             try:
-                idx, img_bytes = future.result()
+                idx, img_bytes, from_cache = future.result()
             except Exception as e:
                 idx = futures[future]
                 img_bytes = None
                 out_safe({"type": "log", "msg": f"  S{idx:02d} API erro: {e}"})
             raw_images[idx] = img_bytes
-            status_icon = "ok" if img_bytes else "erro"
+            status_icon = "ok (checkpoint)" if from_cache else ("ok" if img_bytes else "erro")
             out_safe({"type": "log",
                       "msg": f"  S{idx:02d} imagem {status_icon}"})
 

@@ -154,16 +154,167 @@ export async function writeData(data) {
 }
 
 export async function readDataAsync() {
-  if (IS_PROD && b2) return b2.readDataFromB2();
   return readData();
 }
 
 export async function writeDataAsync(data) {
-  if (IS_PROD && b2) {
-    await b2.writeDataToB2(data);
-    return;
+  return writeData(data);
+}
+
+// ── Funções Atômicas Diretas no PostgreSQL (Alta Performance) ────────────────
+
+export async function getCarouselById(id) {
+  try {
+    const res = await query("SELECT * FROM carousels WHERE id = $1", [id]);
+    if (res.rows.length === 0) return null;
+    return mapCarouselFromDb(res.rows[0]);
+  } catch (err) {
+    logger.error('[Helpers]', `Erro ao buscar carrossel ${id}:`, err);
+    return null;
   }
-  await writeData(data);
+}
+
+export async function saveSingleCarousel(c) {
+  const upsertQuery = `
+    INSERT INTO carousels (
+      id, title, theme, praca, format, preset, status, created_at,
+      slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history, image_quality, b2_base_url, image_provider, copy_model, no_image_slides_count, last_payload, is_pinned, pinned_at, generation_duration, generation_time_seconds, scheduled_at, scheduled_timestamp
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+    ON CONFLICT (id) DO UPDATE SET
+      title = EXCLUDED.title,
+      theme = EXCLUDED.theme,
+      praca = EXCLUDED.praca,
+      format = EXCLUDED.format,
+      preset = EXCLUDED.preset,
+      status = EXCLUDED.status,
+      created_at = EXCLUDED.created_at,
+      slides_dir = EXCLUDED.slides_dir,
+      slide_prefix = EXCLUDED.slide_prefix,
+      total_slides = EXCLUDED.total_slides,
+      caption = EXCLUDED.caption,
+      notes = EXCLUDED.notes,
+      slides = EXCLUDED.slides,
+      chat_history = EXCLUDED.chat_history,
+      image_quality = EXCLUDED.image_quality,
+      b2_base_url = EXCLUDED.b2_base_url,
+      image_provider = EXCLUDED.image_provider,
+      copy_model = EXCLUDED.copy_model,
+      no_image_slides_count = EXCLUDED.no_image_slides_count,
+      last_payload = EXCLUDED.last_payload,
+      is_pinned = EXCLUDED.is_pinned,
+      pinned_at = EXCLUDED.pinned_at,
+      generation_duration = EXCLUDED.generation_duration,
+      generation_time_seconds = EXCLUDED.generation_time_seconds,
+      scheduled_at = EXCLUDED.scheduled_at,
+      scheduled_timestamp = EXCLUDED.scheduled_timestamp
+    RETURNING *;
+  `;
+  const params = [
+    c.id,
+    c.title || '',
+    c.theme || '',
+    c.praca || '',
+    c.format || '',
+    c.preset || '',
+    c.status || '',
+    c.createdAt || '',
+    c.slidesDir || '',
+    c.slidePrefix || '',
+    c.totalSlides || 0,
+    c.caption || '',
+    c.notes || '',
+    JSON.stringify(c.slides || []),
+    JSON.stringify(c.chatHistory || []),
+    c.imageQuality || 'high',
+    c.b2BaseUrl || '',
+    c.imageProvider || 'gpt-image-2',
+    c.copyModel || 'gpt-4o',
+    c.noImageSlidesCount || 0,
+    c.lastPayload ? JSON.stringify(c.lastPayload) : null,
+    c.isPinned || false,
+    c.pinnedAt || null,
+    c.generationDuration || null,
+    c.generationTimeSeconds || null,
+    c.scheduledAt || null,
+    c.scheduledTimestamp || null
+  ];
+  const res = await query(upsertQuery, params);
+  return mapCarouselFromDb(res.rows[0]);
+}
+
+export async function updateCarouselFields(id, updates = {}) {
+  const fields = [];
+  const params = [id];
+  let idx = 2;
+
+  for (const [key, val] of Object.entries(updates)) {
+    const dbColMap = {
+      title: 'title',
+      theme: 'theme',
+      praca: 'praca',
+      format: 'format',
+      preset: 'preset',
+      status: 'status',
+      createdAt: 'created_at',
+      slidesDir: 'slides_dir',
+      slidePrefix: 'slide_prefix',
+      totalSlides: 'total_slides',
+      caption: 'caption',
+      notes: 'notes',
+      imageQuality: 'image_quality',
+      b2BaseUrl: 'b2_base_url',
+      imageProvider: 'image_provider',
+      copyModel: 'copy_model',
+      noImageSlidesCount: 'no_image_slides_count',
+      isPinned: 'is_pinned',
+      pinnedAt: 'pinned_at',
+      generationDuration: 'generation_duration',
+      generationTimeSeconds: 'generation_time_seconds',
+      scheduledAt: 'scheduled_at',
+      scheduledTimestamp: 'scheduled_timestamp',
+      slides: 'slides',
+      chatHistory: 'chat_history',
+      lastPayload: 'last_payload'
+    };
+
+    const col = dbColMap[key] || key;
+    let finalVal = val;
+    if (['slides', 'chatHistory', 'lastPayload'].includes(key) || ['slides', 'chat_history', 'last_payload'].includes(col)) {
+      finalVal = typeof val === 'string' ? val : JSON.stringify(val);
+    }
+
+    fields.push(`${col} = $${idx}`);
+    params.push(finalVal);
+    idx++;
+  }
+
+  if (fields.length === 0) return null;
+
+  const updateSql = `UPDATE carousels SET ${fields.join(', ')} WHERE id = $1 RETURNING *`;
+  const res = await query(updateSql, params);
+  if (res.rows.length === 0) return null;
+  return mapCarouselFromDb(res.rows[0]);
+}
+
+export async function deleteCarouselById(id) {
+  const res = await query("DELETE FROM carousels WHERE id = $1 RETURNING id", [id]);
+  return res.rowCount > 0;
+}
+
+
+
+let cachedDesktopDir = null;
+function getCachedDesktopDir() {
+  if (cachedDesktopDir) return cachedDesktopDir;
+  if (process.platform === 'win32') {
+    const userProfile = process.env.USERPROFILE || 'C:/Users/julia';
+    const onedrivePath = path.join(userProfile, 'OneDrive', 'Área de Trabalho');
+    const normalDesktop = path.join(userProfile, 'Desktop');
+    cachedDesktopDir = fs.existsSync(onedrivePath) ? onedrivePath : normalDesktop;
+  } else {
+    cachedDesktopDir = "/app/backend/storage/carousels";
+  }
+  return cachedDesktopDir;
 }
 
 export function getLocalSlidesDir(c) {
@@ -178,27 +329,19 @@ export function getLocalSlidesDir(c) {
     return path.join("/app/backend/storage/carousels", folderName);
   }
   
+  if (c.slidesDir.startsWith("b2://")) {
+    const baseDir = getCachedDesktopDir();
+    return path.join(baseDir, `carrossel-${c.theme}`);
+  }
+
   // Se for Windows mas o usuário atual for diferente de julia
   if (process.platform === 'win32' && dir.includes("julia")) {
-    const userProfile = process.env.USERPROFILE || 'C:/Users/julia';
-    const onedrivePath = path.join(userProfile, 'OneDrive', 'Área de Trabalho');
-    const normalDesktop = path.join(userProfile, 'Desktop');
-    const hasOneDrive = fs.existsSync(onedrivePath);
-    const targetDesktop = hasOneDrive ? onedrivePath : normalDesktop;
-    
+    const targetDesktop = getCachedDesktopDir();
     const parts = dir.replace(/\\/g, '/').split('/');
     const folderName = parts[parts.length - 1];
     return path.join(targetDesktop, folderName);
   }
 
-  if (c.slidesDir.startsWith("b2://")) {
-    const baseDir = process.platform === 'win32' 
-      ? (fs.existsSync(path.join(process.env.USERPROFILE || 'C:/Users/julia', 'OneDrive', 'Área de Trabalho')) 
-          ? path.join(process.env.USERPROFILE || 'C:/Users/julia', 'OneDrive', 'Área de Trabalho') 
-          : path.join(process.env.USERPROFILE || 'C:/Users/julia', 'Desktop'))
-      : "/app/backend/storage/carousels";
-    return path.join(baseDir, `carrossel-${c.theme}`);
-  }
   return dir;
 }
 
@@ -233,13 +376,14 @@ export function getCarouselCostDetails(c) {
 
   let paidSlides = 0;
   let freeSlides = 0;
+  const hasLocalDir = slidesDir && !slidesDir.startsWith('b2://') && fs.existsSync(slidesDir);
 
   if (slides.length > 0) {
     // Para carrosséis que possuem slides gerados/cadastrados
     for (let i = 0; i < slides.length; i++) {
       const numStr = String(i + 1).padStart(2, '0');
       let isTextOnly = false;
-      if (slidesDir && fs.existsSync(slidesDir)) {
+      if (hasLocalDir) {
         const metaPath = path.join(slidesDir, `slide-${numStr}.meta.json`);
         if (fs.existsSync(metaPath)) {
           try {
@@ -255,7 +399,7 @@ export function getCarouselCostDetails(c) {
         paidSlides++;
       }
     }
-  } else if (slidesDir && fs.existsSync(slidesDir)) {
+  } else if (hasLocalDir) {
     // Se a pasta existe, verifica se há arquivos de imagem reais gerados no disco
     try {
       const files = fs.readdirSync(slidesDir);

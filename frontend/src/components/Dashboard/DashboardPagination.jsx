@@ -1,4 +1,15 @@
-import React from 'react';
+function getPaginationItems(currentPage, totalPages) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+  if (currentPage <= 4) {
+    return [1, 2, 3, 4, 5, 'ellipsis-end', totalPages];
+  }
+  if (currentPage >= totalPages - 3) {
+    return [1, 'ellipsis-start', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+  }
+  return [1, 'ellipsis-start', currentPage - 1, currentPage, currentPage + 1, 'ellipsis-end', totalPages];
+}
 
 export default function DashboardPagination({
   pageSize,
@@ -9,6 +20,8 @@ export default function DashboardPagination({
   totalItems
 }) {
   if (totalItems === 0) return null;
+
+  const paginationItems = getPaginationItems(currentPage, totalPages);
 
   return (
     <div className="pagination" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '15px' }}>
@@ -36,7 +49,7 @@ export default function DashboardPagination({
       </div>
 
       {totalPages > 1 && (
-        <div className="pagination-controls" style={{ margin: 0 }}>
+        <div className="pagination-controls" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
           <button 
             type="button"
             className="page-btn" 
@@ -45,16 +58,30 @@ export default function DashboardPagination({
           >
             Anterior
           </button>
-          {Array.from({ length: totalPages }).map((_, idx) => (
-            <button
-              key={idx}
-              type="button"
-              className={`page-btn ${currentPage === idx + 1 ? 'active' : ''}`}
-              onClick={() => onPageChange(idx + 1)}
-            >
-              {idx + 1}
-            </button>
-          ))}
+          {paginationItems.map((p) => {
+            if (typeof p === 'string') {
+              return (
+                <span key={p} style={{ padding: '0 6px', color: 'var(--text-3)', fontSize: '13px', userSelect: 'none' }}>
+                  ...
+                </span>
+              );
+            }
+            return (
+              <button
+                key={p}
+                type="button"
+                className={`page-btn ${currentPage === p ? 'active' : ''}`}
+                onClick={() => onPageChange(p)}
+                style={{
+                  backgroundColor: currentPage === p ? 'var(--gold, #C9A84C)' : '',
+                  borderColor: currentPage === p ? 'var(--gold, #C9A84C)' : '',
+                  color: currentPage === p ? '#000' : ''
+                }}
+              >
+                {p}
+              </button>
+            );
+          })}
           <button 
             type="button"
             className="page-btn" 

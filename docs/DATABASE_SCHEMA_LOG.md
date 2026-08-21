@@ -2,6 +2,99 @@
 
 Este documento registra a evolução do esquema de banco de dados do projeto, garantindo a rastreabilidade e a reprodutibilidade das alterações em produção.
 
+## [2026-08-21] Migração Alembic 002: Índices GIN e Queries SQL Atômicas de Alta Performance
+
+### Motivação
+Substituir a reescrita monolítica da tabela de carrosséis por queries atômicas diretas no PostgreSQL (`getCarouselById`, `saveSingleCarousel`, `updateCarouselFields`, `deleteCarouselById`) e criar índices GIN nas colunas JSONB para busca instantânea em estruturas complexas.
+
+### Otimizações de Acesso aos Dados
+1. **Eliminação do overhead de I/O:**
+   - Rotas de servir imagens (`/image/:filename`), fixação de cards (`/pin`), criação (`POST`), deleção (`DELETE`) e workers em background agora executam **queries atômicas em 1 único comando SQL** em vez de carregar e regravar todos os registros do banco.
+2. **Índices GIN Criados (Migração 002):**
+   - `idx_carousels_slides_gin` em `carousels (slides)`: Busca rápida dentro de arrays de slides JSONB.
+   - `idx_carousels_chat_history_gin` em `carousels (chat_history)`: Acelera consultas no histórico de conversas do Criador.
+   - `idx_library_chats_messages_gin` em `library_chats (messages)`: Otimiza histórico de mensagens do assistente da Biblioteca.
+   - `idx_dashboard_users_permissions_gin` em `dashboard_users (permissions)`: Acelera verificação e filtros de permissões JSONB.
+
+### Como Executar em Produção
+```bash
+docker exec -w /app/backend oraculo_backend alembic upgrade head
+```
+
+---
+
+## [2026-08-21] Implementação do Alembic para Versionamento e Migrações de Banco de Dados
+
+### Motivação
+Substituir a criação e alteração manual de tabelas por um sistema profissional e padronizado de controle de versões de banco de dados (Alembic), permitindo histórico versionado, rollbacks confiáveis (`downgrade`) e execução automatizada em CI/CD e deploys.
+
+### Estrutura Configurada
+- **Arquivo de Configuração:** `backend/alembic.ini`
+- **Ambiente de Conexão:** `backend/migrations/env.py` (conecta dinamicamente ao PostgreSQL a partir das variáveis do `.env`)
+- **Pasta de Versões:** `backend/migrations/versions/`
+- **Tabela de Controle no Postgres:** `alembic_version`
+
+### Migrações Criadas
+1. **`001_initial_schema` (`backend/migrations/versions/001_initial_schema.py`):**
+   - Criação/validação baseline de todas as 11 tabelas: `carousels`, `reels_history`, `dashboard_users`, `invitations`, `backup_config`, `backup_logs`, `agent_prompts`, `branding`, `api_keys`, `library_images`, `library_chats`.
+   - Criação de todos os índices de alta performance (`idx_carousels_pinned_created`, `idx_carousels_status`, `idx_carousels_scheduled`, `idx_library_images_category_created`, `idx_backup_logs_created`, `idx_invitations_status_expires`).
+
+### Como Executar em Produção
+```bash
+# Aplicar todas as migrações mais recentes
+docker exec -w /app/backend oraculo_backend alembic upgrade head
+
+# Verificar versão atual
+docker exec -w /app/backend oraculo_backend alembic current
+```
+
+---
+
+## [2026-08-21] Otimização de Performance: Criação de Índices Estratégicos e Tuning de Conexões
+
+### Motivação
+Acelerar a busca e ordenação no Dashboard, melhorar a performance do Worker RabbitMQ/Scheduler de publicações e otimizar o pool de conexões do PostgreSQL evitando gargalos de conexões ociosas ou timeouts.
+
+### Tabelas e Índices Criados
+1. **`carousels`**:
+   - `idx_carousels_pinned_created`: `(is_pinned DESC, pinned_at DESC, created_at DESC)` — Acelera listagem e paginação principal do Dashboard.
+   - `idx_carousels_status`: `(status)` — Acelera filtros por status (ex: 'rascunho', 'generating').
+   - `idx_carousels_scheduled`: `(scheduled_timestamp) WHERE scheduled_timestamp IS NOT NULL` — Otimiza o scheduler de agendamento de posts.
+2. **`library_images`**:
+   - `idx_library_images_category_created`: `(category, created_at DESC)` — Acelera consultas por categoria e data na Biblioteca.
+3. **`backup_logs`**:
+   - `idx_backup_logs_created`: `(created_at DESC)` — Acelera a aba de Histórico de Backups.
+4. **`invitations`**:
+   - `idx_invitations_status_expires`: `(status, expires_at)` — Acelera validação de convites ativos.
+
+### Otimização do Pool de Conexões (`pg.Pool`)
+- `max`: 20 conexões simultâneas (configurável via `DB_POOL_MAX`).
+- `idleTimeoutMillis`: 30.000ms (fecha conexões ociosas).
+- `connectionTimeoutMillis`: 5.000ms (impede travamento de requisições).
+
+#### Script de Migração
+- **Script Standalone:** `backend/scripts/optimize_postgres_indexes.js`
+- **Execução Automática:** Integrado ao `initDb()` em `backend/dashboard/db.js`.
+
+---
+
+## [2026-08-21] Adição da coluna prompt na tabela library_images
+
+### Motivação
+Armazenar de forma estruturada o prompt utilizado para a criação/geração de imagens salvas a partir do Assistente IA para a Biblioteca Principal.
+
+### Tabela Afetada: `library_images`
+
+#### Novas Colunas
+| Coluna | Tipo | Descrição |
+|---|---|---|
+| `prompt` | `TEXT` | Prompt detalhado utilizado para gerar a imagem via IA |
+
+#### Script de Migração
+- Executado automaticamente pelo `initDb()` em `backend/dashboard/db.js`: `ALTER TABLE library_images ADD COLUMN IF NOT EXISTS prompt TEXT;`
+
+---
+
 ## [2026-08-20] Criação das tabelas da Biblioteca (library_images e library_chats)
 
 ### Motivação

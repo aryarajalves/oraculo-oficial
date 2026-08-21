@@ -60,7 +60,10 @@ class TestLibraryAPI(unittest.TestCase):
         body.append(b'Referencia de teste unitario')
 
         # Arquivo de imagem ficticio PNG
-        fake_png = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+        fake_png = (
+            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00'
+            b'\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+        )
         body.append(f"--{boundary}".encode())
         body.append(b'Content-Disposition: form-data; name="files"; filename="avatar_teste.png"')
         body.append(b'Content-Type: image/png')
@@ -99,7 +102,12 @@ class TestLibraryAPI(unittest.TestCase):
             "category": "Estilo",
             "notes": "Notas atualizadas"
         }).encode("utf-8")
-        edit_req = urllib.request.Request(f"{BASE}/api/library/{img_id}", data=edit_data, headers=self.headers, method="PUT")
+        edit_req = urllib.request.Request(
+            f"{BASE}/api/library/{img_id}",
+            data=edit_data,
+            headers=self.headers,
+            method="PUT"
+        )
         with urllib.request.urlopen(edit_req, timeout=5) as edit_resp:
             self.assertEqual(edit_resp.status, 200)
             edit_json = json.loads(edit_resp.read().decode("utf-8"))
@@ -117,7 +125,12 @@ class TestLibraryAPI(unittest.TestCase):
     def test_03_chat_assistant_flow(self):
         """Valida o fluxo do Assistente de Criação IA (geração, histórico e limpeza)"""
         # 1. Limpa histórico
-        clear_req = urllib.request.Request(f"{BASE}/api/library/chat/clear", data=b'{}', headers=self.headers, method="POST")
+        clear_req = urllib.request.Request(
+            f"{BASE}/api/library/chat/clear",
+            data=b'{}',
+            headers=self.headers,
+            method="POST"
+        )
         with urllib.request.urlopen(clear_req, timeout=5) as clear_resp:
             self.assertEqual(clear_resp.status, 200)
 
@@ -128,7 +141,12 @@ class TestLibraryAPI(unittest.TestCase):
             "messages": []
         }).encode("utf-8")
 
-        gen_req = urllib.request.Request(f"{BASE}/api/library/chat/generate", data=gen_payload, headers=self.headers, method="POST")
+        gen_req = urllib.request.Request(
+            f"{BASE}/api/library/chat/generate",
+            data=gen_payload,
+            headers=self.headers,
+            method="POST"
+        )
         with urllib.request.urlopen(gen_req, timeout=30) as gen_resp:
             self.assertEqual(gen_resp.status, 200)
             gen_data = json.loads(gen_resp.read().decode("utf-8"))
@@ -144,7 +162,12 @@ class TestLibraryAPI(unittest.TestCase):
             "category": "Cenários",
             "notes": "Gerado pelo assistente IA"
         }).encode("utf-8")
-        save_req = urllib.request.Request(f"{BASE}/api/library/save-generated", data=save_payload, headers=self.headers, method="POST")
+        save_req = urllib.request.Request(
+            f"{BASE}/api/library/save-generated",
+            data=save_payload,
+            headers=self.headers,
+            method="POST"
+        )
         with urllib.request.urlopen(save_req, timeout=5) as save_resp:
             self.assertEqual(save_resp.status, 200)
             save_data = json.loads(save_resp.read().decode("utf-8"))
@@ -157,6 +180,87 @@ class TestLibraryAPI(unittest.TestCase):
             self.assertEqual(del_resp.status, 200)
 
         print("\n[OK] Teste do Assistente IA (Geração e Salvamento na Biblioteca) aprovado.")
+
+    def test_04_large_dataset_library_images(self):
+        """Valida a consulta, performance e filtros no dataset de mais de 1.000 imagens na Biblioteca"""
+        # 1. Busca geral
+        req = urllib.request.Request(f"{BASE}/api/library", headers=self.headers, method="GET")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            images = data.get("images", [])
+            self.assertGreaterEqual(len(images), 1000, "Deve haver no mínimo 1000 imagens na biblioteca")
+            self.assertIn("Pessoas", data.get("categories", []))
+            self.assertIn("Tecnologia", data.get("categories", []))
+            self.assertIn("Cenários", data.get("categories", []))
+
+        # 2. Filtro por categoria 'Pessoas'
+        req_cat = urllib.request.Request(f"{BASE}/api/library?category=Pessoas", headers=self.headers, method="GET")
+        with urllib.request.urlopen(req_cat, timeout=5) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            images = data.get("images", [])
+            self.assertGreaterEqual(len(images), 100, "Deve haver pelo menos 100 imagens de Pessoas")
+            for img in images[:10]:
+                self.assertEqual(img["category"], "Pessoas")
+
+        # 3. Filtro por busca de termo
+        search_term = urllib.parse.quote("Escritório")
+        req_search = urllib.request.Request(
+            f"{BASE}/api/library?search={search_term}",
+            headers=self.headers,
+            method="GET"
+        )
+        with urllib.request.urlopen(req_search, timeout=5) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            images = data.get("images", [])
+            self.assertGreater(len(images), 0, "A busca por 'Escritório' deve retornar resultados")
+
+        # 4. Ordenação Alfabética A-Z
+        req_sort_asc = urllib.request.Request(f"{BASE}/api/library?sort=name_asc", headers=self.headers, method="GET")
+        with urllib.request.urlopen(req_sort_asc, timeout=5) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            titles = [img["title"].lower() for img in data.get("images", [])[:20]]
+            self.assertEqual(titles, sorted(titles), "A listagem deve estar em ordem alfabética A-Z")
+
+        # 5. Ordenação Alfabética Z-A
+        req_sort_desc = urllib.request.Request(f"{BASE}/api/library?sort=name_desc", headers=self.headers, method="GET")
+        with urllib.request.urlopen(req_sort_desc, timeout=5) as resp:
+            self.assertEqual(resp.status, 200)
+            data = json.loads(resp.read().decode("utf-8"))
+            titles = [img["title"].lower() for img in data.get("images", [])[:20]]
+            self.assertEqual(titles, sorted(titles, reverse=True), "A listagem deve estar em ordem alfabética Z-A")
+
+        print("\n[OK] Teste de Carga, Filtros e Ordenação (1.000+ Imagens na Biblioteca) aprovado com sucesso.")
+
+    def test_05_batch_delete_library_images(self):
+        """Valida a exclusão em lote de imagens da Biblioteca"""
+        # 1. Pega 2 imagens existentes
+        req = urllib.request.Request(f"{BASE}/api/library?sort=date_asc", headers=self.headers, method="GET")
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            images = data.get("images", [])
+            self.assertGreaterEqual(len(images), 2, "Deve haver pelo menos 2 imagens para testar deleção em lote")
+            ids_to_delete = [images[0]["id"], images[1]["id"]]
+
+        # 2. Chama delete-batch
+        payload = json.dumps({"ids": ids_to_delete}).encode("utf-8")
+        headers = {**self.headers, "Content-Type": "application/json"}
+        req_del = urllib.request.Request(
+            f"{BASE}/api/library/delete-batch",
+            data=payload,
+            headers=headers,
+            method="POST"
+        )
+        with urllib.request.urlopen(req_del, timeout=5) as del_resp:
+            self.assertEqual(del_resp.status, 200)
+            del_data = json.loads(del_resp.read().decode("utf-8"))
+            self.assertTrue(del_data.get("ok"))
+            self.assertEqual(del_data.get("count"), 2)
+
+        print("\n[OK] Teste de Exclusão em Lote (POST /api/library/delete-batch) aprovado com sucesso.")
 
 if __name__ == '__main__':
     unittest.main()

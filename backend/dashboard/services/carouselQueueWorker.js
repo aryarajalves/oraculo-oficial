@@ -3,7 +3,7 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { logger } from '../logger.js';
-import { readDataAsync, writeDataAsync, getSlidesForCarousel } from '../helpers.js';
+import { readDataAsync, writeDataAsync, getSlidesForCarousel, getCarouselById, updateCarouselFields } from '../helpers.js';
 import { generationJobs, sseClients, b2 } from '../state.js';
 import { enqueueCarouselTask, setupCarouselQueueConsumer } from './rabbitmq.js';
 
@@ -25,13 +25,7 @@ export function initCarouselQueueWorker() {
     const { carouselId, payload, startTime } = taskData;
     logger.info('[QueueWorker]', `▶ Processando carrossel ${carouselId} da fila...`);
 
-    const allCarousels = await readDataAsync();
-    const currentIdx = allCarousels.findIndex(c => c.id === carouselId);
-    if (currentIdx >= 0) {
-      allCarousels[currentIdx].status = 'generating';
-      allCarousels[currentIdx].generationStartedAt = startTime || Date.now();
-      await writeDataAsync(allCarousels);
-    }
+    await updateCarouselFields(carouselId, { status: 'generating' });
 
     generationJobs.set(carouselId, {
       id: carouselId,
@@ -165,11 +159,9 @@ export function initCarouselQueueWorker() {
 
         logger.info('[QueueWorker]', `✓ Processo finalizado para ${carouselId} com código ${code}. Duração: ${durationFormatted}`);
 
-        const localCarousels = await readDataAsync();
-        const idx = localCarousels.findIndex(c => c.id === carouselId);
+        const cRecord = await getCarouselById(carouselId);
         let finalStatus = 'rascunho';
-        if (idx >= 0) {
-          const cRecord = localCarousels[idx];
+        if (cRecord) {
           if (donePayload?.slides_dir) {
             cRecord.slidesDir = donePayload.slides_dir;
           }
@@ -180,17 +172,14 @@ export function initCarouselQueueWorker() {
           const isAllOk = code === 0 && donePayload && donePayload.total_ok === donePayload.total && slides.length > 0;
           finalStatus = isAllOk ? 'pronto' : 'rascunho';
 
-          localCarousels[idx] = {
-            ...cRecord,
+          await updateCarouselFields(carouselId, {
             slidesDir: donePayload?.slides_dir || cRecord.slidesDir,
             totalSlides: slides.length,
             slides: slides,
             status: finalStatus,
-            completedAt: new Date().toISOString(),
             generationTimeSeconds: durationSeconds,
             generationDuration: durationFormatted,
-          };
-          await writeDataAsync(localCarousels);
+          });
         }
 
         generationJobs.delete(carouselId);

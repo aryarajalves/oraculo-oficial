@@ -10,10 +10,20 @@ import { logger } from "./logger.js";
 // ── Config ──────────────────────────────────────────────────────────────────
 const BUCKET      = process.env.MINIO_BUCKET      || "oraculo-bucket";
 const ENDPOINT    = process.env.MINIO_ENDPOINT    || "http://localhost:9000";
-const REGION      = "us-east-1";
 const KEY_ID      = process.env.MINIO_ROOT_USER   || "oraculo_admin";
 const APP_KEY     = process.env.MINIO_ROOT_PASSWORD || "oraculo_secret_123";
 const PREFIX      = "carousels";  // pasta raiz no bucket
+
+function getRegionFromEndpoint(endpoint) {
+  if (process.env.MINIO_REGION || process.env.AWS_REGION || process.env.B2_REGION) {
+    return process.env.MINIO_REGION || process.env.AWS_REGION || process.env.B2_REGION;
+  }
+  const match = endpoint.match(/s3[.-]([a-z0-9-]+)\.backblazeb2\.com/i);
+  if (match) return match[1];
+  const awsMatch = endpoint.match(/s3[.-]([a-z0-9-]+)\.amazonaws\.com/i);
+  if (awsMatch) return awsMatch[1];
+  return "us-east-1";
+}
 
 // URL pública base para acesso (com fallback)
 const MINIO_PUBLIC_URL = (process.env.MINIO_PUBLIC_URL || ENDPOINT).replace(/\/$/, "");
@@ -25,8 +35,9 @@ let _bucketInitialized = false;
 
 function getClient() {
   if (!_client) {
+    const region = getRegionFromEndpoint(ENDPOINT);
     _client = new S3Client({
-      region: REGION,
+      region: region,
       endpoint: ENDPOINT,
       credentials: { accessKeyId: KEY_ID, secretAccessKey: APP_KEY },
       forcePathStyle: true,

@@ -3,7 +3,7 @@ import { fileURLToPath } from 'url';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { logger } from '../logger.js';
-import { readDataAsync, writeDataAsync } from '../helpers.js';
+import { readDataAsync, writeDataAsync, updateCarouselFields } from '../helpers.js';
 import { sseClients } from '../state.js';
 
 const execFileAsync = promisify(execFile);
@@ -91,14 +91,11 @@ export function initScheduledPublisherWorker(intervalMs = 60000) {
             logger.info('[ScheduledWorker]', `✅ Disparo efetuado com sucesso para ${carousel.id}:\n${stdout.trim()}`);
             if (stderr) logger.error('[ScheduledWorker]', `Avisos/Stderr para ${carousel.id}:\n${stderr.trim()}`);
 
-            // Atualiza o estado no banco de dados e notifica via SSE
-            const freshAll = await readDataAsync();
-            const target = freshAll.find(x => x.id === carousel.id);
-            if (target) {
-              target.status = 'publicado';
-              target.publishedAt = new Date().toISOString();
-              await writeDataAsync(freshAll);
-            }
+            // Atualiza o estado no banco de dados atomicamente e notifica via SSE
+            await updateCarouselFields(carousel.id, {
+              status: 'publicado',
+              publishedAt: new Date().toISOString()
+            });
 
             broadcastSSE({ type: 'status_change', id: carousel.id, status: 'publicado' });
             broadcastSSE({ type: 'toast', message: `🎉 Carrossel "${carousel.title}" foi publicado automaticamente!`, toastType: 'success' });
@@ -110,13 +107,10 @@ export function initScheduledPublisherWorker(intervalMs = 60000) {
               // Publicação confirmada no stdout mesmo com exit code != 0
               logger.info('[ScheduledWorker]', `✅ Publicação confirmada no stdout para ${carousel.id} (exit code != 0). Atualizando status...`);
               try {
-                const freshAll = await readDataAsync();
-                const target = freshAll.find(x => x.id === carousel.id);
-                if (target) {
-                  target.status = 'publicado';
-                  target.publishedAt = new Date().toISOString();
-                  await writeDataAsync(freshAll);
-                }
+                await updateCarouselFields(carousel.id, {
+                  status: 'publicado',
+                  publishedAt: new Date().toISOString()
+                });
                 broadcastSSE({ type: 'status_change', id: carousel.id, status: 'publicado' });
                 broadcastSSE({ type: 'toast', message: `🎉 Carrossel "${carousel.title}" foi publicado automaticamente!`, toastType: 'success' });
               } catch (updateErr) {
@@ -125,12 +119,7 @@ export function initScheduledPublisherWorker(intervalMs = 60000) {
             } else {
               logger.error('[ScheduledWorker]', `❌ Erro ao publicar carrossel agendado ${carousel.id}:`, pubErr.message || pubErr.stderr);
 
-              const freshAll = await readDataAsync();
-              const target = freshAll.find(x => x.id === carousel.id);
-              if (target) {
-                target.status = 'erro-publicacao';
-                await writeDataAsync(freshAll);
-              }
+              await updateCarouselFields(carousel.id, { status: 'erro-publicacao' });
 
               broadcastSSE({ type: 'status_change', id: carousel.id, status: 'erro-publicacao' });
               broadcastSSE({ type: 'toast', message: `⚠️ Falha na publicação agendada do carrossel "${carousel.title}"`, toastType: 'error' });

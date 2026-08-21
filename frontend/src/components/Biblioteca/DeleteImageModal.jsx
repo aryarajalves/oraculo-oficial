@@ -4,11 +4,18 @@ import React from 'react';
 export default function DeleteImageModal({
   isOpen,
   image,
+  count = 1,
   onClose,
   onConfirm,
   deleting
 }) {
-  if (!isOpen || !image) return null;
+  if (!isOpen) return null;
+
+  const isBatch = count > 1 || (!image && count > 0);
+  const title = isBatch ? `Excluir ${count} Imagens` : 'Excluir Imagem';
+  const description = isBatch
+    ? `Tem certeza que deseja apagar as ${count} imagens selecionadas da biblioteca? Esta ação não poderá ser desfeita.`
+    : `Tem certeza que deseja apagar a imagem "${image?.title || 'selecionada'}" da biblioteca? Esta ação não poderá ser desfeita.`;
 
   return (
     <div
@@ -50,10 +57,10 @@ export default function DeleteImageModal({
             🗑️
           </div>
           <h3 style={{ fontSize: '17px', fontWeight: '700', color: '#fff', margin: '0 0 6px 0' }}>
-            Excluir Imagem
+            {title}
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--text-3, #a1a1aa)', margin: 0, lineHeight: '1.45' }}>
-            Tem certeza que deseja apagar a imagem <strong style={{ color: '#fff' }}>"{image.title}"</strong> da biblioteca? Esta ação não poderá ser desfeita.
+            {description}
           </p>
         </div>
 

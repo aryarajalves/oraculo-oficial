@@ -1,38 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import InviteModal from './UsersManagement/InviteModal';
-import EditUserModal from './UsersManagement/EditUserModal';
-import DeleteUserModal from './UsersManagement/DeleteUserModal';
-import DeleteInviteModal from './UsersManagement/DeleteInviteModal';
+import { useState, useEffect } from 'react';
+import UsersModals from './UsersManagement/UsersModals';
 import UsersTable from './UsersManagement/UsersTable';
 import InvitationsTable from './UsersManagement/InvitationsTable';
-
-const defaultPermissions = {
-  carrosseis: 'liberado',
-  criador: 'liberado',
-  calendario: 'liberado',
-  biblioteca: 'liberado',
-  reels: 'liberado',
-  fabrica: 'liberado',
-  oraculo: 'liberado',
-  radar: 'liberado'
-};
-
-const PAGES_TO_CONTROL = [
-  { id: 'carrosseis', label: 'Carrosséis' },
-  { id: 'criador', label: 'Criador' },
-  { id: 'calendario', label: 'Calendário' },
-  { id: 'biblioteca', label: 'Biblioteca' },
-  { id: 'reels', label: 'Clonador de Reels' },
-  { id: 'fabrica', label: 'Fábrica de Vídeos' },
-  { id: 'oraculo', label: 'Oráculo' },
-  { id: 'radar', label: 'Radar' }
-];
+import UsersBatchBanner from './UsersManagement/UsersBatchBanner';
+import UsersSubTabsHeader from './UsersManagement/UsersSubTabsHeader';
+import { defaultPermissions, PAGES_TO_CONTROL } from './UsersManagement/constants';
 
 export default function UsersManagement({ showToast }) {
   const [activeSubTab, setActiveSubTab] = useState('users'); // 'users' ou 'invitations'
   const [users, setUsers] = useState([]);
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Estados de Seleção em Lote
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+  const [selectedInviteIds, setSelectedInviteIds] = useState([]);
 
   // Estados de Modais
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -53,11 +35,13 @@ export default function UsersManagement({ showToast }) {
 
   // Estados de Deleção de Usuário
   const [deleteUserModalOpen, setDeleteUserModalOpen] = useState(false);
+  const [batchDeleteUserModalOpen, setBatchDeleteUserModalOpen] = useState(false);
   const [deletingUser, setDeletingUser] = useState(null);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
   // Estados de Deleção de Convite
   const [deleteInviteModalOpen, setDeleteInviteModalOpen] = useState(false);
+  const [batchDeleteInviteModalOpen, setBatchDeleteInviteModalOpen] = useState(false);
   const [deletingInvite, setDeletingInvite] = useState(null);
   const [deleteInviteSubmitting, setDeleteInviteSubmitting] = useState(false);
 
@@ -68,6 +52,8 @@ export default function UsersManagement({ showToast }) {
   const [invitesPerPage, setInvitesPerPage] = useState(5);
 
   useEffect(() => {
+    setSelectedUserIds([]);
+    setSelectedInviteIds([]);
     loadData();
   }, [activeSubTab]);
 
@@ -87,6 +73,41 @@ export default function UsersManagement({ showToast }) {
       showToast('Erro ao carregar dados de gestão.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Funções de Seleção de Usuários
+  const deletableUsers = users.filter(u => !u.isSuperAdmin);
+  const isAllUsersSelected = deletableUsers.length > 0 && selectedUserIds.length === deletableUsers.length;
+
+  const handleToggleSelectUser = (id) => {
+    setSelectedUserIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAllUsers = () => {
+    if (isAllUsersSelected) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(deletableUsers.map(u => u.id));
+    }
+  };
+
+  // Funções de Seleção de Convites
+  const isAllInvitesSelected = invitations.length > 0 && selectedInviteIds.length === invitations.length;
+
+  const handleToggleSelectInvite = (id) => {
+    setSelectedInviteIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAllInvites = () => {
+    if (isAllInvitesSelected) {
+      setSelectedInviteIds([]);
+    } else {
+      setSelectedInviteIds(invitations.map(inv => inv.id));
     }
   };
 
@@ -166,7 +187,7 @@ export default function UsersManagement({ showToast }) {
     }
   };
 
-  // Confirmar Deleção
+  // Confirmar Deleção Individual de Usuário
   const handleConfirmDelete = async () => {
     if (!deletingUser) return;
     setDeleteSubmitting(true);
@@ -175,6 +196,7 @@ export default function UsersManagement({ showToast }) {
       if (res.ok) {
         showToast('Usuário excluído com sucesso.');
         setDeleteUserModalOpen(false);
+        setSelectedUserIds(prev => prev.filter(id => id !== deletingUser.id));
         loadData();
       } else {
         const data = await res.json();
@@ -187,7 +209,33 @@ export default function UsersManagement({ showToast }) {
     }
   };
 
-  // Confirmar Deleção de Convite
+  // Confirmar Deleção em Lote de Usuários
+  const handleConfirmBatchDeleteUsers = async () => {
+    if (selectedUserIds.length === 0) return;
+    setDeleteSubmitting(true);
+    try {
+      const res = await fetch('/api/users/delete-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedUserIds })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        showToast(`${data.count || selectedUserIds.length} usuário(s) excluído(s) com sucesso!`);
+        setBatchDeleteUserModalOpen(false);
+        setSelectedUserIds([]);
+        loadData();
+      } else {
+        showToast(data.error || 'Erro ao excluir usuários em lote.');
+      }
+    } catch (e) {
+      showToast('Erro de rede ao excluir usuários em lote.');
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
+  // Confirmar Deleção Individual de Convite
   const handleConfirmDeleteInvite = async () => {
     if (!deletingInvite) return;
     setDeleteInviteSubmitting(true);
@@ -196,12 +244,39 @@ export default function UsersManagement({ showToast }) {
       if (res.ok) {
         showToast('Convite excluído com sucesso.');
         setDeleteInviteModalOpen(false);
+        setSelectedInviteIds(prev => prev.filter(id => id !== deletingInvite.id));
         loadData();
       } else {
         showToast('Erro ao excluir convite.');
       }
     } catch (e) {
       showToast('Erro de rede ao excluir convite.');
+    } finally {
+      setDeleteInviteSubmitting(false);
+    }
+  };
+
+  // Confirmar Deleção em Lote de Convites
+  const handleConfirmBatchDeleteInvites = async () => {
+    if (selectedInviteIds.length === 0) return;
+    setDeleteInviteSubmitting(true);
+    try {
+      const res = await fetch('/api/users/invitations/delete-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedInviteIds })
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        showToast(`${data.count || selectedInviteIds.length} convite(s) excluído(s) com sucesso!`);
+        setBatchDeleteInviteModalOpen(false);
+        setSelectedInviteIds([]);
+        loadData();
+      } else {
+        showToast(data.error || 'Erro ao excluir convites em lote.');
+      }
+    } catch (e) {
+      showToast('Erro de rede ao excluir convites em lote.');
     } finally {
       setDeleteInviteSubmitting(false);
     }
@@ -217,56 +292,37 @@ export default function UsersManagement({ showToast }) {
 
   return (
     <div>
-      <div className="oraculo-header">
-        <div>
-          <div className="oraculo-title">GESTÃO DE USUÁRIOS</div>
-          <div className="oraculo-subtitle">Gerencie os acessos do estúdio e crie convites temporários com níveis de acesso.</div>
-        </div>
-      </div>
-
-      <div className="inner-tabs" style={{ display: 'flex', gap: '16px', marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '10px', paddingLeft: '16px' }}>
-        <button
-          className={`inner-tab-btn ${activeSubTab === 'users' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('users')}
-          style={{
-            background: activeSubTab === 'users' ? 'rgba(255,255,255,0.05)' : 'transparent',
-            border: activeSubTab === 'users' ? '1px solid var(--border)' : '1px solid transparent',
-            color: activeSubTab === 'users' ? 'var(--text)' : 'var(--text-3)',
-            padding: '8px 16px',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: '600',
-            transition: 'all 0.2s'
-          }}
-        >
-          Usuários Cadastrados
-        </button>
-        <button
-          className={`inner-tab-btn ${activeSubTab === 'invitations' ? 'active' : ''}`}
-          onClick={() => setActiveSubTab('invitations')}
-          style={{
-            background: activeSubTab === 'invitations' ? 'rgba(255,255,255,0.05)' : 'transparent',
-            border: activeSubTab === 'invitations' ? '1px solid var(--border)' : '1px solid transparent',
-            color: activeSubTab === 'invitations' ? 'var(--text)' : 'var(--text-3)',
-            padding: '8px 16px',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '12px',
-            fontWeight: '600',
-            transition: 'all 0.2s'
-          }}
-        >
-          Convites Enviados
-        </button>
-      </div>
+      <UsersSubTabsHeader
+        activeSubTab={activeSubTab}
+        setActiveSubTab={setActiveSubTab}
+      />
 
       {activeSubTab === 'users' && (
         <div className="section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '0 4px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', padding: '0 4px', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ fontSize: '14px', color: 'var(--text-2)' }}>Lista de usuários cadastrados no estúdio</div>
-            <button className="btn btn-gold btn-sm" onClick={openInviteModal}>+ Novo Usuário</button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {deletableUsers.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={handleToggleSelectAllUsers}
+                >
+                  {isAllUsersSelected ? 'Desmarcar Todos' : `☑️ Selecionar Todos (${deletableUsers.length})`}
+                </button>
+              )}
+              <button className="btn btn-gold btn-sm" onClick={openInviteModal}>+ Novo Usuário</button>
+            </div>
           </div>
+
+          <UsersBatchBanner
+            selectedCount={selectedUserIds.length}
+            totalCount={deletableUsers.length}
+            itemLabel="usuário(s)"
+            onSelectAll={handleToggleSelectAllUsers}
+            onClearSelection={() => setSelectedUserIds([])}
+            onOpenBatchDelete={() => setBatchDeleteUserModalOpen(true)}
+          />
 
           {loading ? (
             <div className="empty">
@@ -281,6 +337,11 @@ export default function UsersManagement({ showToast }) {
               usersPerPage={usersPerPage}
               setUsersPerPage={setUsersPerPage}
               totalUsersPages={totalUsersPages}
+              totalUsersCount={users.length}
+              selectedUserIds={selectedUserIds}
+              onToggleSelectUser={handleToggleSelectUser}
+              onToggleSelectAllUsers={handleToggleSelectAllUsers}
+              isAllSelected={isAllUsersSelected}
               openEditModal={openEditModal}
               setDeletingUser={setDeletingUser}
               setDeleteUserModalOpen={setDeleteUserModalOpen}
@@ -291,10 +352,30 @@ export default function UsersManagement({ showToast }) {
 
       {activeSubTab === 'invitations' && (
         <div className="section">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ fontSize: '14px', color: 'var(--text-2)' }}>Histórico de convites para cadastro no estúdio</div>
-            <button className="btn btn-gold btn-sm" onClick={openInviteModal}>+ Novo Convite</button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {invitations.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={handleToggleSelectAllInvites}
+                >
+                  {isAllInvitesSelected ? 'Desmarcar Todos' : `☑️ Selecionar Todos (${invitations.length})`}
+                </button>
+              )}
+              <button className="btn btn-gold btn-sm" onClick={openInviteModal}>+ Novo Convite</button>
+            </div>
           </div>
+
+          <UsersBatchBanner
+            selectedCount={selectedInviteIds.length}
+            totalCount={invitations.length}
+            itemLabel="convite(s)"
+            onSelectAll={handleToggleSelectAllInvites}
+            onClearSelection={() => setSelectedInviteIds([])}
+            onOpenBatchDelete={() => setBatchDeleteInviteModalOpen(true)}
+          />
 
           {loading ? (
             <div className="empty">
@@ -305,7 +386,7 @@ export default function UsersManagement({ showToast }) {
             <div className="empty">
               <div className="empty-icon">✉</div>
               <div className="empty-text">Nenhum convite gerado.</div>
-              <div className="empty-sub">Clique em "+ Novo Convite" para liberar acesso para um novo colaborador.</div>
+              <div className="empty-sub">Clique em &quot;+ Novo Convite&quot; para liberar acesso para um novo colaborador.</div>
             </div>
           ) : (
             <InvitationsTable
@@ -315,6 +396,11 @@ export default function UsersManagement({ showToast }) {
               invitesPerPage={invitesPerPage}
               setInvitesPerPage={setInvitesPerPage}
               totalInvitesPages={totalInvitesPages}
+              totalInvitesCount={invitations.length}
+              selectedInviteIds={selectedInviteIds}
+              onToggleSelectInvite={handleToggleSelectInvite}
+              onToggleSelectAllInvites={handleToggleSelectAllInvites}
+              isAllSelected={isAllInvitesSelected}
               setDeletingInvite={setDeletingInvite}
               setDeleteInviteModalOpen={setDeleteInviteModalOpen}
               showToast={showToast}
@@ -323,10 +409,9 @@ export default function UsersManagement({ showToast }) {
         </div>
       )}
 
-      {/* Modal: Novo Convite */}
-      <InviteModal
-        isOpen={inviteModalOpen}
-        onClose={() => setInviteModalOpen(false)}
+      <UsersModals
+        inviteModalOpen={inviteModalOpen}
+        setInviteModalOpen={setInviteModalOpen}
         inviteRole={inviteRole}
         setInviteRole={setInviteRole}
         inviteHours={inviteHours}
@@ -334,17 +419,13 @@ export default function UsersManagement({ showToast }) {
         invitePermissions={invitePermissions}
         setInvitePermissions={setInvitePermissions}
         inviteSubmitting={inviteSubmitting}
-        onSubmit={handleCreateInvite}
+        handleCreateInvite={handleCreateInvite}
         generatedLink={generatedLink}
         setGeneratedLink={setGeneratedLink}
         handleCopyLink={handleCopyLink}
-        PAGES_TO_CONTROL={PAGES_TO_CONTROL}
-      />
-
-      {/* Modal: Editar Usuário */}
-      <EditUserModal
-        isOpen={editUserModalOpen}
-        onClose={() => setEditUserModalOpen(false)}
+        pagesToControl={PAGES_TO_CONTROL}
+        editUserModalOpen={editUserModalOpen}
+        setEditUserModalOpen={setEditUserModalOpen}
         editingUser={editingUser}
         editName={editName}
         setEditName={setEditName}
@@ -355,26 +436,25 @@ export default function UsersManagement({ showToast }) {
         editPermissions={editPermissions}
         setEditPermissions={setEditPermissions}
         editSubmitting={editSubmitting}
-        onSubmit={handleSaveEdit}
-        PAGES_TO_CONTROL={PAGES_TO_CONTROL}
-      />
-
-      {/* Modal: Excluir Usuário */}
-      <DeleteUserModal
-        isOpen={deleteUserModalOpen}
-        onClose={() => setDeleteUserModalOpen(false)}
+        handleSaveEdit={handleSaveEdit}
+        deleteUserModalOpen={deleteUserModalOpen}
+        setDeleteUserModalOpen={setDeleteUserModalOpen}
         deletingUser={deletingUser}
-        onSubmit={handleConfirmDelete}
+        handleConfirmDelete={handleConfirmDelete}
         deleteSubmitting={deleteSubmitting}
-      />
-
-      {/* Modal: Excluir Convite */}
-      <DeleteInviteModal
-        isOpen={deleteInviteModalOpen}
-        onClose={() => setDeleteInviteModalOpen(false)}
+        batchDeleteUserModalOpen={batchDeleteUserModalOpen}
+        setBatchDeleteUserModalOpen={setBatchDeleteUserModalOpen}
+        selectedUserIds={selectedUserIds}
+        handleConfirmBatchDeleteUsers={handleConfirmBatchDeleteUsers}
+        deleteInviteModalOpen={deleteInviteModalOpen}
+        setDeleteInviteModalOpen={setDeleteInviteModalOpen}
         deletingInvite={deletingInvite}
-        onSubmit={handleConfirmDeleteInvite}
+        handleConfirmDeleteInvite={handleConfirmDeleteInvite}
         deleteInviteSubmitting={deleteInviteSubmitting}
+        batchDeleteInviteModalOpen={batchDeleteInviteModalOpen}
+        setBatchDeleteInviteModalOpen={setBatchDeleteInviteModalOpen}
+        selectedInviteIds={selectedInviteIds}
+        handleConfirmBatchDeleteInvites={handleConfirmBatchDeleteInvites}
       />
     </div>
   );

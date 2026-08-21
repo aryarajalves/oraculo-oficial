@@ -143,6 +143,14 @@ export function requireSuperAdmin(req, res, next) {
   return res.status(403).json({ error: 'Acesso negado. Apenas o Super Admin tem acesso.' });
 }
 
+// Middleware para permitir acesso de Admin ou Super Admin
+export function requireAdminOrSuperAdmin(req, res, next) {
+  if (req.user && (isUserSuperAdmin(req.user.email) || req.user.role === 'admin')) {
+    return next();
+  }
+  return res.status(403).json({ error: 'Acesso negado. Apenas Administradores têm acesso.' });
+}
+
 // Memória para armazenar tentativas e limites de Rate Limit
 const rateLimitsMap = new Map();
 

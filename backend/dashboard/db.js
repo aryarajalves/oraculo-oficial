@@ -2,13 +2,16 @@ import pg from 'pg';
 import { logger } from './logger.js';
 const { Pool, Client } = pg;
 
-// Configuração do pool de conexões do PostgreSQL
+// Configuração otimizada do pool de conexões do PostgreSQL
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT || '5432', 10),
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || '123456',
   database: process.env.DB_NAME || 'oracle_manager',
+  max: parseInt(process.env.DB_POOL_MAX || '20', 10),
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
 });
 
 // Helper para executar queries
@@ -217,6 +220,7 @@ export async function initDb() {
     await query(createBrandingTable);
     await query(createApiKeysTable);
     await query(createLibraryImagesTable);
+    await query("ALTER TABLE library_images ADD COLUMN IF NOT EXISTS prompt TEXT");
     await query(createLibraryChatsTable);
 
     // Inicializa a linha de configuração única se não existir
@@ -250,13 +254,21 @@ export async function initDb() {
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP DEFAULT NULL");
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS scheduled_timestamp BIGINT DEFAULT NULL");
 
+    // Otimização de Performance: Criação de Índices Estratégicos
+    await query("CREATE INDEX IF NOT EXISTS idx_carousels_pinned_created ON carousels (is_pinned DESC, pinned_at DESC, created_at DESC)");
+    await query("CREATE INDEX IF NOT EXISTS idx_carousels_status ON carousels (status)");
+    await query("CREATE INDEX IF NOT EXISTS idx_carousels_scheduled ON carousels (scheduled_timestamp) WHERE scheduled_timestamp IS NOT NULL");
+    await query("CREATE INDEX IF NOT EXISTS idx_library_images_category_created ON library_images (category, created_at DESC)");
+    await query("CREATE INDEX IF NOT EXISTS idx_backup_logs_created ON backup_logs (created_at DESC)");
+    await query("CREATE INDEX IF NOT EXISTS idx_invitations_status_expires ON invitations (status, expires_at)");
+
     // Resetar carrosséis que ficaram presos em "generating" (processo morreu com restart do container)
     const orphaned = await query(`UPDATE carousels SET status = 'rascunho' WHERE status = 'generating'`);
     if (orphaned.rowCount > 0) {
       logger.warn('[DB]', `⚠️ ${orphaned.rowCount} carrossel(is) órfão(s) em "generating" resetados para "rascunho".`);
     }
 
-    logger.info('[DB]', '✅ Tabelas validadas/criadas com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs, agent_prompts, branding, api_keys, library_images, library_chats.');
+    logger.info('[DB]', '✅ Tabelas e índices validados/criados com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs, agent_prompts, branding, api_keys, library_images, library_chats.');
   } catch (err) {
     logger.error('[DB]', '❌ Erro ao inicializar tabelas do banco de dados:', err);
     throw err;

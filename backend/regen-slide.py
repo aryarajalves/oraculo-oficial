@@ -107,7 +107,9 @@ def main():
     p.add_argument("--prompt",   required=True, help="Prompt de imagem")
     p.add_argument("--title",    required=True, help="Titulo do slide")
     p.add_argument("--body",     required=True, help="Corpo do slide")
-    p.add_argument("--layout",   default="fullbleed", choices=["fullbleed", "card"])
+    p.add_argument("--layout",   default="fullbleed", choices=["fullbleed", "dramatico", "etereo", "text_only", "card"])
+    p.add_argument("--preset",   default="dramatico", help="Preset visual do slide")
+    p.add_argument("--watermark", default=None, help="Texto de marca d'água / handle")
     p.add_argument("--provider", default=None, help="Provedor de imagem ativo")
     p.add_argument("--output",   required=True, help="Caminho de saida (.jpg)")
     args = p.parse_args()
@@ -119,10 +121,28 @@ def main():
         print("FALHOU: nao foi possivel gerar a imagem", file=sys.stderr)
         sys.exit(1)
 
-    result = compose(img_bytes, args.title, args.body, args.layout)
+    result = compose(
+        img_bytes, 
+        args.title, 
+        args.body, 
+        layout=args.layout, 
+        preset_name=args.preset or "dramatico",
+        watermark_text=args.watermark
+    )
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)
     result.save(str(out), "JPEG", quality=95)
+
+    # Salva também a imagem limpa em raw-XX.jpg
+    raw_name = out.name.replace("slide-", "raw-")
+    if raw_name != out.name:
+        raw_out = out.parent / raw_name
+        try:
+            with open(raw_out, "wb") as rf:
+                rf.write(img_bytes)
+        except Exception as e:
+            print(f"  Erro ao salvar raw image: {e}", file=sys.stderr)
+
     print(f"OK: {out}")
 
 if __name__ == "__main__":

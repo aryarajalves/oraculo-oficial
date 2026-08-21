@@ -109,6 +109,7 @@ router.get('/api/me', async (req, res) => {
       criador: 'liberado',
       calendario: 'liberado',
       biblioteca: 'liberado',
+      financeiro: 'liberado',
       reels: 'liberado',
       fabrica: 'liberado',
       oraculo: 'liberado',

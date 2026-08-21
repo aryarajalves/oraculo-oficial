@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import ChatMessages from './ChatMessages';
 import ChatInput from './ChatInput';
 import GeneratedGallery from './GeneratedGallery';
-import ChatWelcomeGuide from './ChatWelcomeGuide';
 
 export default function AssistantDrawer({
   isOpen,
@@ -84,22 +83,15 @@ export default function AssistantDrawer({
         >
           <span>🎨</span> Geradas ({generatedImages.length})
         </button>
-
-        <button
-          className={`assistant-tab-pill ${activeTab === 'guide' ? 'active' : ''}`}
-          onClick={() => setActiveTab('guide')}
-        >
-          <span>💡</span> Guia de Uso
-        </button>
       </div>
 
       {/* ── Seção de Imagens de Entrada ── */}
       <div className="assistant-references-box">
         <div className="assistant-references-title">
-          IMAGENS DE ENTRADA ({selectedReferences.length})
+          IMAGENS DE ENTRADA ({selectedReferences.length}/5)
         </div>
         <div className="assistant-references-subtitle">
-          Selecione imagens na galeria ou digite @ no chat abaixo.
+          Selecione até 5 imagens na galeria ou digite @ no chat abaixo.
         </div>
 
         {selectedReferences.length > 0 && (
@@ -157,17 +149,6 @@ export default function AssistantDrawer({
           onSaveToLibrary={onSaveToLibrary}
           showToast={showToast}
         />
-      )}
-
-      {activeTab === 'guide' && (
-        <div className="assistant-chat-scroll">
-          <ChatWelcomeGuide
-            onSelectPrompt={(p) => {
-              setActiveTab('chat');
-              onSendMessage(p);
-            }}
-          />
-        </div>
       )}
     </aside>
   );

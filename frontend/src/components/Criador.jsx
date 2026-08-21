@@ -11,9 +11,17 @@ Seja direto. Sem introduções. Só as 5 ideias.`;
 
 export default function Criador({ onStartGeneration, showToast, shouldAddFormMessage, clearAddFormMessage, initialMessages, clearInitialMessages, isReadOnly, isMockFlow }) {
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    if (initialMessages && initialMessages.length > 0) return initialMessages;
+    try {
+      const saved = sessionStorage.getItem('criador_chat_messages');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [generating, setGenerating] = useState(false);
-  const [lastCarouselText, setLastCarouselText] = useState(sessionStorage.getItem('criadorLastCarousel') || null);
+  const [lastCarouselText, setLastCarouselText] = useState(() => sessionStorage.getItem('criadorLastCarousel') || null);
   const [currentCarouselId, setCurrentCarouselId] = useState(null);
   const [activeBriefing, setActiveBriefing] = useState(null);
   const msgsRef = useRef(null);
@@ -186,15 +194,33 @@ export default function Criador({ onStartGeneration, showToast, shouldAddFormMes
   };
 
   useEffect(() => {
+    if (!isReadOnly && Array.isArray(messages)) {
+      try {
+        if (messages.length > 0) {
+          sessionStorage.setItem('criador_chat_messages', JSON.stringify(messages));
+        } else {
+          sessionStorage.removeItem('criador_chat_messages');
+        }
+      } catch {}
+    }
+  }, [messages, isReadOnly]);
+
+  useEffect(() => {
     if (shouldAddFormMessage) {
       setMessages([]);
+      setInput('');
       setCurrentCarouselId(null);
+      setLastCarouselText(null);
+      try {
+        sessionStorage.removeItem('criador_chat_messages');
+        sessionStorage.removeItem('criadorLastCarousel');
+      } catch {}
       clearAddFormMessage();
     }
   }, [shouldAddFormMessage]);
 
   useEffect(() => {
-    if (initialMessages) {
+    if (initialMessages && initialMessages.length > 0) {
       setMessages(initialMessages);
       clearInitialMessages();
     }

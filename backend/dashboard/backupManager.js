@@ -348,15 +348,22 @@ export async function restoreBackup(filename, s3Folder) {
 
 // Deleta um backup do S3 e dos logs
 export async function deleteBackup(filename, s3Folder) {
-  const { client, bucket } = getS3Client();
-  const key = `${s3Folder.replace(/\/$/, '')}/${filename}`;
+  try {
+    const { client, bucket } = getS3Client();
+    const key = `${s3Folder.replace(/\/$/, '')}/${filename}`;
 
-  logger.info('[Backup]', `Removendo backup: ${key}...`);
-  const deleteCmd = new DeleteObjectCommand({
-    Bucket: bucket,
-    Key: key
-  });
+    logger.info('[Backup]', `Removendo backup do S3: ${key}...`);
+    const deleteCmd = new DeleteObjectCommand({
+      Bucket: bucket,
+      Key: key
+    });
 
-  await client.send(deleteCmd);
+    await client.send(deleteCmd);
+  } catch (s3Err) {
+    logger.warn('[Backup]', `Aviso ao remover do S3 (${filename}): ${s3Err.message}`);
+  }
+
+  // Sempre remove do banco de dados (backup_logs)
   await query("DELETE FROM backup_logs WHERE filename = $1", [filename]);
 }
+
