@@ -72,28 +72,11 @@ Para realizar login no dashboard em ambiente de desenvolvimento, utilize as segu
 
 ```text
 Oraculo-Manager/
-├── backup/                  # Backups históricos dos códigos antigos (HTML puro)
-├── docker/                  # Configurações do Nginx, Dockerfiles e docker-compose
-├── frontend/                # SPA React + Vite (Código atualizado e modularizado)
-│   ├── public/              # Páginas estáticas legadas e assets estáticos
-│   ├── src/                 # Código-fonte React (.jsx e css de estilo)
-│   │   ├── components/      # Componentes menores e reutilizáveis
-│   │   └── css/             # dashboard.css (Design System Premium)
-│   └── package.json         # Dependências do frontend
-└── backend/                 # API Express.js, Modelos de dados e scripts Python
-    ├── core/                # Agentes automatizados, pipelines de IA e utilitários
-    ├── dashboard/           # Servidor Express.js (server.js) e banco de dados
-    └── tests/               # Scripts de validação e testes unitários do backend
+├── .agents/                 # Regras permanentes de desenvolvimento e governança
+├── .github/                 # Workflows de CI/CD e automações do GitHub Actions
+├── docker/                  # Dockerfiles de produção e docker-compose
+├── docs/                    # Documentações técnicas e regras de negócio
+├── frontend/                # SPA React + Vite modularizada (Dashboard, Biblioteca, Modais)
+├── backend/                 # API Express.js, Modelos de dados e motores de IA em Python
+└── scripts/                 # Scripts de testes unitários, auditoria de segurança e deploy
 ```
-
----
-
-## 🛡️ Regras de Desenvolvimento e Limites de Código
-
-Para manter o projeto saudável e manutenível por agentes de IA e humanos:
-* **Limite do Frontend (React/JSX):** Nenhum arquivo de componente deve ultrapassar **500 linhas** de código.
-* **Limite do Backend (Python):** Nenhum script Python deve ultrapassar **1.000 linhas**.
-* **Integridade Visual:** Toda mudança nas telas de frontend deve ser verificada por prints visuais.
-* **Fixar Carrosséis no Topo:** Opção de fixar até 10 carrosséis prioritários com destaque visual e ordenação prioritária.
-* **Gestão de Equipes e Convites:** Envio de convites temporários e permissões granulares de acesso.
-* **Conventional Commits:** Todas as mensagens de commits devem seguir o padrão (ex: `feat: ...`, `fix: ...`, `style: ...`, `chore: ...`) e ser redigidas em **Português do Brasil**.
