@@ -349,24 +349,71 @@ export default function GeneralTab({
       {filteredGroups.map(([groupName, keys]) => (
         <div className="key-group" key={groupName}>
           <div className="key-group-title">{groupName}</div>
-          {keys.filter(k => k.key !== 'ACTIVE_IMAGE_PROVIDER' && k.key !== 'COPY_GENERATION_MODEL').map(k => (
-            <div className="key-row" key={k.key}>
-              <div className="key-label">
-                <span className={`key-status ${k.set ? 'set' : ''}`}></span>
-                {k.label}
+          {keys.filter(k => k.key !== 'ACTIVE_IMAGE_PROVIDER' && k.key !== 'COPY_GENERATION_MODEL').map(k => {
+            const isEditing = pendingUpdates && pendingUpdates[k.key] !== undefined;
+            const hasNewValue = isEditing && pendingUpdates[k.key] !== '';
+
+            return (
+              <div className="key-row" key={k.key} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="key-label" style={{ minWidth: '220px' }}>
+                  <span className={`key-status ${k.set ? 'set' : ''}`}></span>
+                  {k.label}
+                  {k.set && (
+                    <span style={{ fontSize: '11px', color: '#10b981', marginLeft: '6px', fontWeight: 600 }}>
+                      🔒 Protegida
+                    </span>
+                  )}
+                </div>
+                <div style={{ position: 'relative', flex: 1 }}>
+                  <input
+                    className="key-input"
+                    id={`key-${k.key}`}
+                    type="password"
+                    value={pendingUpdates?.[k.key] !== undefined ? pendingUpdates[k.key] : ''}
+                    placeholder={k.set ? `🔒 ${k.masked} (Criptografada)` : 'Cole a chave aqui para configurar...'}
+                    autoComplete="new-password"
+                    onChange={(e) => setPendingUpdates(prev => ({ ...prev, [k.key]: e.target.value }))}
+                    style={{ width: '100%', fontFamily: k.set && !hasNewValue ? 'monospace' : 'inherit' }}
+                  />
+                </div>
+                {k.set && !hasNewValue && (
+                  <button
+                    type="button"
+                    className="key-reveal"
+                    onClick={() => {
+                      const input = document.getElementById(`key-${k.key}`);
+                      if (input) {
+                        input.value = '';
+                        input.focus();
+                      }
+                      setPendingUpdates(prev => ({ ...prev, [k.key]: '' }));
+                    }}
+                    title="Clique para substituir a chave atual por uma nova"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    ✏️ Trocar Chave
+                  </button>
+                )}
+                {hasNewValue && (
+                  <button
+                    type="button"
+                    className="key-reveal"
+                    onClick={() => {
+                      setPendingUpdates(prev => {
+                        const copy = { ...prev };
+                        delete copy[k.key];
+                        return copy;
+                      });
+                    }}
+                    style={{ color: '#f87171', borderColor: 'rgba(248, 113, 113, 0.3)', whiteSpace: 'nowrap' }}
+                    title="Cancelar alteração"
+                  >
+                    ✖ Cancelar
+                  </button>
+                )}
               </div>
-              <input
-                className="key-input"
-                id={`key-${k.key}`}
-                type="password"
-                defaultValue={k.value || ''}
-                placeholder={k.masked || 'Não configurada'}
-                autoComplete="off"
-                onChange={(e) => setPendingUpdates(prev => ({ ...prev, [k.key]: e.target.value }))}
-              />
-              <button className="key-reveal" onClick={() => toggleVisibility(k.key)}>Mostrar</button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ))}
     </div>

@@ -3,12 +3,16 @@ import FinanceiroStats from './FinanceiroStats';
 import FinanceiroBreakdown from './FinanceiroBreakdown';
 import FinanceiroFilters from './FinanceiroFilters';
 import FinanceiroTable from './FinanceiroTable';
+import FinanceiroTransactionsTable from './FinanceiroTransactionsTable';
 import CarouselDetailsModal from '../Dashboard/modals/CarouselDetailsModal';
 
 export default function Financeiro({ showToast }) {
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('carousels');
   const [data, setData] = useState({
     summary: null,
+    categoriesBreakdown: null,
+    transactions: [],
     providers: [],
     byStatus: {},
     topThemes: [],
@@ -90,10 +94,10 @@ export default function Financeiro({ showToast }) {
       <div className="financeiro-header-row">
         <div className="financeiro-title-group">
           <h2>
-            <span>💰</span> Gestão Financeira de Carrosséis
+            <span>💰</span> Gestão Financeira & Custos em Tempo Real
           </h2>
           <p>
-            Acompanhe em tempo real os custos acumulados em APIs de IA, volume de slides e economia gerada.
+            Acompanhe em tempo real os custos acumulados de carrosséis, recriações, imagens avulsas e prompts de IA.
           </p>
         </div>
 
@@ -116,7 +120,7 @@ export default function Financeiro({ showToast }) {
       </div>
 
       {/* Cards de Métricas Principais (KPIs) */}
-      <FinanceiroStats summary={data.summary} />
+      <FinanceiroStats summary={data.summary} categoriesBreakdown={data.categoriesBreakdown} />
 
       {/* Gráficos e Distribuição por Provedores */}
       <FinanceiroBreakdown
@@ -125,26 +129,76 @@ export default function Financeiro({ showToast }) {
         topThemes={data.topThemes}
       />
 
-      {/* Filtros e Busca */}
-      <FinanceiroFilters
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        selectedProvider={selectedProvider}
-        setSelectedProvider={setSelectedProvider}
-        selectedStatus={selectedStatus}
-        setSelectedStatus={setSelectedStatus}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
-        providers={data.providers}
-        totalCount={data.carousels?.length || 0}
-        filteredCount={filteredCarousels.length}
-      />
+      {/* Abas de Visualização */}
+      <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginTop: '10px' }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('carousels')}
+          style={{
+            background: activeTab === 'carousels' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+            color: activeTab === 'carousels' ? '#38bdf8' : 'var(--text-3)',
+            border: activeTab === 'carousels' ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid transparent',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            fontWeight: 600,
+            fontSize: '13px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          🖼️ Carrosséis ({data.carousels?.length || 0})
+        </button>
 
-      {/* Tabela de Carrosséis */}
-      <FinanceiroTable
-        carousels={filteredCarousels}
-        onOpenDetails={(carousel) => setSelectedDetailsCarousel(carousel)}
-      />
+        <button
+          type="button"
+          onClick={() => setActiveTab('transactions')}
+          style={{
+            background: activeTab === 'transactions' ? 'rgba(34, 197, 94, 0.15)' : 'transparent',
+            color: activeTab === 'transactions' ? '#22c55e' : 'var(--text-3)',
+            border: activeTab === 'transactions' ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid transparent',
+            padding: '8px 16px',
+            borderRadius: '8px',
+            fontWeight: 600,
+            fontSize: '13px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}
+        >
+          🧾 Extrato de Gastos em Tempo Real ({data.transactions?.length || 0})
+        </button>
+      </div>
+
+      {activeTab === 'carousels' ? (
+        <>
+          {/* Filtros e Busca */}
+          <FinanceiroFilters
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedProvider={selectedProvider}
+            setSelectedProvider={setSelectedProvider}
+            selectedStatus={selectedStatus}
+            setSelectedStatus={setSelectedStatus}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            providers={data.providers}
+            totalCount={data.carousels?.length || 0}
+            filteredCount={filteredCarousels.length}
+          />
+
+          {/* Tabela de Carrosséis */}
+          <FinanceiroTable
+            carousels={filteredCarousels}
+            onOpenDetails={(carousel) => setSelectedDetailsCarousel(carousel)}
+          />
+        </>
+      ) : (
+        /* Tabela de Extrato de Gastos em Tempo Real */
+        <FinanceiroTransactionsTable transactions={data.transactions} />
+      )}
 
       {/* Modal de Detalhes do Carrossel */}
       {selectedDetailsCarousel && (

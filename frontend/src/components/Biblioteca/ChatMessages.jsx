@@ -37,9 +37,59 @@ export default function ChatMessages({
 
       {messages.map((msg, index) => {
         if (msg.role === 'user') {
+          const refs = msg.references || [];
           return (
-            <div key={msg.id || index} className="chat-bubble-user">
-              {msg.content}
+            <div key={msg.id || index} style={{ alignSelf: 'flex-end', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', maxWidth: '85%', marginBottom: '12px' }}>
+              <div className="chat-bubble-user" style={{ width: '100%' }}>
+                <div style={{ wordBreak: 'break-word', fontSize: '13px', lineHeight: '1.4' }}>
+                  {msg.content}
+                </div>
+
+                {refs.length > 0 && (
+                  <div style={{
+                    marginTop: '8px',
+                    paddingTop: '8px',
+                    borderTop: '1px solid rgba(0, 0, 0, 0.18)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <span style={{ fontSize: '10.5px', fontWeight: '700', color: 'rgba(0, 0, 0, 0.75)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span>🖼️</span> Referência Anexada:
+                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '2px' }}>
+                      {refs.map((r, rIdx) => (
+                        <div
+                          key={r.id || rIdx}
+                          onClick={() => onPreviewImage && onPreviewImage({ url: r.url, title: r.title || 'Imagem de Referência' })}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            background: 'rgba(0, 0, 0, 0.25)',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                          title={`Clique para ampliar "${r.title || 'Referência'}"`}
+                        >
+                          {r.url && (
+                            <img
+                              src={r.url}
+                              alt=""
+                              style={{ width: '30px', height: '30px', objectFit: 'cover', borderRadius: '4px' }}
+                            />
+                          )}
+                          <span style={{ fontSize: '11px', fontWeight: '700', color: '#18181b', maxWidth: '140px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {r.title || 'Imagem'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           );
         }

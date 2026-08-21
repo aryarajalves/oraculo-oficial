@@ -4,13 +4,14 @@ import {
   getSlidesForCarousel, 
   getCarouselCostDetails 
 } from "../../helpers.js";
+import { query } from "../../db.js";
 import { logger } from "../../logger.js";
 
 const router = express.Router();
 
 const USD_TO_BRL_RATE = 5.00;
 
-// ── API: Resumo e Métricas Financeiras de Carrosséis ─────────────────────────
+// ── API: Resumo e Métricas Financeiras Consolidadas ─────────────────────────
 router.get("/api/financial/summary", async (req, res) => {
   try {
     const all = await readDataAsync();
@@ -18,7 +19,7 @@ router.get("/api/financial/summary", async (req, res) => {
     let totalSlides = 0;
     let totalPaidSlides = 0;
     let totalFreeSlides = 0;
-    let totalCostUsd = 0;
+    let totalCarouselCostUsd = 0;
     let totalSavedUsd = 0;
 
     const providerMap = {};
@@ -43,7 +44,7 @@ router.get("/api/financial/summary", async (req, res) => {
       totalSlides += slideCount;
       totalPaidSlides += paidSlides;
       totalFreeSlides += freeSlides;
-      totalCostUsd += costUsd;
+      totalCarouselCostUsd += costUsd;
       totalSavedUsd += savedUsd;
 
       // Agrupamento por Provedor de Imagem
@@ -107,6 +108,7 @@ router.get("/api/financial/summary", async (req, res) => {
         totalSlides: slideCount,
         paidSlides,
         freeSlides,
+        retryCount: Number(c.retryCount) || 0,
         costPerImageUsd,
         costPerImageBrl,
         costUsd: Math.round(costUsd * 100) / 100,
@@ -120,7 +122,76 @@ router.get("/api/financial/summary", async (req, res) => {
       };
     });
 
-    const totalCostBrl = Math.round(totalCostUsd * USD_TO_BRL_RATE * 100) / 100;
+    // ── Consultar custos detalhados e transações da tabela usage_costs ────────
+    let transactions = [];
+    let categoriesBreakdown = {
+      carousels: { usd: 0, brl: 0, count: 0 },
+      retries: { usd: 0, brl: 0, count: 0 },
+      studioImages: { usd: 0, brl: 0, count: 0 },
+      prompts: { usd: 0, brl: 0, count: 0 },
+      other: { usd: 0, brl: 0, count: 0 }
+    };
+    let extraCostsUsd = 0;
+    let extraCostsBrl = 0;
+
+    try {
+      const usageRes = await query("SELECT * FROM usage_costs ORDER BY created_at DESC LIMIT 200");
+      if (usageRes && usageRes.rows && usageRes.rows.length > 0) {
+        transactions = usageRes.rows.map(r => ({
+          id: r.id,
+          type: r.type,
+          itemId: r.item_id,
+          description: r.description,
+          model: r.model,
+          provider: r.provider,
+          costUsd: Number(r.cost_usd) || 0,
+          costBrl: Number(r.cost_brl) || 0,
+          tokensInput: r.tokens_input,
+          tokensOutput: r.tokens_output,
+          quantity: r.quantity,
+          metadata: r.metadata,
+          createdAt: r.created_at
+        }));
+
+        for (const t of transactions) {
+          if (t.type === 'carousel_generation') {
+            categoriesBreakdown.carousels.usd += t.costUsd;
+            categoriesBreakdown.carousels.brl += t.costBrl;
+            categoriesBreakdown.carousels.count += (t.quantity || 1);
+          } else if (t.type === 'carousel_retry') {
+            categoriesBreakdown.retries.usd += t.costUsd;
+            categoriesBreakdown.retries.brl += t.costBrl;
+            categoriesBreakdown.retries.count += (t.quantity || 1);
+            extraCostsUsd += t.costUsd;
+            extraCostsBrl += t.costBrl;
+          } else if (t.type === 'image_generation' || t.type === 'slide_regenerate') {
+            categoriesBreakdown.studioImages.usd += t.costUsd;
+            categoriesBreakdown.studioImages.brl += t.costBrl;
+            categoriesBreakdown.studioImages.count += (t.quantity || 1);
+            extraCostsUsd += t.costUsd;
+            extraCostsBrl += t.costBrl;
+          } else if (t.type === 'agent_prompt') {
+            categoriesBreakdown.prompts.usd += t.costUsd;
+            categoriesBreakdown.prompts.brl += t.costBrl;
+            categoriesBreakdown.prompts.count += 1;
+            extraCostsUsd += t.costUsd;
+            extraCostsBrl += t.costBrl;
+          } else {
+            categoriesBreakdown.other.usd += t.costUsd;
+            categoriesBreakdown.other.brl += t.costBrl;
+            categoriesBreakdown.other.count += 1;
+            extraCostsUsd += t.costUsd;
+            extraCostsBrl += t.costBrl;
+          }
+        }
+      }
+    } catch (err) {
+      logger.warn('[Financial]', 'Tabela usage_costs não inicializada:', err.message);
+    }
+
+    // Se a tabela usage_costs for nova, usa o total de carrosséis como baseline
+    const totalCostUsd = Math.max(totalCarouselCostUsd, (categoriesBreakdown.carousels.usd + extraCostsUsd));
+    const totalCostBrl = Math.round((totalCostUsd * USD_TO_BRL_RATE) * 100) / 100;
     const totalSavedBrl = Math.round(totalSavedUsd * USD_TO_BRL_RATE * 100) / 100;
     const totalCarousels = all.length;
 
@@ -167,6 +238,29 @@ router.get("/api/financial/summary", async (req, res) => {
         savingsRatePercent: totalSlides > 0 ? Math.round((totalFreeSlides / totalSlides) * 1000) / 10 : 0,
         lastUpdated: new Date().toISOString()
       },
+      categoriesBreakdown: {
+        carousels: {
+          usd: Math.round((categoriesBreakdown.carousels.usd || totalCarouselCostUsd) * 100) / 100,
+          brl: Math.round((categoriesBreakdown.carousels.brl || (totalCarouselCostUsd * USD_TO_BRL_RATE)) * 100) / 100,
+          count: categoriesBreakdown.carousels.count || totalCarousels
+        },
+        retries: {
+          usd: Math.round(categoriesBreakdown.retries.usd * 100) / 100,
+          brl: Math.round(categoriesBreakdown.retries.brl * 100) / 100,
+          count: categoriesBreakdown.retries.count
+        },
+        studioImages: {
+          usd: Math.round(categoriesBreakdown.studioImages.usd * 100) / 100,
+          brl: Math.round(categoriesBreakdown.studioImages.brl * 100) / 100,
+          count: categoriesBreakdown.studioImages.count
+        },
+        prompts: {
+          usd: Math.round(categoriesBreakdown.prompts.usd * 1000) / 1000,
+          brl: Math.round(categoriesBreakdown.prompts.brl * 1000) / 1000,
+          count: categoriesBreakdown.prompts.count
+        }
+      },
+      transactions: transactions.slice(0, 50),
       providers: providersList,
       byStatus: statusMap,
       topThemes,

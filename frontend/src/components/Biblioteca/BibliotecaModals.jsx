@@ -3,6 +3,7 @@ import UploadModal from './UploadModal';
 import DeleteImageModal from './DeleteImageModal';
 import ImageDetailsModal from './ImageDetailsModal';
 import SaveGeneratedModal from './SaveGeneratedModal';
+import ImageLightboxModal from './ImageLightboxModal';
 
 export default function BibliotecaModals({
   uploadModalOpen,
@@ -23,6 +24,10 @@ export default function BibliotecaModals({
   setDetailsModalOpen,
   selectedImageForDetails,
   setSelectedImageForDetails,
+  lightboxModalOpen,
+  setLightboxModalOpen,
+  selectedImageForLightbox,
+  setSelectedImageForLightbox,
   itemToSave,
   setItemToSave,
   handleConfirmSaveGenerated,
@@ -58,11 +63,24 @@ export default function BibliotecaModals({
         deleting={deleting}
       />
 
+      {/* Modal de Detalhes e Edição de Metadados */}
       <ImageDetailsModal
         isOpen={detailsModalOpen}
         image={selectedImageForDetails}
         onClose={() => { setDetailsModalOpen(false); setSelectedImageForDetails(null); }}
         onSaveMetadata={() => loadLibrary()}
+        showToast={showToast}
+      />
+
+      {/* Modal Popup de Visualização Maximizada (Lightbox) */}
+      <ImageLightboxModal
+        isOpen={lightboxModalOpen}
+        image={selectedImageForLightbox}
+        onClose={() => { setLightboxModalOpen(false); setSelectedImageForLightbox(null); }}
+        onOpenEdit={(img) => {
+          setSelectedImageForDetails(img);
+          setDetailsModalOpen(true);
+        }}
         showToast={showToast}
       />
 

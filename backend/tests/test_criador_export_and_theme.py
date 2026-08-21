@@ -19,6 +19,12 @@ class TestCriadorEnhancements(unittest.TestCase):
         self.assertIn('isThemeSelection', code)
         self.assertIn('parseIdeasFromText', code)
 
+    def test_ideas_prompt_is_expert_aligned(self):
+        criador_file = Path(__file__).resolve().parents[2] / 'frontend' / 'src' / 'components' / 'Criador.jsx'
+        code = criador_file.read_text(encoding='utf-8')
+        self.assertNotIn('@afonteoculta', code, 'Criador.jsx ainda contém @afonteoculta hardcoded')
+        self.assertIn('agente expert', code)
+
     def test_criador_agent_prompt_immediate_generation(self):
         agent_file = Path(__file__).resolve().parents[2] / 'backend' / 'agents' / 'criador.md'
         self.assertTrue(agent_file.exists())

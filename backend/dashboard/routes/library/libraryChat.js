@@ -4,6 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { query } from '../../db.js';
 import { logger } from '../../logger.js';
+import { recordUsageCost } from '../../helpers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = express.Router();
@@ -115,29 +116,32 @@ router.post('/api/library/chat/generate', async (req, res) => {
     let generatedPrompt = prompt.trim();
     if (apiKey) {
       try {
-        const sysPrompt = `You are an expert AI Art Director and prompt engineer for photorealistic digital photography.
-Your goal is to write a detailed, highly specific DALL-E prompt capturing the full composition, subject features, pose, clothing, and environment shown in the reference image, incorporating the user's styling modification.
-Observe and specify in the prompt:
-1. Subject & Pose: gender (man/woman/object), age group, facial structure (e.g. defined jawline, short stubble beard), camera angle (e.g. close-up selfie from car driver seat), head tilt and gaze direction.
-2. Wardrobe & Details: exact clothing type (e.g. casual black cotton crewneck t-shirt, NOT a collared or button-down shirt), jewelry (thin silver chain necklace, earring).
-3. Environment & Setting: exact setting (e.g. sitting in black car driver seat, leather headrest behind head, side window with daylight, NOT a studio or bedroom).
-4. Modification: exact requested color/styling change (e.g. platinum blonde hair), preserving everything else identically.
-5. Output format: Return ONLY the final detailed English prompt text ready for image generation, without quotes, introductions, or conversational filler.`;
+        const refTitles = referencesInfo.map(r => r.title).filter(Boolean).join(', ');
+        const sysPrompt = `You are an elite AI Visual Art Director and Prompt Engineer specializing in image-to-image synthesis, character consistency, and artistic adaptation.
+Your mission is to analyze the attached reference image(s) and translate the user's creative instruction into a highly accurate, descriptive English image generation prompt (for DALL-E 3 / Flux / Midjourney).
+
+Core Directives:
+1. Art Style & Medium Fidelity: Preserve the exact visual medium and artistic style of the reference image (e.g., Japanese anime/manga cel-shaded animation, 2D vector art, 3D CGI render, vintage comic book art, oil painting, or realistic photography). If the reference is anime/cartoon, the prompt MUST keep the anime/cartoon style; NEVER turn an anime character into a real person unless explicitly requested.
+2. Subject & Identity Consistency: Identify the character/subject, hair shape/silhouette, iconic accessories (headband with symbols, jewelry, whisker marks, tattoos, facial markings), clothing, and overall composition.
+3. Targeted Transformation: Accurately apply the user's specific request (e.g., "change hair color to red", "add sunglasses", "change outfit", "change expression") while keeping all other characteristic features, art style, and character identity identical to the reference image.
+4. Comprehensive Scene Description: Clearly describe the subject, hair color, facial expression, clothing, pose, lighting, and background.
+5. Strict Output: Output ONLY the raw English generation prompt text without quotes, markdown formatting, explanations, or conversational prefixes.`;
 
         let userContent;
         if (referenceImageUrls.length > 0) {
+          const refContextStr = refTitles ? ` (Reference images: "${refTitles}")` : '';
           userContent = [
             {
               type: 'text',
-              text: `User request: "${prompt}".\nAnalyze the reference image in full detail. Describe a photorealistic photographic portrait maintaining this exact visual scene's composition, subject facial features and beard, car interior driver seat setting, black crewneck t-shirt, silver chain necklace, head tilt angle, and natural lighting, featuring the user's requested modification.`
+              text: `User instruction: "${prompt}"${refContextStr}\n\nCarefully inspect the attached reference image(s). Generate an English prompt that replicates the exact character, art style, clothing, and pose from the reference image, applying the user's modification precisely (e.g., changing hair color, expression, or background).`
             },
             ...referenceImageUrls.map(url => ({
               type: 'image_url',
-              image_url: { url, detail: 'low' }
+              image_url: { url, detail: 'high' }
             }))
           ];
         } else {
-          userContent = `User request: "${prompt}".\nCreate a photorealistic, highly detailed 8K photographic prompt in English capturing this vision.`;
+          userContent = `User instruction: "${prompt}"\nCreate a rich, visually compelling image generation prompt in English that perfectly captures this concept.`;
         }
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -264,12 +268,26 @@ Observe and specify in the prompt:
     const costBrl = costUsd * usdRate;
     const costFormatted = `R$ ${costBrl.toFixed(2).replace('.', ',')}`;
 
+    // Registrar no Extrato Financeiro Global (usage_costs)
+    await recordUsageCost({
+      type: 'image_generation',
+      itemId: genFilename,
+      description: `Geração de imagem no Estúdio: "${(prompt || '').slice(0, 48)}..."`,
+      model: usedModel,
+      provider: activeProvider,
+      costUsd,
+      costBrl,
+      quantity: 1,
+      metadata: { prompt, generatedPrompt, filename: genFilename }
+    });
+
     // 4. Atualiza o histórico do chat no banco
     const userMsg = {
       id: 'msg_' + Date.now(),
       role: 'user',
       content: prompt,
       referenceIds,
+      references: referencesInfo.map(r => ({ id: r.id, url: r.url, title: r.title })),
       createdAt: new Date().toISOString()
     };
 

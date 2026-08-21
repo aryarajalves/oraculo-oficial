@@ -90,9 +90,6 @@ def gen_openai(prompt: str, retries: int = MAX_RETRIES, size: str = None, qualit
 
             if model_name == "dall-e-3":
                 kwargs["quality"] = target_quality
-                kwargs["response_format"] = "b64_json"
-            elif model_name in ["gpt-image-1", "gpt-image-2"]:
-                kwargs["quality"] = target_quality
 
             response = client.images.generate(**kwargs)
             item     = response.data[0]
@@ -100,10 +97,11 @@ def gen_openai(prompt: str, retries: int = MAX_RETRIES, size: str = None, qualit
             if hasattr(item, "b64_json") and item.b64_json:
                 return base64.b64decode(item.b64_json)
 
-            # Se veio URL (dall-e-3 sem response_format especificado)
+            # Se veio URL (padrão universal da OpenAI)
             if hasattr(item, "url") and item.url:
                 import urllib.request
-                with urllib.request.urlopen(item.url, timeout=60) as r:
+                req = urllib.request.Request(item.url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=60) as r:
                     return r.read()
 
             print(f"    ⚠️  Resposta inesperada: {item}")

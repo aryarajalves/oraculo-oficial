@@ -201,6 +201,24 @@ export async function initDb() {
     );
   `;
 
+  const createUsageCostsTable = `
+    CREATE TABLE IF NOT EXISTS usage_costs (
+      id SERIAL PRIMARY KEY,
+      type VARCHAR(50) NOT NULL,
+      item_id VARCHAR(100),
+      description TEXT,
+      model VARCHAR(100),
+      provider VARCHAR(100),
+      cost_usd NUMERIC(10, 5) NOT NULL DEFAULT 0,
+      cost_brl NUMERIC(10, 4) NOT NULL DEFAULT 0,
+      tokens_input INTEGER DEFAULT 0,
+      tokens_output INTEGER DEFAULT 0,
+      quantity INTEGER DEFAULT 1,
+      metadata JSONB DEFAULT '{}'::jsonb,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
   try {
     await query(createCarouselsTable);
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS image_quality VARCHAR(100) DEFAULT 'high'");
@@ -222,6 +240,7 @@ export async function initDb() {
     await query(createLibraryImagesTable);
     await query("ALTER TABLE library_images ADD COLUMN IF NOT EXISTS prompt TEXT");
     await query(createLibraryChatsTable);
+    await query(createUsageCostsTable);
 
     // Inicializa a linha de configuração única se não existir
     const checkConfig = await query("SELECT * FROM backup_config WHERE id = 1");
@@ -253,6 +272,9 @@ export async function initDb() {
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS generation_time_seconds INTEGER");
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS scheduled_at TIMESTAMP DEFAULT NULL");
     await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS scheduled_timestamp BIGINT DEFAULT NULL");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS total_cost_usd NUMERIC(10, 5) DEFAULT 0");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS total_cost_brl NUMERIC(10, 4) DEFAULT 0");
+    await query("ALTER TABLE carousels ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0");
 
     // Otimização de Performance: Criação de Índices Estratégicos
     await query("CREATE INDEX IF NOT EXISTS idx_carousels_pinned_created ON carousels (is_pinned DESC, pinned_at DESC, created_at DESC)");
@@ -261,6 +283,9 @@ export async function initDb() {
     await query("CREATE INDEX IF NOT EXISTS idx_library_images_category_created ON library_images (category, created_at DESC)");
     await query("CREATE INDEX IF NOT EXISTS idx_backup_logs_created ON backup_logs (created_at DESC)");
     await query("CREATE INDEX IF NOT EXISTS idx_invitations_status_expires ON invitations (status, expires_at)");
+    await query("CREATE INDEX IF NOT EXISTS idx_usage_costs_created ON usage_costs (created_at DESC)");
+    await query("CREATE INDEX IF NOT EXISTS idx_usage_costs_type ON usage_costs (type)");
+    await query("CREATE INDEX IF NOT EXISTS idx_usage_costs_item ON usage_costs (item_id)");
 
     // Resetar carrosséis que ficaram presos em "generating" (processo morreu com restart do container)
     const orphaned = await query(`UPDATE carousels SET status = 'rascunho' WHERE status = 'generating'`);
@@ -268,7 +293,7 @@ export async function initDb() {
       logger.warn('[DB]', `⚠️ ${orphaned.rowCount} carrossel(is) órfão(s) em "generating" resetados para "rascunho".`);
     }
 
-    logger.info('[DB]', '✅ Tabelas e índices validados/criados com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs, agent_prompts, branding, api_keys, library_images, library_chats.');
+    logger.info('[DB]', '✅ Tabelas e índices validados/criados com sucesso: carousels, reels_history, dashboard_users, invitations, backup_config, backup_logs, agent_prompts, branding, api_keys, library_images, library_chats, usage_costs.');
   } catch (err) {
     logger.error('[DB]', '❌ Erro ao inicializar tabelas do banco de dados:', err);
     throw err;

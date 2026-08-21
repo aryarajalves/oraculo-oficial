@@ -202,9 +202,17 @@ def _gerar_imagem(prompt: str, w: int, h: int):
         size="1024x1024",
         quality="standard",
         n=1,
-        response_format="b64_json",
     )
-    img_data = base64.b64decode(r.data[0].b64_json)
+    item = r.data[0]
+    if hasattr(item, "b64_json") and item.b64_json:
+        img_data = base64.b64decode(item.b64_json)
+    elif hasattr(item, "url") and item.url:
+        import urllib.request
+        req = urllib.request.Request(item.url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=60) as res:
+            img_data = res.read()
+    else:
+        raise ValueError("Formato de imagem não reconhecido na resposta da OpenAI")
     return Image.open(BytesIO(img_data))
 
 

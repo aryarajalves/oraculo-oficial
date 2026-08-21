@@ -55,6 +55,9 @@ export function mapCarouselFromDb(row) {
     generationTimeSeconds: row.generation_time_seconds || null,
     scheduledAt: row.scheduled_at || null,
     scheduledTimestamp: row.scheduled_timestamp || null,
+    totalCostUsd: Number(row.total_cost_usd) || 0,
+    totalCostBrl: Number(row.total_cost_brl) || 0,
+    retryCount: Number(row.retry_count) || 0,
     slides: typeof row.slides === 'string' ? JSON.parse(row.slides) : (row.slides || []),
     chatHistory: typeof row.chat_history === 'string' ? JSON.parse(row.chat_history) : (row.chat_history || [])
   };
@@ -178,8 +181,9 @@ export async function saveSingleCarousel(c) {
   const upsertQuery = `
     INSERT INTO carousels (
       id, title, theme, praca, format, preset, status, created_at,
-      slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history, image_quality, b2_base_url, image_provider, copy_model, no_image_slides_count, last_payload, is_pinned, pinned_at, generation_duration, generation_time_seconds, scheduled_at, scheduled_timestamp
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27)
+      slides_dir, slide_prefix, total_slides, caption, notes, slides, chat_history, image_quality, b2_base_url, image_provider, copy_model, no_image_slides_count, last_payload, is_pinned, pinned_at, generation_duration, generation_time_seconds, scheduled_at, scheduled_timestamp,
+      total_cost_usd, total_cost_brl, retry_count
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
     ON CONFLICT (id) DO UPDATE SET
       title = EXCLUDED.title,
       theme = EXCLUDED.theme,
@@ -206,7 +210,10 @@ export async function saveSingleCarousel(c) {
       generation_duration = EXCLUDED.generation_duration,
       generation_time_seconds = EXCLUDED.generation_time_seconds,
       scheduled_at = EXCLUDED.scheduled_at,
-      scheduled_timestamp = EXCLUDED.scheduled_timestamp
+      scheduled_timestamp = EXCLUDED.scheduled_timestamp,
+      total_cost_usd = EXCLUDED.total_cost_usd,
+      total_cost_brl = EXCLUDED.total_cost_brl,
+      retry_count = EXCLUDED.retry_count
     RETURNING *;
   `;
   const params = [
@@ -236,7 +243,10 @@ export async function saveSingleCarousel(c) {
     c.generationDuration || null,
     c.generationTimeSeconds || null,
     c.scheduledAt || null,
-    c.scheduledTimestamp || null
+    c.scheduledTimestamp || null,
+    Number(c.totalCostUsd) || 0,
+    Number(c.totalCostBrl) || 0,
+    Number(c.retryCount) || 0
   ];
   const res = await query(upsertQuery, params);
   return mapCarouselFromDb(res.rows[0]);
@@ -272,6 +282,9 @@ export async function updateCarouselFields(id, updates = {}) {
       generationTimeSeconds: 'generation_time_seconds',
       scheduledAt: 'scheduled_at',
       scheduledTimestamp: 'scheduled_timestamp',
+      totalCostUsd: 'total_cost_usd',
+      totalCostBrl: 'total_cost_brl',
+      retryCount: 'retry_count',
       slides: 'slides',
       chatHistory: 'chat_history',
       lastPayload: 'last_payload'
@@ -428,7 +441,8 @@ export function getCarouselCostDetails(c) {
   }
   // Se slides.length === 0 e nenhum arquivo existir, paidSlides e freeSlides permanecem 0!
 
-  const cost = paidSlides * costPerImage;
+  const calculatedCost = paidSlides * costPerImage;
+  const cost = c.totalCostUsd && Number(c.totalCostUsd) > 0 ? Math.max(calculatedCost, Number(c.totalCostUsd)) : calculatedCost;
   const savedCost = freeSlides * costPerImage;
 
   return {
@@ -437,8 +451,53 @@ export function getCarouselCostDetails(c) {
     paidSlides,
     freeSlides,
     totalSlidesCount: slides.length || (paidSlides + freeSlides),
-    savedCost
+    savedCost,
+    retryCount: Number(c.retryCount) || 0
   };
+}
+
+export async function recordUsageCost({
+  type,
+  itemId = null,
+  description = '',
+  model = '',
+  provider = '',
+  costUsd = 0,
+  costBrl = null,
+  tokensInput = 0,
+  tokensOutput = 0,
+  quantity = 1,
+  metadata = {}
+}) {
+  try {
+    const finalCostUsd = Number(costUsd) || 0;
+    const finalCostBrl = costBrl !== null ? Number(costBrl) : Math.round(finalCostUsd * 5.0 * 1000) / 1000;
+    const sql = `
+      INSERT INTO usage_costs (
+        type, item_id, description, model, provider,
+        cost_usd, cost_brl, tokens_input, tokens_output, quantity, metadata
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      RETURNING *
+    `;
+    const params = [
+      type,
+      itemId,
+      description,
+      model,
+      provider,
+      finalCostUsd,
+      finalCostBrl,
+      tokensInput,
+      tokensOutput,
+      quantity,
+      JSON.stringify(metadata)
+    ];
+    const res = await query(sql, params);
+    return res.rows[0];
+  } catch (err) {
+    logger.error('[Financial]', `Erro ao registrar custo de uso (${type}):`, err);
+    return null;
+  }
 }
 
 export async function readReelsHistory() {

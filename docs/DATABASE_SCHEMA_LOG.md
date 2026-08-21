@@ -2,6 +2,43 @@
 
 Este documento registra a evolução do esquema de banco de dados do projeto, garantindo a rastreabilidade e a reprodutibilidade das alterações em produção.
 
+## [2026-08-21] Criação da Tabela usage_costs e Colunas de Custos Acumulados
+
+### Motivação
+Rastrear e contabilizar em tempo real todo e qualquer gasto do sistema:
+1. Geração e recriação (retry) de carrosséis
+2. Regeneração individual de slides
+3. Geração de novas imagens no Estúdio/Galeria
+4. Conversas e prompts com o agente de IA no Criador de Conteúdo
+
+### Tabelas e Colunas Criadas
+1. **`usage_costs`**:
+   - `id SERIAL PRIMARY KEY`
+   - `type VARCHAR(50) NOT NULL` (`carousel_generation`, `carousel_retry`, `image_generation`, `slide_regenerate`, `agent_prompt`)
+   - `item_id VARCHAR(100)`
+   - `description TEXT`
+   - `model VARCHAR(100)`
+   - `provider VARCHAR(100)`
+   - `cost_usd NUMERIC(10, 5) NOT NULL DEFAULT 0`
+   - `cost_brl NUMERIC(10, 4) NOT NULL DEFAULT 0`
+   - `tokens_input INTEGER DEFAULT 0`
+   - `tokens_output INTEGER DEFAULT 0`
+   - `quantity INTEGER DEFAULT 1`
+   - `metadata JSONB DEFAULT '{}'::jsonb`
+   - `created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
+   - Índices: `idx_usage_costs_created`, `idx_usage_costs_type`, `idx_usage_costs_item`
+
+2. **`carousels`**:
+   - `total_cost_usd NUMERIC(10, 5) DEFAULT 0`
+   - `total_cost_brl NUMERIC(10, 4) DEFAULT 0`
+   - `retry_count INTEGER DEFAULT 0`
+
+### Script de Migração
+- `backend/scripts/add_usage_costs_table.js`
+- Execução automática em `initDb()` (`backend/dashboard/db.js`).
+
+---
+
 ## [2026-08-21] Migração Alembic 002: Índices GIN e Queries SQL Atômicas de Alta Performance
 
 ### Motivação

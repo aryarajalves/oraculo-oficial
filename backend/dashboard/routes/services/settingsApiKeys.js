@@ -43,19 +43,31 @@ function parseEnvFile(content) {
 }
 
 function maskValue(v) {
-  if (!v || v.length < 6) return v ? '••••' : '';
-  return '••••' + v.slice(-4);
+  if (!v || v.length < 6) return v ? '••••••••••••' : '';
+  const prefix = v.length >= 10 ? v.slice(0, 4) : '••••';
+  const suffix = v.slice(-4);
+  return `${prefix}••••••••••••••••••••••••••••••••${suffix}`;
 }
 
 // ── API: Settings Keys ────────────────────────────────────────────────────────
 router.get('/api/settings/keys', (req, res) => {
   const env = parseEnvFile(readEnvFile());
-  const result = MANAGED_KEYS.map(({ key, label, group }) => ({
-    key, label, group,
-    value: env[key] || '',
-    masked: maskValue(env[key] || ''),
-    set: !!(env[key] && env[key] !== `sua_${key.toLowerCase()}_aqui`),
-  }));
+  const result = MANAGED_KEYS.map(({ key, label, group }) => {
+    const isPublicConfig = ['ACTIVE_IMAGE_PROVIDER', 'COPY_GENERATION_MODEL'].includes(key);
+    const rawVal = env[key] || '';
+    const isSet = !!(rawVal && rawVal !== `sua_${key.toLowerCase()}_aqui` && rawVal.trim() !== '');
+
+    return {
+      key,
+      label,
+      group,
+      // Chaves secretas NUNCA são enviadas em texto plano para o frontend (proteção contra roubo e vazamento)
+      value: isPublicConfig ? rawVal : '',
+      masked: isSet ? maskValue(rawVal) : '',
+      set: isSet,
+    };
+  });
+
   let activeProvider = env['ACTIVE_IMAGE_PROVIDER'] || 'gpt-image-2';
   if (activeProvider === 'dall-e-2') activeProvider = 'gpt-image-1-mini';
 
@@ -74,12 +86,17 @@ router.post('/api/settings/keys', (req, res) => {
   const lines = content.split('\n');
 
   for (const [key, value] of Object.entries(updates)) {
-    if (!value && value !== '') continue;
+    if (value === undefined || value === null) continue;
+    const strVal = String(value).trim();
+    // Ignorar máscaras (ex: "sk-p••••••••••••1234") para evitar sobrescrever a chave real com a máscara
+    if (strVal.includes('••') || strVal.includes('••••')) continue;
+    if (strVal === '' && key !== 'ACTIVE_IMAGE_PROVIDER' && key !== 'COPY_GENERATION_MODEL') continue;
+
     const idx = lines.findIndex(l => {
       const t = l.trim();
       return !t.startsWith('#') && t.startsWith(key + '=');
     });
-    const newLine = `${key}=${value}`;
+    const newLine = `${key}=${strVal}`;
     if (idx >= 0) {
       lines[idx] = newLine;
     } else {
@@ -90,7 +107,10 @@ router.post('/api/settings/keys', (req, res) => {
   try {
     fs.writeFileSync(ENV_PATH, lines.join('\n'), 'utf-8');
     for (const [k, v] of Object.entries(updates)) {
-      if (v !== undefined) process.env[k] = v;
+      const strVal = String(v).trim();
+      if (!strVal.includes('••') && strVal !== '') {
+        process.env[k] = strVal;
+      }
     }
     res.json({ ok: true, updated: Object.keys(updates) });
   } catch (e) {

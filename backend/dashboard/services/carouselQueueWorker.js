@@ -3,7 +3,15 @@ import fs from 'fs';
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { logger } from '../logger.js';
-import { readDataAsync, writeDataAsync, getSlidesForCarousel, getCarouselById, updateCarouselFields } from '../helpers.js';
+import { 
+  readDataAsync, 
+  writeDataAsync, 
+  getSlidesForCarousel, 
+  getCarouselById, 
+  updateCarouselFields,
+  getCarouselCostDetails,
+  recordUsageCost
+} from '../helpers.js';
 import { generationJobs, sseClients, b2 } from '../state.js';
 import { enqueueCarouselTask, setupCarouselQueueConsumer } from './rabbitmq.js';
 
@@ -172,6 +180,16 @@ export function initCarouselQueueWorker() {
           const isAllOk = code === 0 && donePayload && donePayload.total_ok === donePayload.total && slides.length > 0;
           finalStatus = isAllOk ? 'pronto' : 'rascunho';
 
+          // Calcular custo das imagens geradas neste processamento
+          const costDetails = getCarouselCostDetails(cRecord);
+          const isRetry = Boolean(taskData.isRetry || (cRecord.retryCount && cRecord.retryCount > 0));
+          const currentBatchCostUsd = Number(costDetails.cost) || 0;
+          const currentBatchCostBrl = currentBatchCostUsd * 5.0;
+
+          const updatedTotalCostUsd = (Number(cRecord.totalCostUsd) || 0) + (isRetry ? currentBatchCostUsd : currentBatchCostUsd);
+          const updatedTotalCostBrl = updatedTotalCostUsd * 5.0;
+          const updatedRetryCount = isRetry ? ((cRecord.retryCount || 0) + 1) : (cRecord.retryCount || 0);
+
           await updateCarouselFields(carouselId, {
             slidesDir: donePayload?.slides_dir || cRecord.slidesDir,
             totalSlides: slides.length,
@@ -179,6 +197,29 @@ export function initCarouselQueueWorker() {
             status: finalStatus,
             generationTimeSeconds: durationSeconds,
             generationDuration: durationFormatted,
+            totalCostUsd: updatedTotalCostUsd,
+            totalCostBrl: updatedTotalCostBrl,
+            retryCount: updatedRetryCount
+          });
+
+          // Registrar no extrato financeiro (usage_costs)
+          await recordUsageCost({
+            type: isRetry ? 'carousel_retry' : 'carousel_generation',
+            itemId: carouselId,
+            description: `${isRetry ? 'Recriação' : 'Geração'} de ${costDetails.paidSlides} slides para "${cRecord.title || 'Carrossel'}"`,
+            model: cRecord.imageProvider || 'gpt-image-2',
+            provider: cRecord.imageProvider || 'openai',
+            costUsd: currentBatchCostUsd,
+            costBrl: currentBatchCostBrl,
+            quantity: costDetails.paidSlides,
+            metadata: {
+              title: cRecord.title,
+              theme: cRecord.theme,
+              totalSlides: slides.length,
+              paidSlides: costDetails.paidSlides,
+              freeSlides: costDetails.freeSlides,
+              isRetry
+            }
           });
         }
 

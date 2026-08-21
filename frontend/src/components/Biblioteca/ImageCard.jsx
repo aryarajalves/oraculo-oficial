@@ -67,19 +67,19 @@ export default function ImageCard({
           <span>✨</span>
         </button>
 
-        {/* Botão Visualizar em Tamanho Real */}
+        {/* Botão de Maximizar Visualização (Popup no Meio) */}
         <button
           type="button"
           className="lib-card-action-icon"
-          title="Visualizar em tamanho real"
+          title="Maximizar visualização (abrir popup no centro)"
           onClick={(e) => {
             e.stopPropagation();
             onPreview(image);
           }}
+          style={{ cursor: 'pointer' }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-            <circle cx="12" cy="12" r="3"/>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+            <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
           </svg>
         </button>
 

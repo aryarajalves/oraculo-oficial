@@ -39,6 +39,7 @@ export function useBibliotecaChat({ showToast, loadLibrary }) {
       role: 'user',
       content: prompt,
       referenceIds: currentRefs.map(r => r.id),
+      references: currentRefs.map(r => ({ id: r.id, url: r.url, title: r.title })),
       createdAt: new Date().toISOString()
     };
 

@@ -8,6 +8,8 @@ import {
   getCarouselCostDetails 
 } from "../../helpers.js";
 
+import { query } from "../../db.js";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const router = express.Router();
 
@@ -28,6 +30,17 @@ router.get("/api/stats", async (req, res) => {
     const costBrl = costUsd * 5.0; // Converter USD -> BRL (taxa 5.0)
     totalCostBrl += costBrl;
   });
+
+  try {
+    const extraCostsRes = await query(`
+      SELECT SUM(cost_brl) as extra_brl 
+      FROM usage_costs 
+      WHERE type IN ('agent_prompt', 'image_generation', 'slide_regenerate')
+    `);
+    if (extraCostsRes && extraCostsRes.rows && extraCostsRes.rows[0]?.extra_brl) {
+      totalCostBrl += Number(extraCostsRes.rows[0].extra_brl) || 0;
+    }
+  } catch (e) {}
 
   const roundedCostBrl = Math.round(totalCostBrl * 100) / 100;
 

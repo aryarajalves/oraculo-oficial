@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { parseCarouselText } from '../utils/carouselParser';
 import { exportChatToHtml } from '../utils/exportChat';
 
-const IDEAS_PROMPT = `Sugira 5 ideias de temas e títulos para carrosséis do @afonteoculta. O nicho é: espiritualidade, epigenética, frequência, traumas, dinheiro, consciência. Use o Método Jordânico — ganchos disruptivos, revelação oculta, arco emocional.
+const IDEAS_PROMPT = `Sugira 5 ideias de temas e títulos de alto impacto para carrosséis deste projeto, baseando-se estritamente no nicho, posicionamento, tom de voz e diretrizes do nosso agente expert e no Método Jordânico.
 
-Para cada ideia, formate assim:
+Para cada ideia, formate exatamente assim:
 Tema: [slug-do-tema]
 Título: [título do slide 1 — gancho disruptivo]
 
-Seja direto. Sem introduções. Só as 5 ideias.`;
+Seja direto. Sem introduções. Apenas as 5 ideias numeradas.`;
 
 function parseIdeasFromText(text) {
   if (!text || typeof text !== 'string') return [];

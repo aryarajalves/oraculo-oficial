@@ -1,6 +1,6 @@
 {
   "name": "nano-banana-mcp-root",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Root delegator for nano-banana-mcp",
   "type": "module",
   "scripts": {

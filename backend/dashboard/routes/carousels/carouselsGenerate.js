@@ -11,7 +11,8 @@ import {
   getCarouselById,
   saveSingleCarousel,
   updateCarouselFields,
-  getLocalSlidesDir 
+  getLocalSlidesDir,
+  recordUsageCost
 } from "../../helpers.js";
 import { enqueueCarouselTask } from "../../services/rabbitmq.js";
 import { 
@@ -258,7 +259,8 @@ router.post('/api/carousels/:id/retry', async (req, res) => {
     carouselId: id,
     payload: { ...payload, slidesDir: '' },
     noImageSlidesCount: newCarousel.noImageSlidesCount,
-    startTime: newStartTime
+    startTime: newStartTime,
+    isRetry: true
   };
 
   const queueResult = await enqueueCarouselTask(taskPayload);
@@ -484,6 +486,7 @@ Se o usuário escolheu ou enviou um tema/título (ex: "Tema: ...", "X. Tema: ...
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
+    let generatedFullText = '';
 
     while (true) {
       const { done, value } = await reader.read();
@@ -498,13 +501,37 @@ Se o usuário escolheu ou enviou um tema/título (ex: "Tema: ...", "X. Tema: ...
           try {
             const json = JSON.parse(t.slice(6));
             const delta = json.choices?.[0]?.delta?.content;
-            if (delta) res.write(`data: ${JSON.stringify({ token: delta })}\n\n`);
+            if (delta) {
+              generatedFullText += delta;
+              res.write(`data: ${JSON.stringify({ token: delta })}\n\n`);
+            }
           } catch {}
         }
       }
     }
 
-    res.write(`data: ${JSON.stringify({ done: true, model: OPENAI_MODEL })}\n\n`);
+    const inputWords = (system.split(/\s+/).length + formattedMessages.reduce((acc, m) => acc + (m.content || '').split(/\s+/).length, 0));
+    const outputWords = generatedFullText.split(/\s+/).length;
+    const inputTokens = Math.round(inputWords * 1.33);
+    const outputTokens = Math.round(outputWords * 1.33);
+    const costUsd = Number(((inputTokens * 0.000005) + (outputTokens * 0.000015)).toFixed(5)) || 0.001;
+    const costBrl = Number((costUsd * 5.0).toFixed(4));
+
+    await recordUsageCost({
+      type: 'agent_prompt',
+      itemId: 'criador',
+      description: `Prompt com Agente no Criador (${outputTokens} tokens)`,
+      model: OPENAI_MODEL,
+      provider: 'openai',
+      costUsd,
+      costBrl,
+      tokensInput: inputTokens,
+      tokensOutput: outputTokens,
+      quantity: 1,
+      metadata: { model: OPENAI_MODEL }
+    });
+
+    res.write(`data: ${JSON.stringify({ done: true, model: OPENAI_MODEL, costUSD: costUsd, costBRL: costBrl })}\n\n`);
     res.end();
   } catch (e) {
     const cause = e.cause?.message || e.cause?.code || '';

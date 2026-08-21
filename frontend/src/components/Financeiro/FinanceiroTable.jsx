@@ -86,6 +86,11 @@ export default function FinanceiroTable({ carousels = [], onOpenDetails }) {
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <span className="financeiro-carousel-theme">{c.theme || 'Geral'}</span>
+                            {c.retryCount > 0 && (
+                              <span style={{ fontSize: '10.5px', color: '#f59e0b', background: 'rgba(245, 158, 11, 0.15)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                                🔄 {c.retryCount}x recriado
+                              </span>
+                            )}
                             {c.createdAt && (
                               <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>
                                 {new Date(c.createdAt).toLocaleDateString('pt-BR')}

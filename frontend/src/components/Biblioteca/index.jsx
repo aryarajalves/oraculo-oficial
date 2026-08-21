@@ -60,6 +60,8 @@ export default function Biblioteca({ showToast }) {
   const [deleting, setDeleting] = useState(false);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedImageForDetails, setSelectedImageForDetails] = useState(null);
+  const [lightboxModalOpen, setLightboxModalOpen] = useState(false);
+  const [selectedImageForLightbox, setSelectedImageForLightbox] = useState(null);
 
   const handleConfirmDelete = async () => {
     if (!imageToDelete) return;
@@ -190,8 +192,8 @@ export default function Biblioteca({ showToast }) {
                     onToggleReference={(image) => handleToggleSelect(image, () => setAssistantOpen(true))}
                     onToggleBatchSelect={handleToggleBatchSelect}
                     onPreview={(img) => {
-                      setSelectedImageForDetails(img);
-                      setDetailsModalOpen(true);
+                      setSelectedImageForLightbox(img);
+                      setLightboxModalOpen(true);
                     }}
                     onEdit={(img) => {
                       setSelectedImageForDetails(img);
@@ -238,8 +240,8 @@ export default function Biblioteca({ showToast }) {
           generating={generating}
           onSaveToLibrary={(item) => setItemToSave(item)}
           onPreviewImage={(img) => {
-            setSelectedImageForDetails(img);
-            setDetailsModalOpen(true);
+            setSelectedImageForLightbox(img);
+            setLightboxModalOpen(true);
           }}
           showToast={showToast}
         />
@@ -275,6 +277,10 @@ export default function Biblioteca({ showToast }) {
         setDetailsModalOpen={setDetailsModalOpen}
         selectedImageForDetails={selectedImageForDetails}
         setSelectedImageForDetails={setSelectedImageForDetails}
+        lightboxModalOpen={lightboxModalOpen}
+        setLightboxModalOpen={setLightboxModalOpen}
+        selectedImageForLightbox={selectedImageForLightbox}
+        setSelectedImageForLightbox={setSelectedImageForLightbox}
         itemToSave={itemToSave}
         setItemToSave={setItemToSave}
         handleConfirmSaveGenerated={handleConfirmSaveGenerated}
