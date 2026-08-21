@@ -49,39 +49,11 @@ jobs:
       - name: 📥 Checkout do Repositório
         uses: actions/checkout@v4
 
-      - name: 🏷️ Gerar Lista de Tags da Imagem Docker
-        id: docker_meta
-        env:
-          ALL_SECRETS_JSON: ${{ toJson(secrets) }}
+      - name: 🏷️ Extrair Versão do package.json
+        id: pkg_version
         run: |
-          node -e "
-            const fs = require('fs');
-            const version = require('./package.json').version;
-            const secrets = JSON.parse(process.env.ALL_SECRETS_JSON || '{}');
-            const username = secrets.DOCKERHUB_USERNAME || 'aryalvesfernandes';
-
-            const tags = new Set();
-            tags.add(username + '/oraculo:' + version);
-
-            // Adiciona tags de clientes baseadas nos webhooks cadastrados
-            const webhookKeys = Object.keys(secrets).filter(k => k.startsWith('WEBHOOK_'));
-            for (const key of webhookKeys) {
-              const clientTag = key.replace('WEBHOOK_', '').toLowerCase();
-              if (clientTag) {
-                tags.add(username + '/oraculo:' + clientTag);
-              }
-            }
-
-            // Garante a tag haucacau se cadastrada
-            tags.add(username + '/oraculo:haucacau');
-
-            const tagList = Array.from(tags).join('\n');
-            console.log('📦 Tags que serão construídas:\n' + tagList);
-
-            const outputFile = process.env.GITHUB_OUTPUT;
-            fs.appendFileSync(outputFile, 'tags<<EOF\n' + tagList + '\nEOF\n');
-            fs.appendFileSync(outputFile, 'version=' + version + '\n');
-          "
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: 🐳 Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -98,36 +70,13 @@ jobs:
           context: .
           file: ./docker/backend.Dockerfile
           push: true
-          tags: ${{ steps.docker_meta.outputs.tags }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/oraculo:${{ steps.pkg_version.outputs.version }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/oraculo:haucacau
 
       - name: 🚀 Acionar Webhooks do Portainer (Auto-Deploy)
         env:
-          ALL_SECRETS_JSON: ${{ toJson(secrets) }}
-        run: |
-          node -e "
-            const secrets = JSON.parse(process.env.ALL_SECRETS_JSON || '{}');
-            const webhookKeys = Object.keys(secrets).filter(k => k.startsWith('WEBHOOK_'));
-            const { execSync } = require('child_process');
-
-            if (webhookKeys.length === 0) {
-              console.log('ℹ️ Nenhum secret com prefixo WEBHOOK_ cadastrado.');
-              process.exit(0);
-            }
-
-            console.log('🚀 Disparando atualização automática para ' + webhookKeys.length + ' servidor(es)...\n');
-
-            for (const key of webhookKeys) {
-              const serverName = key.replace('WEBHOOK_', '');
-              const url = secrets[key];
-              if (!url || !url.startsWith('http')) continue;
-
-              console.log('📡 Notificando Portainer de [ ' + serverName + ' ]...');
-              try {
-                const cmd = 'curl -s -o /dev/null -w \"%{http_code}\" -X POST \"' + url + '\"';
-                const statusCode = execSync(cmd).toString().trim();
-                console.log('✅ [ ' + serverName + ' ] Resposta do Portainer: HTTP ' + statusCode);
-              } catch (err) {
-                console.error('⚠️ Falha ao acionar ' + serverName + ':', err.message);
-              }
-            }
-          "
+          WEBHOOK_HAUCAU: ${{ secrets.WEBHOOK_HAUCAU }}
+          WEBHOOK_OFICIAL: ${{ secrets.WEBHOOK_OFICIAL }}
+          WEBHOOK_TESTES: ${{ secrets.WEBHOOK_TESTES }}
+        run: node scripts/trigger_webhooks.mjs

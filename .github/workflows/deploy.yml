@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Alvo do Deploy (ALL ou nome do Secret sem o prefixo WEBHOOK_, ex: HAUCAU, OFICIAL, TESTES)'
+        description: 'Alvo do Deploy (ALL, HAUCAU, OFICIAL, TESTES)'
         required: true
         default: 'ALL'
         type: string
@@ -20,67 +20,8 @@ jobs:
 
       - name: 🌐 Executar Disparo de Webhook dos Servidores
         env:
-          TARGET_PARAM: ${{ github.event.inputs.target }}
-          ALL_SECRETS_JSON: ${{ toJson(secrets) }}
-        run: |
-          node -e "
-            const secrets = JSON.parse(process.env.ALL_SECRETS_JSON || '{}');
-            const target = (process.env.TARGET_PARAM || 'ALL').toUpperCase().trim();
-
-            const webhookKeys = Object.keys(secrets).filter(k => k.startsWith('WEBHOOK_'));
-
-            if (webhookKeys.length === 0) {
-              console.log('⚠️ Nenhum secret com prefixo WEBHOOK_ encontrado no repositório.');
-              console.log('👉 Cadastre secrets como WEBHOOK_HAUCAU, WEBHOOK_OFICIAL, etc.');
-              process.exit(0);
-            }
-
-            let toTrigger = [];
-
-            if (target === 'ALL' || target === 'TODOS') {
-              toTrigger = webhookKeys;
-            } else {
-              const exactKey = 'WEBHOOK_' + target.replace(/^WEBHOOK_/, '');
-              if (secrets[exactKey]) {
-                toTrigger = [exactKey];
-              } else {
-                console.error('❌ Servidor/Webhook não encontrado para o alvo: ' + target);
-                console.log('Chaves disponíveis:', webhookKeys.map(k => k.replace('WEBHOOK_', '')).join(', '));
-                process.exit(1);
-              }
-            }
-
-            console.log('🚀 Disparando atualização para ' + toTrigger.length + ' servidor(es)...\n');
-
-            const { execSync } = require('child_process');
-            let hasErrors = false;
-
-            for (const key of toTrigger) {
-              const serverName = key.replace('WEBHOOK_', '');
-              const url = secrets[key];
-              if (!url || !url.startsWith('http')) {
-                console.log('⚠️ [ ' + serverName + ' ] URL inválida ou não configurada.');
-                continue;
-              }
-
-              console.log('📡 Chamando Portainer de [ ' + serverName + ' ]...');
-              try {
-                const cmd = 'curl -s -o /dev/null -w \"%{http_code}\" -X POST \"' + url + '\"';
-                const statusCode = execSync(cmd).toString().trim();
-                if (statusCode === '200' || statusCode === '204' || statusCode === '202') {
-                  console.log('✅ [ ' + serverName + ' ] Atualização aceita pelo Portainer! (HTTP ' + statusCode + ')');
-                } else {
-                  console.log('⚠️ [ ' + serverName + ' ] Portainer respondeu com código HTTP: ' + statusCode);
-                }
-              } catch (err) {
-                console.error('❌ [ ' + serverName + ' ] Falha na chamada HTTP:', err.message);
-                hasErrors = true;
-              }
-            }
-
-            if (hasErrors) {
-              process.exit(1);
-            } else {
-              console.log('\n🎉 Todos os Webhooks foram disparados com sucesso!');
-            }
-          "
+          TARGET_SERVER: ${{ github.event.inputs.target }}
+          WEBHOOK_HAUCAU: ${{ secrets.WEBHOOK_HAUCAU }}
+          WEBHOOK_OFICIAL: ${{ secrets.WEBHOOK_OFICIAL }}
+          WEBHOOK_TESTES: ${{ secrets.WEBHOOK_TESTES }}
+        run: node scripts/trigger_webhooks.mjs
