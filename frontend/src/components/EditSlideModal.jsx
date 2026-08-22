@@ -13,7 +13,7 @@ const getDefaultLogoText = () => {
     const branding = JSON.parse(localStorage.getItem('fo_branding') || '{}');
     if (branding.logoText) return branding.logoText;
   } catch {}
-  return '@HAUCACAU';
+  return '';
 };
 
 export default function EditSlideModal({

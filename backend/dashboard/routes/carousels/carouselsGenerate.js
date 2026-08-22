@@ -145,8 +145,17 @@ router.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
       "--provider", activeProvider, 
       "--output", imgPath
     ];
-    if (c.handle) {
-      pythonArgs.push("--watermark", c.handle);
+    let watermarkText = c.handle;
+    if (!watermarkText) {
+      try {
+        const resBranding = await query('SELECT data FROM branding WHERE id = 1');
+        if (resBranding.rows.length > 0 && resBranding.rows[0].data?.logoText) {
+          watermarkText = resBranding.rows[0].data.logoText;
+        }
+      } catch (e) {}
+    }
+    if (watermarkText) {
+      pythonArgs.push("--watermark", watermarkText);
     }
     const { stdout } = await execFileAsync(PYTHON, pythonArgs, {
       timeout: 180000,

@@ -57,15 +57,17 @@ def _watermarks(draw, color, pos="top_left", x=None, y=None, text=None):
 
     mark = text.strip() if text is not None and str(text).strip() != "" else None
     if not mark:
-        mark = "@HAUCACAU"
         try:
             branding_path = Path(__file__).parent.parent.parent.parent / "dashboard" / "data" / "branding.json"
             if branding_path.exists():
                 with open(branding_path, encoding="utf-8") as f:
                     data = json.load(f)
-                    mark = data.get("logoText", "@HAUCACAU")
+                    mark = data.get("logoText")
         except Exception:
             pass
+
+    if not mark or not str(mark).strip():
+        return
 
     fm = load_font(F_MARK, 28)
 
