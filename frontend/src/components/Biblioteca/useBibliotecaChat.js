@@ -28,18 +28,31 @@ export function useBibliotecaChat({ showToast, loadLibrary }) {
     loadChat();
   }, []);
 
-  const handleSendMessage = async (prompt, selectedReferences, clearReferences) => {
+  const handleSendMessage = async (prompt, selectedReferences = [], clearReferences) => {
     if (!prompt.trim() || generating) return;
 
-    const currentRefs = [...selectedReferences];
+    let currentRefs = Array.isArray(selectedReferences) ? [...selectedReferences] : [];
     if (clearReferences) clearReferences();
+
+    // Se nenhuma referência explícita foi selecionada neste turno, herda as referências do turno anterior
+    if (currentRefs.length === 0 && messages.length > 0) {
+      const lastUserWithRefs = [...messages].reverse().find(m => m.role === 'user' && Array.isArray(m.references) && m.references.length > 0);
+      if (lastUserWithRefs && lastUserWithRefs.references.length > 0) {
+        currentRefs = [...lastUserWithRefs.references];
+      } else {
+        const lastAiImage = [...messages].reverse().find(m => m.role === 'ai' && (m.imageUrl || m.filename));
+        if (lastAiImage) {
+          currentRefs = [{ id: lastAiImage.id, url: lastAiImage.imageUrl, title: lastAiImage.generatedPrompt || 'Imagem Anterior' }];
+        }
+      }
+    }
 
     const userTempMsg = {
       id: 'temp_user_' + Date.now(),
       role: 'user',
       content: prompt,
-      referenceIds: currentRefs.map(r => r.id),
-      references: currentRefs.map(r => ({ id: r.id, url: r.url, title: r.title })),
+      referenceIds: currentRefs.map(r => r.id).filter(Boolean),
+      references: currentRefs.map(r => ({ id: r.id, url: r.url, title: r.title, filename: r.filename })),
       createdAt: new Date().toISOString()
     };
 

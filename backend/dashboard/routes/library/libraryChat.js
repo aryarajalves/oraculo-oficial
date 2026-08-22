@@ -91,23 +91,49 @@ router.post('/api/library/chat/generate', async (req, res) => {
       }
     }
 
-    // Se nenhuma referência nova foi marcada, herda a última imagem da conversa para manter contexto contínuo
+    // Se nenhuma referência nova foi marcada explicitamente, herda o contexto da conversa
     if (referenceImageUrls.length === 0 && Array.isArray(messages) && messages.length > 0) {
-      const lastAiImageMsg = [...messages].reverse().find(m => m.role === 'ai' && m.filename);
-      if (lastAiImageMsg && lastAiImageMsg.filename) {
-        try {
-          const p = path.join(storageDir, path.basename(lastAiImageMsg.filename));
-          if (fs.existsSync(p)) {
-            const fileData = fs.readFileSync(p);
-            const ext = path.extname(lastAiImageMsg.filename).toLowerCase();
-            const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
-            if (ext !== '.svg') {
-              referenceImageUrls.push(`data:${mime};base64,${fileData.toString('base64')}`);
-              logger.info('[Library]', `🖼️ Contexto contínuo ativado: herdando ${lastAiImageMsg.filename} para análise do Vision`);
+      // 1. Tenta herdar a referência da mensagem anterior do usuário
+      const lastUserWithRefs = [...messages].reverse().find(m => m.role === 'user' && Array.isArray(m.references) && m.references.length > 0);
+      if (lastUserWithRefs && lastUserWithRefs.references.length > 0) {
+        referencesInfo = lastUserWithRefs.references;
+        for (const r of referencesInfo) {
+          try {
+            const filename = r.filename || (r.url ? path.basename(r.url.split('?')[0]) : null);
+            if (filename) {
+              const p = path.join(storageDir, filename);
+              if (fs.existsSync(p)) {
+                const fileData = fs.readFileSync(p);
+                const ext = path.extname(filename).toLowerCase();
+                const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+                if (ext !== '.svg') {
+                  referenceImageUrls.push(`data:${mime};base64,${fileData.toString('base64')}`);
+                }
+              }
             }
+          } catch (e) {}
+        }
+      }
+
+      // 2. Se ainda não carregou, herda a última imagem gerada pela IA
+      if (referenceImageUrls.length === 0) {
+        const lastAiImageMsg = [...messages].reverse().find(m => m.role === 'ai' && m.filename);
+        if (lastAiImageMsg && lastAiImageMsg.filename) {
+          try {
+            const p = path.join(storageDir, path.basename(lastAiImageMsg.filename));
+            if (fs.existsSync(p)) {
+              const fileData = fs.readFileSync(p);
+              const ext = path.extname(lastAiImageMsg.filename).toLowerCase();
+              const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+              if (ext !== '.svg') {
+                referenceImageUrls.push(`data:${mime};base64,${fileData.toString('base64')}`);
+                referencesInfo = [{ id: lastAiImageMsg.id, url: lastAiImageMsg.imageUrl, title: lastAiImageMsg.generatedPrompt || 'Imagem Anterior', filename: lastAiImageMsg.filename }];
+                logger.info('[Library]', `🖼️ Contexto contínuo ativado: herdando ${lastAiImageMsg.filename} para análise do Vision`);
+              }
+            }
+          } catch (prevErr) {
+            logger.warn('[Library]', 'Erro ao carregar imagem anterior para contexto:', prevErr.message);
           }
-        } catch (prevErr) {
-          logger.warn('[Library]', 'Erro ao carregar imagem anterior para contexto:', prevErr.message);
         }
       }
     }

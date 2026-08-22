@@ -235,7 +235,7 @@ export default function Biblioteca({ showToast }) {
           allImages={images}
           messages={messages}
           generatedImages={generatedImages}
-          onSendMessage={(prompt) => handleSendMessage(prompt, selectedReferences, () => setSelectedReferences([]))}
+          onSendMessage={(prompt) => handleSendMessage(prompt, selectedReferences)}
           onClearChat={handleClearChat}
           generating={generating}
           onSaveToLibrary={(item) => setItemToSave(item)}
