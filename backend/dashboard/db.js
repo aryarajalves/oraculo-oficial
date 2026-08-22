@@ -239,6 +239,9 @@ export async function initDb() {
     await query(createApiKeysTable);
     await query(createLibraryImagesTable);
     await query("ALTER TABLE library_images ADD COLUMN IF NOT EXISTS prompt TEXT");
+    await query("ALTER TABLE library_images ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'upload'");
+    await query("ALTER TABLE library_images ADD COLUMN IF NOT EXISTS ai_model VARCHAR(100) DEFAULT NULL");
+    await query("CREATE INDEX IF NOT EXISTS idx_library_images_source_model ON library_images (source, ai_model)");
     await query(createLibraryChatsTable);
     await query(createUsageCostsTable);
 

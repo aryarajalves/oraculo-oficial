@@ -25,6 +25,7 @@ import {
 } from "../../state.js";
 import { logger } from '../../logger.js';
 import { query } from '../../db.js';
+import { enrichPromptWithReferences } from "../../services/referencePromptEnricher.js";
 
 const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -118,13 +119,25 @@ router.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
   const c = await getCarouselById(req.params.id);
   if (!c) return res.status(404).json({ error: "Não encontrado" });
   const imgPath = path.join(getLocalSlidesDir(c), req.params.filename);
-  const { prompt, title, body, layout = "fullbleed", preset } = req.body;
+  const { prompt, title, body, layout = "fullbleed", preset, reference_ids, referenceIds, reference_images, referenceImages } = req.body;
   if (!prompt || !title || !body) return res.status(400).json({ error: "prompt, title e body são obrigatórios" });
+  
+  const rawRefIds = reference_ids || referenceIds || (Array.isArray(reference_images) ? reference_images.map(r => r.id) : (Array.isArray(referenceImages) ? referenceImages.map(r => r.id) : []));
   const activeProvider = c.imageProvider || process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
+  
   try {
+    let finalPrompt = prompt;
+    let enrichedReferences = [];
+    if (Array.isArray(rawRefIds) && rawRefIds.length > 0) {
+      const enrichResult = await enrichPromptWithReferences(prompt, rawRefIds);
+      finalPrompt = enrichResult.enrichedPrompt || prompt;
+      enrichedReferences = enrichResult.references || [];
+      logger.info('[Carousel]', `🖼️ Prompt enriquecido com ${enrichedReferences.length} referência(s) para o slide ${req.params.filename}`);
+    }
+
     const pythonArgs = [
       REGEN_SCRIPT,
-      "--prompt", prompt, 
+      "--prompt", finalPrompt, 
       "--title", title, 
       "--body", body,
       "--layout", layout, 
@@ -157,6 +170,9 @@ router.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
     fs.writeFileSync(metaPath, JSON.stringify({
       ...currentMeta,
       prompt,
+      final_prompt: finalPrompt !== prompt ? finalPrompt : undefined,
+      reference_ids: rawRefIds && rawRefIds.length > 0 ? rawRefIds : undefined,
+      reference_images: enrichedReferences.length > 0 ? enrichedReferences : undefined,
       title,
       body,
       layout,
@@ -181,7 +197,7 @@ router.post("/api/carousels/:id/slide/:filename/regen", async (req, res) => {
       }
     }
 
-    res.json({ ok: true, message: stdout.trim() });
+    res.json({ ok: true, message: stdout.trim(), enriched: finalPrompt !== prompt });
   } catch (e) {
     logger.error('[Carousel]', "regen error:", e.message);
     res.status(500).json({ error: e.message });

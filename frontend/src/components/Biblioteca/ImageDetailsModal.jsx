@@ -1,5 +1,5 @@
-// frontend/src/components/Biblioteca/ImageDetailsModal.jsx — Modal de visualização detalhada e edição
 import React, { useState, useEffect } from 'react';
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 
 export default function ImageDetailsModal({
   isOpen,
@@ -8,6 +8,7 @@ export default function ImageDetailsModal({
   onSaveMetadata,
   showToast
 }) {
+  useLockBodyScroll(isOpen);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Geral');
   const [notes, setNotes] = useState('');
@@ -107,13 +108,48 @@ export default function ImageDetailsModal({
           </div>
 
           {(image.created_at || image.createdAt) && (
-            <div style={{ fontSize: '11px', color: 'var(--text-3, #71717a)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-3, #71717a)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
               <span>🕒 Data do Upload:</span>
               <strong style={{ color: 'var(--gold, #c9a84c)' }}>
                 {new Date(image.created_at || image.createdAt).toLocaleString('pt-BR')}
               </strong>
             </div>
           )}
+
+          {/* Procedência e Modelo de IA */}
+          <div style={{ marginBottom: '14px' }}>
+            {image.source === 'ai' || image.prompt ? (
+              <div style={{ 
+                fontSize: '11px', 
+                color: '#06b6d4', 
+                background: 'rgba(6, 182, 212, 0.1)', 
+                border: '1px solid rgba(6, 182, 212, 0.25)', 
+                padding: '5px 9px', 
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span>🤖</span>
+                <span><strong>Gerada por IA:</strong> Modelo {(image.ai_model || 'gpt-image-2').toUpperCase()}</span>
+              </div>
+            ) : (
+              <div style={{ 
+                fontSize: '11px', 
+                color: 'var(--text-2, #e4e4e7)', 
+                background: 'rgba(255, 255, 255, 0.04)', 
+                border: '1px solid rgba(255, 255, 255, 0.08)', 
+                padding: '5px 9px', 
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <span>📤</span>
+                <span><strong>Upload Manual</strong></span>
+              </div>
+            )}
+          </div>
 
           <form onSubmit={handleSave} style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div className="form-group">

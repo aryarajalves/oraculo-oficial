@@ -2,6 +2,26 @@
 
 Este documento registra a evolução do esquema de banco de dados do projeto, garantindo a rastreabilidade e a reprodutibilidade das alterações em produção.
 
+## [2026-08-22] Adição de source e ai_model na Tabela library_images
+
+### Motivação
+Rastrear a procedência de cada imagem na Biblioteca de Referências:
+1. Identificar se a imagem foi gerada por IA (`source = 'ai'`) ou enviada por upload manual (`source = 'upload'`).
+2. Armazenar o modelo de IA específico utilizado na geração (`ai_model`, ex: `gpt-image-2`, `dall-e-3`, `flux`, `imagen-3`).
+3. Permitir filtros combinados por procedência e modelo na galeria do frontend.
+
+### Colunas e Índices Criados
+1. **`library_images`**:
+   - `source VARCHAR(50) DEFAULT 'upload'`
+   - `ai_model VARCHAR(100) DEFAULT NULL`
+   - Índice: `idx_library_images_source_model ON library_images (source, ai_model)`
+
+### Script de Migração
+- `backend/scripts/add_source_and_model_to_library_images.js`
+- Executado automaticamente também em `initDb()` (`backend/dashboard/db.js`).
+
+---
+
 ## [2026-08-21] Criação da Tabela usage_costs e Colunas de Custos Acumulados
 
 ### Motivação

@@ -4,6 +4,7 @@ import FinanceiroBreakdown from './FinanceiroBreakdown';
 import FinanceiroFilters from './FinanceiroFilters';
 import FinanceiroTable from './FinanceiroTable';
 import FinanceiroTransactionsTable from './FinanceiroTransactionsTable';
+import DashboardPagination from '../Dashboard/DashboardPagination';
 import CarouselDetailsModal from '../Dashboard/modals/CarouselDetailsModal';
 
 export default function Financeiro({ showToast }) {
@@ -23,6 +24,14 @@ export default function Financeiro({ showToast }) {
   const [selectedProvider, setSelectedProvider] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [sortBy, setSortBy] = useState('recent');
+
+  // Paginação para Carrosséis (padrão: 20 por página)
+  const [carouselsPage, setCarouselsPage] = useState(1);
+  const [carouselsPageSize, setCarouselsPageSize] = useState('20');
+
+  // Paginação para Extrato de Gastos (padrão: 20 por página)
+  const [transactionsPage, setTransactionsPage] = useState(1);
+  const [transactionsPageSize, setTransactionsPageSize] = useState('20');
 
   const [selectedDetailsCarousel, setSelectedDetailsCarousel] = useState(null);
 
@@ -48,7 +57,12 @@ export default function Financeiro({ showToast }) {
     loadFinancialData();
   }, [loadFinancialData]);
 
-  // Filtragem e Ordenação
+  // Resetar para a primeira página ao alterar os filtros
+  useEffect(() => {
+    setCarouselsPage(1);
+  }, [searchTerm, selectedProvider, selectedStatus, sortBy]);
+
+  // Filtragem e Ordenação de Carrosséis
   const filteredCarousels = useMemo(() => {
     let list = Array.isArray(data.carousels) ? [...data.carousels] : [];
 
@@ -87,6 +101,30 @@ export default function Financeiro({ showToast }) {
 
     return list;
   }, [data.carousels, searchTerm, selectedProvider, selectedStatus, sortBy]);
+
+  // Total de páginas e fatia paginada de Carrosséis
+  const totalCarouselsPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredCarousels.length / Number(carouselsPageSize)));
+  }, [filteredCarousels.length, carouselsPageSize]);
+
+  const paginatedCarousels = useMemo(() => {
+    const size = Number(carouselsPageSize);
+    const start = (carouselsPage - 1) * size;
+    return filteredCarousels.slice(start, start + size);
+  }, [filteredCarousels, carouselsPage, carouselsPageSize]);
+
+  // Total de páginas e fatia paginada de Transações
+  const totalTransactionsPages = useMemo(() => {
+    const total = data.transactions?.length || 0;
+    return Math.max(1, Math.ceil(total / Number(transactionsPageSize)));
+  }, [data.transactions, transactionsPageSize]);
+
+  const paginatedTransactions = useMemo(() => {
+    const list = Array.isArray(data.transactions) ? data.transactions : [];
+    const size = Number(transactionsPageSize);
+    const start = (transactionsPage - 1) * size;
+    return list.slice(start, start + size);
+  }, [data.transactions, transactionsPage, transactionsPageSize]);
 
   return (
     <div className="financeiro-wrapper">
@@ -189,15 +227,43 @@ export default function Financeiro({ showToast }) {
             filteredCount={filteredCarousels.length}
           />
 
-          {/* Tabela de Carrosséis */}
+          {/* Tabela de Carrosséis Paginada */}
           <FinanceiroTable
-            carousels={filteredCarousels}
+            carousels={paginatedCarousels}
             onOpenDetails={(carousel) => setSelectedDetailsCarousel(carousel)}
+          />
+
+          {/* Barra de Paginação de Carrosséis */}
+          <DashboardPagination
+            pageSize={carouselsPageSize}
+            onPageSizeChange={(newSize) => {
+              setCarouselsPageSize(newSize);
+              setCarouselsPage(1);
+            }}
+            currentPage={carouselsPage}
+            totalPages={totalCarouselsPages}
+            onPageChange={setCarouselsPage}
+            totalItems={filteredCarousels.length}
           />
         </>
       ) : (
-        /* Tabela de Extrato de Gastos em Tempo Real */
-        <FinanceiroTransactionsTable transactions={data.transactions} />
+        <>
+          {/* Tabela de Extrato de Gastos em Tempo Real Paginada */}
+          <FinanceiroTransactionsTable transactions={paginatedTransactions} />
+
+          {/* Barra de Paginação de Transações */}
+          <DashboardPagination
+            pageSize={transactionsPageSize}
+            onPageSizeChange={(newSize) => {
+              setTransactionsPageSize(newSize);
+              setTransactionsPage(1);
+            }}
+            currentPage={transactionsPage}
+            totalPages={totalTransactionsPages}
+            onPageChange={setTransactionsPage}
+            totalItems={data.transactions?.length || 0}
+          />
+        </>
       )}
 
       {/* Modal de Detalhes do Carrossel */}

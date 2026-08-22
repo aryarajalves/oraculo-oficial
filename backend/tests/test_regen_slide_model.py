@@ -19,5 +19,10 @@ class TestRegenSlideScript(unittest.TestCase):
         for layout in ["fullbleed", "dramatico", "etereo", "text_only", "card"]:
             self.assertIn(f'"{layout}"', self.content, f"Layout {layout} não encontrado no choices do regen-slide.py.")
 
+    def test_supports_gpt_image_models(self):
+        """Verifica se regen-slide.py suporta gpt-image-1 e gpt-image-2."""
+        self.assertIn('"gpt-image-1"', self.content, "gpt-image-1 deve ser suportado no regen-slide.py")
+        self.assertIn('"gpt-image-2"', self.content, "gpt-image-2 deve ser suportado no regen-slide.py")
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

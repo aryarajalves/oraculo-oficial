@@ -1,5 +1,5 @@
-// frontend/src/components/Biblioteca/DeleteImageModal.jsx — Modal de confirmação de exclusão
 import React from 'react';
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 
 export default function DeleteImageModal({
   isOpen,
@@ -9,6 +9,7 @@ export default function DeleteImageModal({
   onConfirm,
   deleting
 }) {
+  useLockBodyScroll(isOpen);
   if (!isOpen) return null;
 
   const isBatch = count > 1 || (!image && count > 0);

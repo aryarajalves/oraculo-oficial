@@ -4,6 +4,9 @@ export function useBibliotecaData({ showToast }) {
   const [images, setImages] = useState([]);
   const [categories, setCategories] = useState(['Todas', 'Geral', 'Pessoas', 'Cenários', 'Estilo', 'Produtos']);
   const [selectedCategory, setSelectedCategory] = useState('Todas');
+  const [selectedSource, setSelectedSource] = useState('Todos');
+  const [selectedModel, setSelectedModel] = useState('Todos');
+  const [availableModels, setAvailableModels] = useState(['Todos']);
   const [sortOrder, setSortOrder] = useState('date_desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -16,11 +19,19 @@ export function useBibliotecaData({ showToast }) {
   const [selectedReferences, setSelectedReferences] = useState([]);
   const [selectedForBatch, setSelectedForBatch] = useState([]);
 
-  const loadLibrary = async (category = selectedCategory, search = searchQuery, sort = sortOrder) => {
+  const loadLibrary = async (
+    category = selectedCategory,
+    search = searchQuery,
+    sort = sortOrder,
+    source = selectedSource,
+    model = selectedModel
+  ) => {
     try {
       const token = localStorage.getItem('fo_token');
       const params = new URLSearchParams();
       if (category && category !== 'Todas') params.append('category', category);
+      if (source && source !== 'Todos') params.append('source', source);
+      if (model && model !== 'Todos') params.append('model', model);
       if (search && search.trim()) params.append('search', search.trim());
       if (sort) params.append('sort', sort);
 
@@ -35,6 +46,9 @@ export function useBibliotecaData({ showToast }) {
         setImages(data.images || []);
         if (Array.isArray(data.categories) && data.categories.length > 0) {
           setCategories(data.categories);
+        }
+        if (Array.isArray(data.models) && data.models.length > 0) {
+          setAvailableModels(data.models);
         }
       }
     } catch {
@@ -102,6 +116,11 @@ export function useBibliotecaData({ showToast }) {
     categories,
     selectedCategory,
     setSelectedCategory,
+    selectedSource,
+    setSelectedSource,
+    selectedModel,
+    setSelectedModel,
+    availableModels,
     sortOrder,
     setSortOrder,
     searchQuery,

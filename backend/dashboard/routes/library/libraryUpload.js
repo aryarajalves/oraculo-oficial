@@ -72,10 +72,10 @@ router.post('/api/library/upload', upload.array('files', 10), async (req, res) =
       const title = (files.length === 1 && customTitle) ? customTitle.trim() : cleanOriginalName;
 
       const insertRes = await query(
-        `INSERT INTO library_images (title, category, notes, filename, storage_path, mime_type, size_bytes, created_by)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `INSERT INTO library_images (title, category, notes, filename, storage_path, mime_type, size_bytes, created_by, source, ai_model)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
          RETURNING *`,
-        [title, category, notes, uniqueFilename, uniqueFilename, file.mimetype, file.size, userEmail]
+        [title, category, notes, uniqueFilename, uniqueFilename, file.mimetype, file.size, userEmail, 'upload', null]
       );
 
       const item = insertRes.rows[0];

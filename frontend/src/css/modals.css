@@ -1,4 +1,46 @@
 /* ── Modal (new-modal / form-modal) ─────────────────────────────────────── */
+html.modal-open,
+body.modal-open,
+body:has(.form-modal.open),
+body:has(.edit-modal.open),
+body:has(.cancel-modal-overlay),
+body:has(.lightbox-overlay),
+body:has(.lib-lightbox-overlay),
+body:has(.fullscreen-lightbox) {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none;
+}
+
+html.modal-open .biblioteca-gallery-area,
+body.modal-open .biblioteca-gallery-area,
+body:has(.form-modal.open) .biblioteca-gallery-area,
+body:has(.edit-modal.open) .biblioteca-gallery-area,
+body:has(.cancel-modal-overlay) .biblioteca-gallery-area,
+body:has(.lightbox-overlay) .biblioteca-gallery-area {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+html.modal-open .assistant-drawer,
+body.modal-open .assistant-drawer,
+body:has(.form-modal.open) .assistant-drawer,
+body:has(.edit-modal.open) .assistant-drawer,
+body:has(.cancel-modal-overlay) .assistant-drawer,
+body:has(.lightbox-overlay) .assistant-drawer {
+  overflow: hidden !important;
+}
+
+html.modal-open .main-content,
+body.modal-open .main-content,
+body:has(.form-modal.open) .main-content,
+body:has(.edit-modal.open) .main-content,
+body:has(.cancel-modal-overlay) .main-content,
+body:has(.lightbox-overlay) .main-content {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
 .form-modal {
   display: none;
   position: fixed;
@@ -8,6 +50,8 @@
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(4px);
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 .form-modal.open { display: flex; }
 
@@ -20,6 +64,8 @@
   max-width: 96vw;
   max-height: 90vh;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: auto;
 }
 
 .form-title {

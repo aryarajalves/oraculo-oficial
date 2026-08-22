@@ -43,7 +43,8 @@ Return ONLY the final English prompt.`;
     }
   ];
 
-  console.log('Enviando para GPT-4o Vision...');
+  console.log('Enviando para Vision...');
+  const modelName = process.env.COPY_GENERATION_MODEL || 'gpt-4o';
   const res = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -51,19 +52,17 @@ Return ONLY the final English prompt.`;
       'Authorization': `Bearer ${apiKey}`
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: modelName,
       messages: [
         { role: 'system', content: sysPrompt },
         { role: 'user', content: userContent }
       ],
-      temperature: 0.7,
-      max_tokens: 500
+      max_completion_tokens: 500
     })
   });
 
   const data = await res.json();
-  console.log('Status:', res.status);
-  console.log('GPT-4o Output:\n', data.choices?.[0]?.message?.content);
+  console.log('Resultado Vision (Status ' + res.status + '):', data.choices?.[0]?.message?.content || data);
 }
 
 testVision();

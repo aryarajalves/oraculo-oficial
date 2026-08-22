@@ -41,7 +41,9 @@ export default function EditSlideModal({
     watermark_text: getDefaultLogoText(),
     title_px: 76,
     body_px: 40,
-    preset: 'sagrado'
+    preset: 'sagrado',
+    reference_ids: [],
+    reference_images: []
   });
   const [saving, setSaving] = useState(false);
   const [loadingAction, setLoadingAction] = useState('recompose');
@@ -159,7 +161,9 @@ export default function EditSlideModal({
           watermark_text: (data.watermark_text !== undefined && data.watermark_text !== null && String(data.watermark_text).trim() !== '') ? data.watermark_text : defaultLogo,
           title_px: (data.title_px !== undefined && data.title_px !== null && String(data.title_px).trim() !== '') ? data.title_px : presetSizes.title,
           body_px: (data.body_px !== undefined && data.body_px !== null && String(data.body_px).trim() !== '') ? data.body_px : presetSizes.body,
-          preset: presetKey
+          preset: presetKey,
+          reference_ids: data.reference_ids || [],
+          reference_images: data.reference_images || []
         });
       }
     } catch (e) {
@@ -310,6 +314,7 @@ export default function EditSlideModal({
                 saving={saving}
                 onClose={onClose}
                 handleRegen={handleRegen}
+                showToast={showToast}
               />
             )}
           </div>

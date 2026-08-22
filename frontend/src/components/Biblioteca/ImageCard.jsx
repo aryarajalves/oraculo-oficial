@@ -112,12 +112,50 @@ export default function ImageCard({
           </button>
         </div>
 
-        {uploadDate && (
-          <div className="lib-card-date" title={`Upload realizado em: ${uploadDate}`}>
-            <span className="lib-card-date-icon">🕒</span>
-            <span>{uploadDate}</span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0 6px 0' }}>
+          {uploadDate && (
+            <div className="lib-card-date" style={{ margin: 0 }} title={`Upload realizado em: ${uploadDate}`}>
+              <span className="lib-card-date-icon">🕒</span>
+              <span>{uploadDate}</span>
+            </div>
+          )}
+
+          {/* Badge de Procedência / Modelo */}
+          {image.source === 'ai' || image.prompt ? (
+            <span
+              style={{
+                fontSize: '10px',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                background: 'rgba(6, 182, 212, 0.12)',
+                color: '#06b6d4',
+                border: '1px solid rgba(6, 182, 212, 0.3)',
+                fontWeight: '600',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px'
+              }}
+              title={`Gerada por IA usando o modelo ${image.ai_model || 'gpt-image-2'}`}
+            >
+              🤖 {(image.ai_model || 'gpt-image-2').toUpperCase()}
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: '10px',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                background: 'rgba(255, 255, 255, 0.05)',
+                color: 'var(--text-3, #a1a1aa)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                fontWeight: '500'
+              }}
+              title="Enviada por upload manual"
+            >
+              📤 Upload
+            </span>
+          )}
+        </div>
 
         <div className="lib-card-bottom-row">
           <button className="lib-btn-copy-url" onClick={handleCopyUrl}>

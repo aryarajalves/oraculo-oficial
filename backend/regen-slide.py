@@ -82,11 +82,11 @@ def gen_fal_ai(prompt, retries=2):
     return None
 
 def gen(prompt, provider=None):
-    active_prov = (provider or os.getenv("ACTIVE_IMAGE_PROVIDER") or "gpt-image-2").lower()
+    active_prov = (provider or os.getenv("ACTIVE_IMAGE_PROVIDER") or "gpt-image-1").lower()
     print(f"  Usando Provedor de Imagem: {active_prov}", file=sys.stderr)
 
-    if active_prov in ["gpt-image-2", "openai", "dall-e-3"]:
-        img = gen_openai(prompt, model_name="gpt-image-2")
+    if active_prov in ["gpt-image-1", "gpt-image-2", "openai", "dall-e-3"]:
+        img = gen_openai(prompt, model_name=active_prov)
         if img: return img
     elif active_prov in ["gpt-image-1-mini", "dall-e-2", "mini"]:
         img = gen_openai(prompt, model_name="gpt-image-1-mini")
@@ -100,7 +100,7 @@ def gen(prompt, provider=None):
 
     # Fallback em cascata caso o provedor selecionado falhe
     print("  Fallback: tentando provedores secundários...", file=sys.stderr)
-    return gen_openai(prompt, "gpt-image-2") or gen_gemini_imagen3(prompt) or gen_fal_ai(prompt)
+    return gen_openai(prompt, "gpt-image-1") or gen_openai(prompt, "gpt-image-2") or gen_gemini_imagen3(prompt) or gen_fal_ai(prompt)
 
 def main():
     p = argparse.ArgumentParser()

@@ -78,7 +78,6 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/oraculo:${{ steps.pkg_version.outputs.version }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/oraculo:haucacau
 
       - name: 🚀 Acionar Webhooks do Portainer (Auto-Deploy)
         env:

@@ -1,5 +1,5 @@
-// frontend/src/components/Biblioteca/ImageLightboxModal.jsx — Modal Popup centralizado para visualização maximizada de imagens
 import React, { useEffect } from 'react';
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 
 export default function ImageLightboxModal({
   isOpen,
@@ -8,6 +8,7 @@ export default function ImageLightboxModal({
   onOpenEdit,
   showToast
 }) {
+  useLockBodyScroll(isOpen);
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) {
@@ -92,11 +93,36 @@ export default function ImageLightboxModal({
               <h3 style={{ fontSize: '15px', fontWeight: '700', color: '#fff', margin: 0, letterSpacing: '-0.2px' }}>
                 {image.title || 'Visualização da Imagem'}
               </h3>
-              {uploadDate && (
-                <div style={{ fontSize: '11px', color: 'var(--text-3, #a1a1aa)', marginTop: '2px' }}>
-                  Enviada em: {uploadDate}
-                </div>
-              )}
+              <div style={{ fontSize: '11px', color: 'var(--text-3, #a1a1aa)', marginTop: '3px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                {image.source === 'ai' || image.prompt ? (
+                  <span style={{ 
+                    color: '#06b6d4', 
+                    background: 'rgba(6, 182, 212, 0.12)', 
+                    border: '1px solid rgba(6, 182, 212, 0.25)', 
+                    padding: '1px 6px', 
+                    borderRadius: '4px', 
+                    fontWeight: '600' 
+                  }}>
+                    🤖 Gerada por IA (Modelo: {(image.ai_model || 'gpt-image-2').toUpperCase()})
+                  </span>
+                ) : (
+                  <span style={{ 
+                    color: 'var(--text-2, #e4e4e7)', 
+                    background: 'rgba(255, 255, 255, 0.06)', 
+                    border: '1px solid rgba(255, 255, 255, 0.1)', 
+                    padding: '1px 6px', 
+                    borderRadius: '4px', 
+                    fontWeight: '500' 
+                  }}>
+                    📤 Upload Manual
+                  </span>
+                )}
+                {uploadDate && (
+                  <span>
+                    • Enviada em: <strong style={{ color: '#fff' }}>{uploadDate}</strong>
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 

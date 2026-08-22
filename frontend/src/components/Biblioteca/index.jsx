@@ -1,4 +1,3 @@
-// frontend/src/components/Biblioteca/index.jsx — Componente Principal da Biblioteca e Assistente IA
 import React, { useState } from 'react';
 import ImageCard from './ImageCard';
 import AssistantDrawer from './AssistantDrawer';
@@ -6,6 +5,7 @@ import BibliotecaTopbar from './BibliotecaTopbar';
 import BibliotecaBatchBanner from './BibliotecaBatchBanner';
 import DashboardPagination from '../Dashboard/DashboardPagination';
 import BibliotecaModals from './BibliotecaModals';
+import CancelGenerationModal from './CancelGenerationModal';
 import { useBibliotecaData } from './useBibliotecaData';
 import { useBibliotecaChat } from './useBibliotecaChat';
 import '../../css/biblioteca.css';
@@ -16,6 +16,11 @@ export default function Biblioteca({ showToast }) {
     categories,
     selectedCategory,
     setSelectedCategory,
+    selectedSource,
+    setSelectedSource,
+    selectedModel,
+    setSelectedModel,
+    availableModels,
     sortOrder,
     setSortOrder,
     searchQuery,
@@ -41,6 +46,10 @@ export default function Biblioteca({ showToast }) {
     messages,
     generatedImages,
     generating,
+    showCancelModal,
+    onRequestCancel,
+    onConfirmCancel,
+    onCloseCancelModal,
     itemToSave,
     setItemToSave,
     savingItem,
@@ -136,20 +145,33 @@ export default function Biblioteca({ showToast }) {
             onSearchChange={(val) => {
               setSearchQuery(val);
               setCurrentPage(1);
-              loadLibrary(selectedCategory, val, sortOrder);
+              loadLibrary(selectedCategory, val, sortOrder, selectedSource, selectedModel);
             }}
             categories={categories}
             selectedCategory={selectedCategory}
             onCategoryChange={(cat) => {
               setSelectedCategory(cat);
               setCurrentPage(1);
-              loadLibrary(cat, searchQuery, sortOrder);
+              loadLibrary(cat, searchQuery, sortOrder, selectedSource, selectedModel);
+            }}
+            selectedSource={selectedSource}
+            onSourceChange={(src) => {
+              setSelectedSource(src);
+              setCurrentPage(1);
+              loadLibrary(selectedCategory, searchQuery, sortOrder, src, selectedModel);
+            }}
+            models={availableModels}
+            selectedModel={selectedModel}
+            onModelChange={(mod) => {
+              setSelectedModel(mod);
+              setCurrentPage(1);
+              loadLibrary(selectedCategory, searchQuery, sortOrder, selectedSource, mod);
             }}
             sortOrder={sortOrder}
             onSortOrderChange={(sort) => {
               setSortOrder(sort);
               setCurrentPage(1);
-              loadLibrary(selectedCategory, searchQuery, sort);
+              loadLibrary(selectedCategory, searchQuery, sort, selectedSource, selectedModel);
             }}
             totalImages={images.length}
             selectedCount={selectedForBatch.length}
@@ -238,6 +260,10 @@ export default function Biblioteca({ showToast }) {
           onSendMessage={(prompt) => handleSendMessage(prompt, selectedReferences)}
           onClearChat={handleClearChat}
           generating={generating}
+          showCancelModal={showCancelModal}
+          onRequestCancel={onRequestCancel}
+          onConfirmCancel={onConfirmCancel}
+          onCloseCancelModal={onCloseCancelModal}
           onSaveToLibrary={(item) => setItemToSave(item)}
           onPreviewImage={(img) => {
             setSelectedImageForLightbox(img);
@@ -286,6 +312,12 @@ export default function Biblioteca({ showToast }) {
         handleConfirmSaveGenerated={handleConfirmSaveGenerated}
         savingItem={savingItem}
         showToast={showToast}
+      />
+
+      <CancelGenerationModal
+        isOpen={showCancelModal}
+        onClose={onCloseCancelModal}
+        onConfirm={onConfirmCancel}
       />
     </div>
   );

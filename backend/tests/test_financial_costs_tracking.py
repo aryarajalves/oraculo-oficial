@@ -49,5 +49,38 @@ class TestFinancialCostsTracking(unittest.TestCase):
         self.assertIn('FinanceiroTransactionsTable', code)
         self.assertIn('Extrato de Gastos em Tempo Real', code)
 
+    def test_financeiro_kpi_responsive_grid_and_badges(self):
+        css_file = Path(__file__).resolve().parents[2] / 'frontend' / 'src' / 'css' / 'tab_financeiro.css'
+        self.assertTrue(css_file.exists())
+        css = css_file.read_text(encoding='utf-8')
+        self.assertIn('.financeiro-kpi-grid', css)
+        self.assertIn('repeat(6, minmax(0, 1fr))', css)
+        self.assertIn('@media (max-width: 1440px)', css)
+        self.assertIn('repeat(3, minmax(0, 1fr))', css)
+        self.assertIn('min-width: 0', css)
+
+        stats_file = Path(__file__).resolve().parents[2] / 'frontend' / 'src' / 'components' / 'Financeiro' / 'FinanceiroStats.jsx'
+        self.assertTrue(stats_file.exists())
+        stats_code = stats_file.read_text(encoding='utf-8')
+        self.assertIn('Custo Total Geral', stats_code)
+        self.assertIn('Economia (Text-Only)', stats_code)
+        self.assertIn('Carrosséis & Recriações', stats_code)
+        self.assertIn('Imagens de Estúdio', stats_code)
+        self.assertIn('Prompts & Conversas IA', stats_code)
+        self.assertIn('Custo Médio / Slide', stats_code)
+
+    def test_financeiro_pagination(self):
+        index_file = Path(__file__).resolve().parents[2] / 'frontend' / 'src' / 'components' / 'Financeiro' / 'index.jsx'
+        self.assertTrue(index_file.exists())
+        code = index_file.read_text(encoding='utf-8')
+        self.assertIn('DashboardPagination', code)
+        self.assertIn("carouselsPageSize, setCarouselsPageSize] = useState('20')", code)
+        self.assertIn("transactionsPageSize, setTransactionsPageSize] = useState('20')", code)
+        self.assertIn('paginatedCarousels', code)
+        self.assertIn('paginatedTransactions', code)
+        self.assertIn('totalCarouselsPages', code)
+        self.assertIn('totalTransactionsPages', code)
+
 if __name__ == '__main__':
     unittest.main()
+

@@ -35,7 +35,7 @@ router.get("/api/stats", async (req, res) => {
     const extraCostsRes = await query(`
       SELECT SUM(cost_brl) as extra_brl 
       FROM usage_costs 
-      WHERE type IN ('agent_prompt', 'image_generation', 'slide_regenerate')
+      WHERE type IN ('agent_prompt', 'image_generation', 'slide_regenerate', 'carousel_retry')
     `);
     if (extraCostsRes && extraCostsRes.rows && extraCostsRes.rows[0]?.extra_brl) {
       totalCostBrl += Number(extraCostsRes.rows[0].extra_brl) || 0;

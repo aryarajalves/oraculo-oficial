@@ -16,7 +16,7 @@ if (!fs.existsSync(storageDir)) {
 // ── 1. Listar Imagens da Biblioteca ──────────────────────────────────────────
 router.get('/api/library', async (req, res) => {
   try {
-    const { search, category, sort } = req.query;
+    const { search, category, sort, source, model } = req.query;
     let sql = 'SELECT * FROM library_images WHERE 1=1';
     const params = [];
 
@@ -25,9 +25,20 @@ router.get('/api/library', async (req, res) => {
       sql += ` AND category = $${params.length}`;
     }
 
+    if (source && source !== 'Todos' && source !== 'Todas') {
+      const cleanSource = (source === 'ai' || source === 'IA Gerada' || source === 'Geradas por IA') ? 'ai' : 'upload';
+      params.push(cleanSource);
+      sql += ` AND source = $${params.length}`;
+    }
+
+    if (model && model !== 'Todos') {
+      params.push(model);
+      sql += ` AND ai_model = $${params.length}`;
+    }
+
     if (search && search.trim()) {
       params.push(`%${search.trim()}%`);
-      sql += ` AND (title ILIKE $${params.length} OR notes ILIKE $${params.length} OR category ILIKE $${params.length})`;
+      sql += ` AND (title ILIKE $${params.length} OR notes ILIKE $${params.length} OR category ILIKE $${params.length} OR ai_model ILIKE $${params.length})`;
     }
 
     if (sort === 'date_asc') {
@@ -46,14 +57,22 @@ router.get('/api/library', async (req, res) => {
     const catsRes = await query('SELECT DISTINCT category FROM library_images WHERE category IS NOT NULL AND category <> \'\'');
     const existingCategories = catsRes.rows.map(r => r.category);
 
+    // Obter todos os modelos de IA registrados
+    const modelsRes = await query("SELECT DISTINCT ai_model FROM library_images WHERE ai_model IS NOT NULL AND ai_model <> '' ORDER BY ai_model ASC");
+    const existingModels = modelsRes.rows.map(r => r.ai_model);
+
     const images = result.rows.map(img => ({
       ...img,
+      source: img.source || (img.prompt ? 'ai' : 'upload'),
+      ai_model: img.ai_model || (img.source === 'ai' || img.prompt ? 'gpt-image-2' : null),
       url: `/api/library/${img.id}/image`
     }));
 
     res.json({
       images,
-      categories: ['Todas', 'Geral', 'Pessoas', 'Cenários', 'Estilo', 'Produtos', ...existingCategories.filter(c => !['Todas', 'Geral', 'Pessoas', 'Cenários', 'Estilo', 'Produtos'].includes(c))]
+      categories: ['Todas', 'Geral', 'Pessoas', 'Cenários', 'Estilo', 'Produtos', ...existingCategories.filter(c => !['Todas', 'Geral', 'Pessoas', 'Cenários', 'Estilo', 'Produtos'].includes(c))],
+      models: ['Todos', ...existingModels.filter(m => m !== 'Todos')],
+      sources: ['Todos', 'Geradas por IA', 'Uploads Manuais']
     });
   } catch (err) {
     logger.error('[Library]', 'Erro ao listar imagens:', err);

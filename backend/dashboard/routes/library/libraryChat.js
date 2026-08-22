@@ -68,9 +68,13 @@ router.post('/api/library/chat/generate', async (req, res) => {
     // 1. Carrega as imagens de referência selecionadas e converte para base64 (Vision)
     let referencesInfo = [];
     let referenceImageUrls = [];
-    if (Array.isArray(referenceIds) && referenceIds.length > 0) {
-      const refsRes = await query('SELECT * FROM library_images WHERE id = ANY($1::int[])', [referenceIds]);
-      referencesInfo = refsRes.rows;
+    const cleanNumericIds = (Array.isArray(referenceIds) ? referenceIds : [])
+      .map(id => typeof id === 'number' ? id : parseInt(id, 10))
+      .filter(id => !isNaN(id) && id > 0);
+
+    if (cleanNumericIds.length > 0) {
+      const refsRes = await query('SELECT * FROM library_images WHERE id = ANY($1::int[])', [cleanNumericIds]);
+      referencesInfo = refsRes.rows || [];
 
       for (const r of referencesInfo) {
         try {
@@ -149,7 +153,7 @@ Your mission is to analyze the attached reference image(s) and translate the use
 Core Directives:
 1. Art Style & Medium Fidelity: Preserve the exact visual medium and artistic style of the reference image (e.g., Japanese anime/manga cel-shaded animation, 2D vector art, 3D CGI render, vintage comic book art, oil painting, or realistic photography). If the reference is anime/cartoon, the prompt MUST keep the anime/cartoon style; NEVER turn an anime character into a real person unless explicitly requested.
 2. Subject & Identity Consistency: Identify the character/subject, hair shape/silhouette, iconic accessories (headband with symbols, jewelry, whisker marks, tattoos, facial markings), clothing, and overall composition.
-3. Targeted Transformation: Accurately apply the user's specific request (e.g., "change hair color to red", "add sunglasses", "change outfit", "change expression") while keeping all other characteristic features, art style, and character identity identical to the reference image.
+3. Targeted Transformation & Scene Placement: Accurately apply the user's specific request (e.g., "change hair color to red", "add sunglasses", "change outfit", "change expression", "place in a modern luxury environment"). When the user asks to place the image/subject in a setting or background, place the ACTUAL character/subject directly inside that environment as the main foreground subject, NEVER as a framed picture or painting on a wall. Keep all characteristic features, art style, and character identity identical to the reference image.
 4. Comprehensive Scene Description: Clearly describe the subject, hair color, facial expression, clothing, pose, lighting, and background.
 5. Strict Output: Output ONLY the raw English generation prompt text without quotes, markdown formatting, explanations, or conversational prefixes.`;
 
@@ -170,21 +174,26 @@ Core Directives:
           userContent = `User instruction: "${prompt}"\nCreate a rich, visually compelling image generation prompt in English that perfectly captures this concept.`;
         }
 
+        const modelName = process.env.COPY_GENERATION_MODEL || 'gpt-4o';
+        const bodyPayload = {
+          model: modelName,
+          messages: [
+            { role: 'system', content: sysPrompt },
+            { role: 'user', content: userContent }
+          ],
+          max_completion_tokens: 500
+        };
+        if (!modelName.startsWith('o1') && !modelName.startsWith('o3')) {
+          bodyPayload.temperature = 0.7;
+        }
+
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
           },
-          body: JSON.stringify({
-            model: process.env.COPY_GENERATION_MODEL || 'gpt-4o',
-            messages: [
-              { role: 'system', content: sysPrompt },
-              { role: 'user', content: userContent }
-            ],
-            temperature: 0.7,
-            max_tokens: 500
-          })
+          body: JSON.stringify(bodyPayload)
         });
 
         if (response.ok) {
@@ -192,8 +201,11 @@ Core Directives:
           const candidate = completion.choices?.[0]?.message?.content?.trim();
           if (candidate && !candidate.toLowerCase().startsWith("i'm sorry") && !candidate.toLowerCase().startsWith("i cannot")) {
             generatedPrompt = candidate;
-            logger.info('[Library]', '✨ Prompt enriquecido pelo GPT-4o Vision com sucesso:', generatedPrompt.substring(0, 80) + '...');
+            logger.info('[Library]', '✨ Prompt enriquecido pelo Vision com sucesso:', generatedPrompt.substring(0, 80) + '...');
           }
+        } else {
+          const errData = await response.json().catch(() => ({}));
+          logger.warn('[Library]', 'OpenAI Vision chat completion retornou status não-200:', response.status, errData);
         }
       } catch (promptErr) {
         logger.warn('[Library]', 'Erro no enriquecimento do prompt (usando original):', promptErr.message);
@@ -448,7 +460,7 @@ router.get('/api/library/generated/:filename', (req, res) => {
 // ── 5. Salvar Imagem Gerada na Biblioteca Principal ────────────────────────
 router.post('/api/library/save-generated', async (req, res) => {
   try {
-    const { filename, title = 'Imagem Gerada por IA', category = 'IA Gerada', prompt = '', notes = '' } = req.body;
+    const { filename, title = 'Imagem Gerada por IA', category = 'IA Gerada', prompt = '', notes = '', model, source = 'ai' } = req.body;
     if (!filename) {
       return res.status(400).json({ error: 'Filename é obrigatório.' });
     }
@@ -467,12 +479,13 @@ router.post('/api/library/save-generated', async (req, res) => {
     const stats = fs.statSync(destPath);
     const userEmail = req.user?.email || 'admin';
     const mime = ext === '.svg' ? 'image/svg+xml' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.webp' ? 'image/webp' : 'image/png';
+    const effectiveModel = model || process.env.ACTIVE_IMAGE_PROVIDER || 'gpt-image-2';
 
     const insertRes = await query(
-      `INSERT INTO library_images (title, category, notes, prompt, filename, storage_path, mime_type, size_bytes, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      `INSERT INTO library_images (title, category, notes, prompt, filename, storage_path, mime_type, size_bytes, created_by, source, ai_model)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
-      [title.trim(), category, notes, prompt || null, newFilename, newFilename, mime, stats.size, userEmail]
+      [title.trim(), category, notes, prompt || null, newFilename, newFilename, mime, stats.size, userEmail, source, effectiveModel]
     );
 
     const created = insertRes.rows[0];

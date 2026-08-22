@@ -1,5 +1,5 @@
-// frontend/src/components/Biblioteca/SaveGeneratedModal.jsx — Modal de Confirmação para Salvar Imagem Gerada
 import React, { useState, useEffect } from 'react';
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 
 export default function SaveGeneratedModal({
   isOpen,
@@ -8,6 +8,7 @@ export default function SaveGeneratedModal({
   onConfirmSave,
   saving
 }) {
+  useLockBodyScroll(isOpen);
   const [title, setTitle] = useState('');
   const [prompt, setPrompt] = useState('');
   const [category, setCategory] = useState('IA Gerada');

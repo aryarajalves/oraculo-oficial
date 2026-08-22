@@ -63,19 +63,22 @@ def gen_openai(prompt: str, retries: int = MAX_RETRIES, size: str = None, qualit
     """
     client = _get_client()
 
-    active_provider = os.getenv("ACTIVE_IMAGE_PROVIDER", "gpt-image-2").lower().strip()
+    active_provider = (os.getenv("ACTIVE_IMAGE_PROVIDER") or "gpt-image-1").lower().strip()
     if active_provider in ["gpt-image-1-mini", "dall-e-2", "mini", "economico"]:
-        model_name = "dall-e-2"
+        model_name = "gpt-image-1-mini"
         target_size = size or "1024x1024"
-        target_quality = "standard"
-    elif active_provider in ["gpt-image-2", "dall-e-3", "gpt-image-1"]:
+    elif active_provider in ["gpt-image-1"]:
+        model_name = "gpt-image-1"
+        target_size = size or "1024x1024"
+    elif active_provider in ["gpt-image-2"]:
+        model_name = "gpt-image-2"
+        target_size = size or "1024x1024"
+    elif active_provider in ["dall-e-3"]:
         model_name = "dall-e-3"
         target_size = size or "1024x1792"
-        target_quality = quality or "hd"
     else:
-        model_name = "dall-e-3"
-        target_size = size or "1024x1792"
-        target_quality = quality or "hd"
+        model_name = active_provider
+        target_size = size or "1024x1024"
 
     for attempt in range(1, retries + 1):
         try:
@@ -89,7 +92,7 @@ def gen_openai(prompt: str, retries: int = MAX_RETRIES, size: str = None, qualit
             }
 
             if model_name == "dall-e-3":
-                kwargs["quality"] = target_quality
+                kwargs["quality"] = quality or "hd"
 
             response = client.images.generate(**kwargs)
             item     = response.data[0]

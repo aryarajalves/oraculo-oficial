@@ -4,6 +4,7 @@ import ChatWelcomeGuide from './ChatWelcomeGuide';
 export default function ChatMessages({
   messages,
   generating,
+  onRequestCancel,
   onSaveToLibrary,
   onPreviewImage,
   onSelectPrompt,
@@ -224,6 +225,22 @@ export default function ChatMessages({
           <span style={{ fontSize: '12px', color: 'var(--gold, #c9a84c)', fontWeight: '500' }}>
             Criando imagem e aplicando referências visuais...
           </span>
+
+          {onRequestCancel && (
+            <button
+              type="button"
+              className="btn-cancel-generation"
+              onClick={onRequestCancel}
+              title="Interromper criação de imagem"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="9" y2="15" />
+                <line x1="9" y1="9" x2="15" y2="15" />
+              </svg>
+              Cancelar Geração
+            </button>
+          )}
         </div>
       )}
 

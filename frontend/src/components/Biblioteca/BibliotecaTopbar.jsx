@@ -7,6 +7,11 @@ export default function BibliotecaTopbar({
   categories,
   selectedCategory,
   onCategoryChange,
+  selectedSource = 'Todos',
+  onSourceChange,
+  models = ['Todos'],
+  selectedModel = 'Todos',
+  onModelChange,
   sortOrder,
   onSortOrderChange,
   totalImages,
@@ -31,6 +36,37 @@ export default function BibliotecaTopbar({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
         />
+
+        {/* Dropdown de Origem (IA vs Upload) */}
+        <select
+          className="biblioteca-select-filter"
+          value={selectedSource}
+          onChange={(e) => onSourceChange && onSourceChange(e.target.value)}
+          title="Filtrar por Origem"
+          style={{ minWidth: '140px' }}
+        >
+          <option value="Todos" style={{ background: '#18181b', color: '#fff' }}>🌐 Todas as Origens</option>
+          <option value="ai" style={{ background: '#18181b', color: '#06b6d4' }}>🤖 Geradas por IA</option>
+          <option value="upload" style={{ background: '#18181b', color: '#e4e4e7' }}>📤 Uploads Manuais</option>
+        </select>
+
+        {/* Dropdown de Modelo IA (renderizado ou habilitado) */}
+        {models && models.length > 1 && (
+          <select
+            className="biblioteca-select-filter"
+            value={selectedModel}
+            onChange={(e) => onModelChange && onModelChange(e.target.value)}
+            title="Filtrar por Modelo de IA"
+            style={{ minWidth: '150px' }}
+          >
+            <option value="Todos" style={{ background: '#18181b', color: '#fff' }}>🧠 Todos os Modelos</option>
+            {models.filter(m => m !== 'Todos').map(mod => (
+              <option key={mod} value={mod} style={{ background: '#18181b', color: '#c9a84c' }}>
+                ✨ {mod.toUpperCase()}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* Dropdown de Categorias */}
         <select

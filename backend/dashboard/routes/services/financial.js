@@ -189,8 +189,13 @@ router.get("/api/financial/summary", async (req, res) => {
       logger.warn('[Financial]', 'Tabela usage_costs não inicializada:', err.message);
     }
 
-    // Se a tabela usage_costs for nova, usa o total de carrosséis como baseline
-    const totalCostUsd = Math.max(totalCarouselCostUsd, (categoriesBreakdown.carousels.usd + extraCostsUsd));
+    // Custo base dos carrosséis (da tabela carousels ou de usage_costs)
+    const carouselBaseUsd = categoriesBreakdown.carousels.usd > 0
+      ? categoriesBreakdown.carousels.usd
+      : totalCarouselCostUsd;
+
+    // Custo total geral consolidando Carrosséis + Recriações + Imagens de Estúdio/Galeria + Prompts de IA
+    const totalCostUsd = carouselBaseUsd + extraCostsUsd;
     const totalCostBrl = Math.round((totalCostUsd * USD_TO_BRL_RATE) * 100) / 100;
     const totalSavedBrl = Math.round(totalSavedUsd * USD_TO_BRL_RATE * 100) / 100;
     const totalCarousels = all.length;

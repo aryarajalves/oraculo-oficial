@@ -1,5 +1,5 @@
-// frontend/src/components/Biblioteca/UploadModal.jsx — Modal de Upload de Imagens
 import React, { useState, useRef } from 'react';
+import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 
 export default function UploadModal({
   isOpen,
@@ -8,6 +8,7 @@ export default function UploadModal({
   existingCategories = [],
   showToast
 }) {
+  useLockBodyScroll(isOpen);
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [category, setCategory] = useState('Geral');

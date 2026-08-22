@@ -15,6 +15,7 @@ export default function AssistantDrawer({
   onSendMessage,
   onClearChat,
   generating,
+  onRequestCancel,
   onSaveToLibrary,
   onPreviewImage,
   showToast
@@ -126,6 +127,7 @@ export default function AssistantDrawer({
           <ChatMessages
             messages={messages}
             generating={generating}
+            onRequestCancel={onRequestCancel}
             onSaveToLibrary={onSaveToLibrary}
             onPreviewImage={onPreviewImage}
             onSelectPrompt={onSendMessage}

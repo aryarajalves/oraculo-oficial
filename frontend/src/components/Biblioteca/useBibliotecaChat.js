@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function useBibliotecaChat({ showToast, loadLibrary }) {
   const [messages, setMessages] = useState([]);
   const [generatedImages, setGeneratedImages] = useState([]);
   const [generating, setGenerating] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [itemToSave, setItemToSave] = useState(null);
   const [savingItem, setSavingItem] = useState(false);
+  const abortControllerRef = useRef(null);
 
   const loadChat = async () => {
     try {
@@ -59,10 +61,17 @@ export function useBibliotecaChat({ showToast, loadLibrary }) {
     setMessages(prev => [...prev, userTempMsg]);
     setGenerating(true);
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const token = localStorage.getItem('fo_token');
       const res = await fetch('/api/library/chat/generate', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -85,12 +94,36 @@ export function useBibliotecaChat({ showToast, loadLibrary }) {
         if (showToast) showToast(`Erro ao gerar imagem: ${data.error || 'Falha na IA'}`);
         setMessages(prev => prev.filter(m => m.id !== userTempMsg.id));
       }
-    } catch {
-      if (showToast) showToast('Erro de conexão ao gerar imagem.');
-      setMessages(prev => prev.filter(m => m.id !== userTempMsg.id));
+    } catch (err) {
+      if (err?.name === 'AbortError' || controller.signal.aborted) {
+        if (showToast) showToast('⚠️ Geração de imagem cancelada.');
+        setMessages(prev => prev.filter(m => m.id !== userTempMsg.id));
+      } else {
+        if (showToast) showToast('Erro de conexão ao gerar imagem.');
+        setMessages(prev => prev.filter(m => m.id !== userTempMsg.id));
+      }
     } finally {
       setGenerating(false);
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleRequestCancel = () => {
+    if (generating) {
+      setShowCancelModal(true);
+    }
+  };
+
+  const handleConfirmCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    setGenerating(false);
+    setShowCancelModal(false);
+  };
+
+  const handleCloseCancelModal = () => {
+    setShowCancelModal(false);
   };
 
   const handleClearChat = async () => {
@@ -143,6 +176,10 @@ export function useBibliotecaChat({ showToast, loadLibrary }) {
     messages,
     generatedImages,
     generating,
+    showCancelModal,
+    onRequestCancel: handleRequestCancel,
+    onConfirmCancel: handleConfirmCancel,
+    onCloseCancelModal: handleCloseCancelModal,
     itemToSave,
     setItemToSave,
     savingItem,
