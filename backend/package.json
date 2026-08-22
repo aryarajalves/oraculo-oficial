@@ -19,7 +19,7 @@
     "amqplib": "^0.10.4",
     "argon2": "^0.45.1",
     "cors": "^2.8.6",
-    "docx": "^9.6.1",
+    "docx": "^9.7.1",
     "express-session": "^1.19.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.2.0",
