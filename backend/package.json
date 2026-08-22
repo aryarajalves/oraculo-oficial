@@ -16,7 +16,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1067.0",
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "amqplib": "^0.10.4",
+    "amqplib": "^2.0.1",
     "argon2": "^0.45.1",
     "cors": "^2.8.6",
     "docx": "^9.6.1",
